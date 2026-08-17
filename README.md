@@ -142,6 +142,10 @@ Before a release, also run a fresh migration against a disposable MariaDB/MySQL 
 
 The recommended first production topology is a Laravel Forge-managed Ubuntu application server in Singapore or Mumbai on a reputable cloud provider, with Nginx, PHP 8.3, MySQL 8/MariaDB, Redis, Supervisor-managed queue workers, the Laravel scheduler, TLS, automated database backups, and S3-compatible private object storage. Start as one appropriately sized application server, then separate the database/worker tiers only when measured load requires it.
 
+### Laravel Cloud
+
+Laravel Cloud is also supported. Follow [deploy/laravel-cloud.md](deploy/laravel-cloud.md) for a safe staging-first setup, exact build/deploy commands, managed-resource configuration, smoke tests, and production promotion. Do not use the generic `deploy/deploy-production.sh` script on Laravel Cloud.
+
 Production environment requirements include:
 
 - `APP_ENV=production` and `APP_DEBUG=false`

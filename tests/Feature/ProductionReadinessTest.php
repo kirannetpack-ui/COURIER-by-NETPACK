@@ -48,7 +48,27 @@ class ProductionReadinessTest extends TestCase
         ]);
 
         $this->artisan('app:production-check')
-            ->expectsOutput('Critical production configuration checks passed.')
+            ->expectsOutput('Critical deployment configuration checks passed.')
+            ->assertSuccessful();
+    }
+
+    public function test_production_check_can_validate_a_hardened_staging_environment(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'staging');
+        config()->set([
+            'app.debug' => false,
+            'app.key' => 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+            'app.url' => 'https://staging.courier.example.com',
+            'session.secure' => true,
+            'session.driver' => 'redis',
+            'database.default' => 'mysql',
+            'queue.default' => 'redis',
+            'cache.default' => 'redis',
+            'mail.default' => 'postmark',
+        ]);
+
+        $this->artisan('app:production-check --allow-staging')
+            ->expectsOutput('Critical deployment configuration checks passed.')
             ->assertSuccessful();
     }
 

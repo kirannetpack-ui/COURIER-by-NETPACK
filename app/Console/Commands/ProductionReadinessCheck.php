@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 
 class ProductionReadinessCheck extends Command
 {
-    protected $signature = 'app:production-check';
+    protected $signature = 'app:production-check {--allow-staging : Apply the same checks to a staging environment}';
 
     protected $description = 'Fail when critical production configuration is unsafe';
 
@@ -15,7 +15,14 @@ class ProductionReadinessCheck extends Command
         $errors = [];
         $warnings = [];
 
-        $this->require($errors, app()->environment('production'), 'APP_ENV must be production.');
+        $isProduction = app()->environment('production');
+        $isApprovedStaging = $this->option('allow-staging') && app()->environment('staging');
+
+        $this->require(
+            $errors,
+            $isProduction || $isApprovedStaging,
+            'APP_ENV must be production (or staging when --allow-staging is supplied).'
+        );
         $this->require($errors, config('app.debug') === false, 'APP_DEBUG must be false.');
         $this->require($errors, filled(config('app.key')), 'APP_KEY must be generated.');
         $this->require($errors, str_starts_with((string) config('app.url'), 'https://'), 'APP_URL must use HTTPS.');
@@ -44,7 +51,7 @@ class ProductionReadinessCheck extends Command
             return self::FAILURE;
         }
 
-        $this->info('Critical production configuration checks passed.');
+        $this->info('Critical deployment configuration checks passed.');
 
         return self::SUCCESS;
     }
