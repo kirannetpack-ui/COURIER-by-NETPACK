@@ -10,7 +10,7 @@
                 <h1 class="text-xl font-semibold text-gray-800">Transit Points</h1>
                 <p class="text-sm text-gray-500 mt-1">Manage overseas transit points and hubs</p>
             </div>
-            <a href="{{ route('overseas.transit-points.create') }}" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+            <a href="{{ route($routePrefix.'.transit-points.create') }}" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
                 <i class="fas fa-plus mr-2"></i> Add Transit Point
             </a>
         </div>
@@ -42,7 +42,7 @@
                     </select>
                 </div>
                 @if(request('partner_id'))
-                    <a href="{{ route('overseas.transit-points.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                    <a href="{{ route($routePrefix.'.transit-points.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
                         Clear Filter
                     </a>
                 @endif
@@ -98,13 +98,17 @@
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex gap-2">
-                                        <a href="{{ route('overseas.transit-points.edit', $point->id) }}" class="text-teal-600 hover:text-teal-800" title="Edit">
+                                        <a href="{{ route($routePrefix.'.transit-points.edit', $point->id) }}" class="text-teal-600 hover:text-teal-800" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ route('overseas.transit-points.toggle', $point->id) }}" class="text-{{ $point->is_active ? 'red' : 'green' }}-600 hover:text-{{ $point->is_active ? 'red' : 'green' }}-800" title="{{ $point->is_active ? 'Deactivate' : 'Activate' }}">
-                                            <i class="fas fa-{{ $point->is_active ? 'pause' : 'play' }}"></i>
-                                        </a>
-                                        <form method="POST" action="{{ route('overseas.transit-points.destroy', $point->id) }}" class="inline" onsubmit="return confirm('Delete this transit point?')">
+                                        <form method="POST" action="{{ route($routePrefix.'.transit-points.toggle', $point->id) }}" class="inline" onsubmit="return confirm('{{ $point->is_active ? 'Deactivate' : 'Activate' }} this transit point?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="text-{{ $point->is_active ? 'red' : 'green' }}-600 hover:text-{{ $point->is_active ? 'red' : 'green' }}-800" title="{{ $point->is_active ? 'Deactivate' : 'Activate' }}">
+                                                <i class="fas fa-{{ $point->is_active ? 'pause' : 'play' }}"></i>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route($routePrefix.'.transit-points.destroy', $point->id) }}" class="inline" onsubmit="return confirm('Delete this transit point?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-600 hover:text-red-800" title="Delete">

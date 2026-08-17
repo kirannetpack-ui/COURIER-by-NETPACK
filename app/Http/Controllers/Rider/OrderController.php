@@ -105,6 +105,35 @@ class OrderController extends Controller
     DB::beginTransaction();
 
     try {
+        // Serialize acceptance so two riders cannot claim the same order.
+        $order = Order::whereKey($id)->lockForUpdate()->firstOrFail();
+        $rider = User::whereKey($rider->id)->lockForUpdate()->firstOrFail();
+
+        if ($order->status !== 'pending' || $order->rider_id !== null) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'This order is no longer available.');
+        }
+
+        $activeOrders = Order::where('rider_id', $rider->id)
+            ->whereIn('status', ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'])
+            ->count();
+
+        if ($activeOrders >= 3) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'You have reached the maximum active orders (3).');
+        }
+
+        if ($order->payment_method === 'cod' && ($rider->rider_deposit_balance ?? 0) < ($order->cod_amount ?? 0)) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'Your deposit balance is no longer sufficient for this COD order.');
+        }
+
         // If COD, hold deposit
         if ($order->payment_method === 'cod') {
             $codAmount = $order->cod_amount ?? 0;
@@ -164,8 +193,10 @@ class OrderController extends Controller
 
     } catch (\Exception $e) {
         DB::rollBack();
+        report($e);
+
         return redirect()->back()
-            ->with('error', 'Failed to accept order: ' . $e->getMessage());
+            ->with('error', 'Failed to accept the order. Please try again.');
     }
 }
 
@@ -381,6 +412,7 @@ class OrderController extends Controller
     public function trackOrder($trackingNumber)
 {
     $order = Order::where('tracking_number', $trackingNumber)
+        ->where('rider_id', Auth::id())
         ->with(['rider'])
         ->firstOrFail();
     
@@ -412,7 +444,7 @@ class OrderController extends Controller
      */
     public function getTracking($id)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::where('rider_id', Auth::id())->findOrFail($id);
         
         $locations = OrderTrackingLocation::where('order_id', $order->id)
             ->orderBy('timestamp', 'desc')

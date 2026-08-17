@@ -1,129 +1,115 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\CODSettlementController;
 // =============================================
 // AUTH CONTROLLERS
 // =============================================
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegistrationController;
-use App\Http\Controllers\Auth\PasswordChangeController;
-
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DeliveryZoneController;
+use App\Http\Controllers\Admin\DomesticPickupController as AdminDomesticPickupController;
 // =============================================
 // MAIN CONTROLLERS
 // =============================================
-use App\Http\Controllers\GroceryBoxController;
-use App\Http\Controllers\ShipmentController;
-use App\Http\Controllers\HAWBController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\TrackingController;
-use App\Http\Controllers\Api\CustomerPaymentController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ChatController;
-use App\Http\Controllers\FeedbackController;
-
+use App\Http\Controllers\Admin\DomesticRateController;
+use App\Http\Controllers\Admin\DomesticShipmentController;
+use App\Http\Controllers\Admin\OverseasPartnerController;
+use App\Http\Controllers\Admin\PartnerChargeController;
+use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\Admin\PickupController as AdminPickupController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\RateSheetController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RiderMonitoringController;
+use App\Http\Controllers\Admin\ShipmentController as AdminShipmentController;
 // =============================================
 // ADMIN CONTROLLERS
 // =============================================
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\PartnerController;
-use App\Http\Controllers\Admin\PickupController as AdminPickupController;
-use App\Http\Controllers\Admin\ShipmentController as AdminShipmentController;
-use App\Http\Controllers\Admin\OverseasPartnerController;
-use App\Http\Controllers\Admin\AdminUserController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\RateSheetController;
-use App\Http\Controllers\Admin\DomesticRateController;
-use App\Http\Controllers\Admin\DeliveryZoneController;
-use App\Http\Controllers\Admin\DomesticShipmentController;
-use App\Http\Controllers\Admin\DomesticPickupController as AdminDomesticPickupController;
-use App\Http\Controllers\Admin\PartnerChargeController;
-use App\Http\Controllers\Admin\CODSettlementController;
-use App\Http\Controllers\Admin\RiderMonitoringController;
-
-// =============================================
-// SELLER CONTROLLERS
-// =============================================
-use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
-use App\Http\Controllers\Seller\ProductController as SellerProductController;
-use App\Http\Controllers\Seller\OrderController as SellerOrderController;
-use App\Http\Controllers\Seller\EarningsController as SellerEarningsController;
-use App\Http\Controllers\Seller\WalletController as SellerWalletController;
-use App\Http\Controllers\Seller\WithdrawController as SellerWithdrawController;
-use App\Http\Controllers\Seller\SellerShipmentController;
-use App\Http\Controllers\Seller\SupportController as SellerSupportController;
-use App\Http\Controllers\Seller\SettingsController as SellerSettingsController;
-
-// =============================================
-// CLIENT CONTROLLERS
-// =============================================
+use App\Http\Controllers\Api\CustomerPaymentController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Auth\RegistrationController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
-
-// =============================================
-// RIDER CONTROLLERS
-// =============================================
-use App\Http\Controllers\Rider\DashboardController as RiderDashboardController;
-use App\Http\Controllers\Rider\LocationController;
-use App\Http\Controllers\Rider\DeliveryController;
-use App\Http\Controllers\Rider\EarningsController as RiderEarningsController;
-use App\Http\Controllers\Rider\HistoryController;
-use App\Http\Controllers\Rider\SettingsController as RiderSettingsController;
-use App\Http\Controllers\Rider\OrderController as RiderOrderController;
-use App\Http\Controllers\Rider\CODSettlementController as RiderCODSettlementController;
-use App\Http\Controllers\Rider\WalletController as RiderWalletController;
-use App\Http\Controllers\Rider\PaymentMethodController as RiderPaymentMethodController;
-use App\Http\Controllers\Rider\DepositController as RiderDepositController;
-
-// =============================================
-// DOMESTIC CONTROLLERS
-// =============================================
-use App\Http\Controllers\Domestic\PickupController as DomesticPickupRequestController;
-use App\Http\Controllers\Domestic\DomesticController as DomesticMainController;
 use App\Http\Controllers\Domestic\AdminController as DomesticAdminController;
 use App\Http\Controllers\Domestic\EcommerceController as DomesticEcommerceController;
 use App\Http\Controllers\Domestic\ManifestController as DomesticManifestController;
-
+use App\Http\Controllers\Domestic\PickupController as DomesticPickupRequestController;
+use App\Http\Controllers\Ecommerce\AdminController as EcommerceAdminController;
+use App\Http\Controllers\Ecommerce\EcommerceSellerController;
+use App\Http\Controllers\Ecommerce\OrderController as EcommerceOrderController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\GroceryBoxController;
+use App\Http\Controllers\HAWBController;
+// =============================================
+// SELLER CONTROLLERS
+// =============================================
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\International\AdminController as InternationalAdminController;
+use App\Http\Controllers\International\RateUploadController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Overseas\DashboardController as OverseasDashboardController;
+use App\Http\Controllers\Overseas\HubController;
+use App\Http\Controllers\Overseas\PartnerController as OverseasPartnerListController;
+use App\Http\Controllers\Overseas\ScanController as OverseasScanController;
+use App\Http\Controllers\Overseas\ShipmentController as OverseasShipmentController;
+// =============================================
+// CLIENT CONTROLLERS
+// =============================================
+use App\Http\Controllers\Overseas\StaffDashboardController;
+// =============================================
+// RIDER CONTROLLERS
+// =============================================
+use App\Http\Controllers\Overseas\StaffScanController;
+use App\Http\Controllers\Overseas\TransitPointController;
+use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
+use App\Http\Controllers\Partner\DeliveryController as PartnerDeliveryController;
+use App\Http\Controllers\Partner\RateController as PartnerRateController;
+use App\Http\Controllers\Partner\ScanController as PartnerScanController;
+use App\Http\Controllers\Partner\StaffController as PartnerStaffController;
+use App\Http\Controllers\Partner\ZoneController as PartnerZoneController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Rider\CODSettlementController as RiderCODSettlementController;
+// =============================================
+// DOMESTIC CONTROLLERS
+// =============================================
+use App\Http\Controllers\Rider\DashboardController as RiderDashboardController;
+use App\Http\Controllers\Rider\DeliveryController;
+use App\Http\Controllers\Rider\DepositController as RiderDepositController;
+use App\Http\Controllers\Rider\EarningsController as RiderEarningsController;
 // =============================================
 // E-COMMERCE CONTROLLERS
 // =============================================
-use App\Http\Controllers\Ecommerce\EcommerceSellerController;
-use App\Http\Controllers\Ecommerce\AdminController as EcommerceAdminController;
-use App\Http\Controllers\Ecommerce\OrderController as EcommerceOrderController;
-
+use App\Http\Controllers\Rider\HistoryController;
+use App\Http\Controllers\Rider\LocationController;
+use App\Http\Controllers\Rider\OrderController as RiderOrderController;
 // =============================================
 // PARTNER CONTROLLERS
 // =============================================
-use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
-use App\Http\Controllers\Partner\ZoneController as PartnerZoneController;
-use App\Http\Controllers\Partner\RateController as PartnerRateController;
-use App\Http\Controllers\Partner\StaffController as PartnerStaffController;
-use App\Http\Controllers\Partner\ScanController as PartnerScanController;
-use App\Http\Controllers\Partner\DeliveryController as PartnerDeliveryController;
-
+use App\Http\Controllers\Rider\PaymentMethodController as RiderPaymentMethodController;
+use App\Http\Controllers\Rider\SettingsController as RiderSettingsController;
+use App\Http\Controllers\Rider\WalletController as RiderWalletController;
+use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\EarningsController as SellerEarningsController;
+use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 // =============================================
 // OVERSEAS CONTROLLERS
 // =============================================
-use App\Http\Controllers\Overseas\DashboardController as OverseasDashboardController;
-use App\Http\Controllers\Overseas\PartnerController as OverseasPartnerListController;
-use App\Http\Controllers\Overseas\HubController;
-use App\Http\Controllers\Overseas\ShipmentController as OverseasShipmentController;
-use App\Http\Controllers\Overseas\ScanController as OverseasScanController;
-use App\Http\Controllers\Overseas\StaffDashboardController;
-use App\Http\Controllers\Overseas\StaffScanController;
-use App\Http\Controllers\Overseas\TransitPointController;
-use App\Http\Controllers\Overseas\AdminController as OverseasAdminController;
-
+use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\SellerShipmentController;
+use App\Http\Controllers\Seller\SettingsController as SellerSettingsController;
+use App\Http\Controllers\Seller\SupportController as SellerSupportController;
+use App\Http\Controllers\Seller\WalletController as SellerWalletController;
+use App\Http\Controllers\Seller\WithdrawController as SellerWithdrawController;
+use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\TrackingController;
 // =============================================
 // INTERNATIONAL CONTROLLERS
 // =============================================
-use App\Http\Controllers\International\AdminController as InternationalAdminController;
-use App\Http\Controllers\International\RateUploadController;
-
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -168,11 +154,12 @@ Route::get('/track', function () {
     return view('tracking.lookup');
 })->name('tracking.page');
 
-Route::get('/track/search', function (Illuminate\Http\Request $request) {
+Route::get('/track/search', function (Request $request) {
     $trackingNumber = $request->get('tracking');
     if ($trackingNumber) {
         return redirect()->route('tracking.show', $trackingNumber);
     }
+
     return redirect()->route('tracking.page');
 })->name('tracking.search');
 
@@ -217,7 +204,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/shipments/create', [ShipmentController::class, 'create'])->name('shipments.create');
     Route::post('/shipments', [ShipmentController::class, 'store'])->name('shipments.store');
     Route::get('/shipments/{trackingNumber}', [ShipmentController::class, 'show'])->name('shipments.show');
-    Route::resource('shipments', ShipmentController::class);
+    Route::resource('shipments', ShipmentController::class)->except(['create', 'store', 'show']);
 
     // =============================================
     // HAWB ROUTES
@@ -237,7 +224,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tracking/live/{shipmentId}', [TrackingController::class, 'getLiveLocation'])->name('tracking.live');
     Route::post('/tracking/update-location/{shipmentId}', [TrackingController::class, 'updateLocation'])->name('tracking.update-location');
     Route::post('/tracking/update-status/{shipmentId}', [TrackingController::class, 'updateStatus'])->name('tracking.update-status');
-    Route::get('/tracking/update', function() {
+    Route::get('/tracking/update', function () {
         return view('tracking.update');
     })->name('tracking.update');
 
@@ -278,7 +265,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/password-change', [PasswordChangeController::class, 'showChangeForm'])->name('password.change');
     Route::post('/password-change', [PasswordChangeController::class, 'change'])->name('password.change.submit');
 
-       // =============================================
+    // =============================================
     // DOMESTIC PICKUP ROUTES (For Customers)
     // =============================================
     Route::prefix('domestic')->name('domestic.')->group(function () {
@@ -296,29 +283,29 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [DomesticManifestController::class, 'index'])->name('index');
         Route::get('/create', [DomesticManifestController::class, 'create'])->name('create');
         Route::post('/', [DomesticManifestController::class, 'store'])->name('store');
-        
+
         // IMPORTANT: POD routes must come BEFORE the {id} route
         Route::get('/pods', [DomesticManifestController::class, 'pods'])->name('pods');
         Route::get('/pods/{id}', [DomesticManifestController::class, 'showPod'])->name('pods.show');
         Route::put('/pods/{id}/status', [DomesticManifestController::class, 'updatePodStatus'])->name('pods.update-status');
-        
-   // 👇 ADD THESE ROUTES 👇
-    Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
-    Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
+
+        // 👇 ADD THESE ROUTES 👇
+        Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
+        Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
 
         // This {id} route must come AFTER the specific routes above
         Route::get('/{id}', [DomesticManifestController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [DomesticManifestController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DomesticManifestController::class, 'update'])->name('update');
 
-Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('domestic.manifests.pods.upload');
-Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('domestic.manifests.pods.upload.form');
+        Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('domestic.manifests.pods.upload');
+        Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('domestic.manifests.pods.upload.form');
 
-    Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
-    Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
+        Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
+        Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
 
     });
-    
+
 });
 
 // =============================================
@@ -442,15 +429,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,do
     // Pickups & Shipments
     Route::get('/pickups', [AdminPickupController::class, 'index'])->name('pickups');
     Route::get('/shipments', [AdminShipmentController::class, 'index'])->name('shipments');
-    Route::get('/analytics', function () { return view('admin.analytics'); })->name('analytics');
-    Route::get('/settlements', function () { return view('admin.settlements'); })->name('settlements');
-    Route::get('/settings', function () { return view('admin.settings'); })->name('settings');
+    Route::get('/analytics', function () {
+        return view('admin.analytics');
+    })->name('analytics');
+    Route::get('/settlements', function () {
+        return view('admin.settlements');
+    })->name('settlements');
+    Route::get('/settings', function () {
+        return view('admin.settings');
+    })->name('settings');
 });
 
 // =============================================
 // SELLER ROUTES
 // =============================================
-Route::prefix('seller')->name('seller.')->middleware(['auth'])->group(function () {
+Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/dashboard', [SellerDashboardController::class, 'index'])->name('dashboard');
 
     // Products
@@ -518,18 +511,26 @@ Route::prefix('seller')->name('seller.')->middleware(['auth'])->group(function (
 // =============================================
 // CLIENT ROUTES
 // =============================================
-Route::prefix('client')->name('client.')->middleware(['auth'])->group(function () {
+Route::prefix('client')->name('client.')->middleware(['auth', 'role:client'])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/wallet', function () { return view('client.wallet'); })->name('wallet');
-    Route::get('/feedback', function () { return view('client.feedback'); })->name('feedback');
-    Route::get('/support', function () { return view('client.support'); })->name('support');
-    Route::get('/settings', function () { return view('client.settings'); })->name('settings');
+    Route::get('/wallet', function () {
+        return view('client.wallet');
+    })->name('wallet');
+    Route::get('/feedback', function () {
+        return view('client.feedback');
+    })->name('feedback');
+    Route::get('/support', function () {
+        return view('client.support');
+    })->name('support');
+    Route::get('/settings', function () {
+        return view('client.settings');
+    })->name('settings');
 });
 
 // =============================================
 // RIDER ROUTES (Uber-style)
 // =============================================
-Route::prefix('rider')->name('rider.')->middleware(['auth'])->group(function () {
+Route::prefix('rider')->name('rider.')->middleware(['auth', 'role:rider'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [RiderDashboardController::class, 'index'])->name('dashboard');
@@ -547,11 +548,11 @@ Route::prefix('rider')->name('rider.')->middleware(['auth'])->group(function () 
     // Orders (E-commerce - Uber-style)
     Route::get('/orders/available', [RiderOrderController::class, 'availableOrders'])->name('orders.available');
     Route::get('/orders/my', [RiderOrderController::class, 'myOrders'])->name('orders.my');
-    Route::get('/orders/accept/{id}', [RiderOrderController::class, 'accept'])->name('orders.accept');
-    Route::get('/orders/reject/{id}', [RiderOrderController::class, 'reject'])->name('orders.reject');
-    Route::get('/orders/pickup/{id}', [RiderOrderController::class, 'markPickedUp'])->name('orders.pickup');
-    Route::get('/orders/in-transit/{id}', [RiderOrderController::class, 'markInTransit'])->name('orders.in-transit');
-    Route::get('/orders/out-for-delivery/{id}', [RiderOrderController::class, 'markOutForDelivery'])->name('orders.out-for-delivery');
+    Route::patch('/orders/accept/{id}', [RiderOrderController::class, 'accept'])->name('orders.accept');
+    Route::patch('/orders/reject/{id}', [RiderOrderController::class, 'reject'])->name('orders.reject');
+    Route::patch('/orders/pickup/{id}', [RiderOrderController::class, 'markPickedUp'])->name('orders.pickup');
+    Route::patch('/orders/in-transit/{id}', [RiderOrderController::class, 'markInTransit'])->name('orders.in-transit');
+    Route::patch('/orders/out-for-delivery/{id}', [RiderOrderController::class, 'markOutForDelivery'])->name('orders.out-for-delivery');
     Route::post('/orders/deliver/{id}', [RiderOrderController::class, 'markDelivered'])->name('orders.deliver');
     Route::get('/orders/track/{trackingNumber}', [RiderOrderController::class, 'trackOrder'])->name('orders.track');
     Route::get('/orders/tracking/{id}', [RiderOrderController::class, 'getTracking'])->name('orders.tracking');
@@ -601,7 +602,7 @@ Route::prefix('rider')->name('rider.')->middleware(['auth'])->group(function () 
 // =============================================
 // DOMESTIC ADMIN - E-COMMERCE ROUTES
 // =============================================
-Route::prefix('domestic/ecommerce')->name('domestic.ecommerce.')->middleware(['auth'])->group(function () {
+Route::prefix('domestic/ecommerce')->name('domestic.ecommerce.')->middleware(['auth', 'role:domestic_admin,staff'])->group(function () {
     Route::get('/dashboard', [DomesticEcommerceController::class, 'dashboard'])->name('dashboard');
     Route::get('/orders', [DomesticEcommerceController::class, 'orders'])->name('orders');
     Route::get('/orders/{id}', [DomesticEcommerceController::class, 'showOrder'])->name('orders.show');
@@ -618,7 +619,7 @@ Route::prefix('domestic/ecommerce')->name('domestic.ecommerce.')->middleware(['a
 // =============================================
 // DOMESTIC SERVICE ADMIN ROUTES (DOMESTIC ADMIN)
 // =============================================
-Route::prefix('domestic')->name('domestic.')->middleware(['auth'])->group(function () {
+Route::prefix('domestic')->name('domestic.')->middleware(['auth', 'role:domestic_admin,staff'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DomesticAdminController::class, 'dashboard'])->name('dashboard');
@@ -671,7 +672,7 @@ Route::prefix('domestic')->name('domestic.')->middleware(['auth'])->group(functi
 // =============================================
 // PARTNER ROUTES
 // =============================================
-Route::prefix('partner')->name('partner.')->middleware(['auth'])->group(function () {
+Route::prefix('partner')->name('partner.')->middleware(['auth', 'role:partner'])->group(function () {
 
     Route::get('/dashboard', [PartnerDashboardController::class, 'index'])->name('dashboard');
 
@@ -704,7 +705,7 @@ Route::prefix('partner')->name('partner.')->middleware(['auth'])->group(function
 // =============================================
 // INTERNATIONAL SERVICE ADMIN ROUTES
 // =============================================
-Route::prefix('international')->name('international.')->middleware(['auth'])->group(function () {
+Route::prefix('international')->name('international.')->middleware(['auth', 'role:international_admin,staff'])->group(function () {
     Route::get('/dashboard', [InternationalAdminController::class, 'dashboard'])->name('dashboard');
 
     Route::get('/partners', [InternationalAdminController::class, 'partners'])->name('partners');
@@ -714,7 +715,7 @@ Route::prefix('international')->name('international.')->middleware(['auth'])->gr
     Route::get('/partners/{id}/edit', [InternationalAdminController::class, 'editPartner'])->name('partners.edit');
     Route::put('/partners/{id}', [InternationalAdminController::class, 'updatePartner'])->name('partners.update');
     Route::delete('/partners/{id}', [InternationalAdminController::class, 'deletePartner'])->name('partners.delete');
-    Route::get('/partners/{id}/toggle', [InternationalAdminController::class, 'togglePartnerStatus'])->name('partners.toggle');
+    Route::patch('/partners/{id}/toggle', [InternationalAdminController::class, 'togglePartnerStatus'])->name('partners.toggle');
 
     Route::get('/rates', [InternationalAdminController::class, 'rates'])->name('rates');
     Route::get('/rates/create', [InternationalAdminController::class, 'createRate'])->name('rates.create');
@@ -724,7 +725,7 @@ Route::prefix('international')->name('international.')->middleware(['auth'])->gr
     Route::get('/surcharges/create', [InternationalAdminController::class, 'createSurcharge'])->name('surcharges.create');
     Route::post('/surcharges', [InternationalAdminController::class, 'storeSurcharge'])->name('surcharges.store');
     Route::delete('/surcharges/{id}', [InternationalAdminController::class, 'deleteSurcharge'])->name('surcharges.delete');
-    Route::get('/surcharges/{id}/toggle', [InternationalAdminController::class, 'toggleSurcharge'])->name('surcharges.toggle');
+    Route::patch('/surcharges/{id}/toggle', [InternationalAdminController::class, 'toggleSurcharge'])->name('surcharges.toggle');
 
     Route::get('/shipments', [InternationalAdminController::class, 'shipments'])->name('shipments');
     Route::get('/shipments/create', [InternationalAdminController::class, 'createShipment'])->name('shipments.create');
@@ -740,13 +741,13 @@ Route::prefix('international')->name('international.')->middleware(['auth'])->gr
     Route::get('/transit-points/{id}/edit', [TransitPointController::class, 'edit'])->name('transit-points.edit');
     Route::put('/transit-points/{id}', [TransitPointController::class, 'update'])->name('transit-points.update');
     Route::delete('/transit-points/{id}', [TransitPointController::class, 'destroy'])->name('transit-points.destroy');
-    Route::get('/transit-points/{id}/toggle', [TransitPointController::class, 'toggle'])->name('transit-points.toggle');
+    Route::patch('/transit-points/{id}/toggle', [TransitPointController::class, 'toggle'])->name('transit-points.toggle');
 });
 
 // =============================================
 // OVERSEAS ROUTES
 // =============================================
-Route::prefix('overseas')->name('overseas.')->middleware(['auth'])->group(function () {
+Route::prefix('overseas')->name('overseas.')->middleware(['auth', 'role:overseas'])->group(function () {
     Route::get('/dashboard', [OverseasDashboardController::class, 'index'])->name('dashboard');
     Route::get('/partners', [OverseasPartnerListController::class, 'index'])->name('partners.index');
     Route::get('/hubs', [HubController::class, 'index'])->name('hubs.index');
@@ -757,6 +758,7 @@ Route::prefix('overseas')->name('overseas.')->middleware(['auth'])->group(functi
     Route::post('/process-scan', [OverseasScanController::class, 'processScan'])->name('process-scan');
     Route::get('/documents', [OverseasShipmentController::class, 'documents'])->name('documents');
 
+    Route::patch('transit-points/{id}/toggle', [TransitPointController::class, 'toggle'])->name('transit-points.toggle');
     Route::resource('transit-points', TransitPointController::class)->except('show');
 });
 
@@ -770,7 +772,7 @@ Route::prefix('overseas/staff')->name('overseas.staff.')->middleware(['auth'])->
 // =============================================
 // E-COMMERCE ROUTES (Seller)
 // =============================================
-Route::prefix('seller/ecommerce')->name('ecommerce.seller.')->middleware(['auth'])->group(function () {
+Route::prefix('seller/ecommerce')->name('ecommerce.seller.')->middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/dashboard', [EcommerceSellerController::class, 'dashboard'])->name('dashboard');
     Route::get('/create', [EcommerceSellerController::class, 'create'])->name('create');
     Route::post('/orders', [EcommerceSellerController::class, 'store'])->name('orders.store');

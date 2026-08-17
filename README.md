@@ -155,6 +155,29 @@ Production environment requirements include:
 - a transactional email provider and verified sending domain
 - private storage for KYC, invoice, customs, and POD documents
 
+### Production release procedure
+
+The repository includes a release gate at `.github/workflows/release-gate.yml`. It validates dependencies, runs the automated suite, rebuilds and seeds the schema on MySQL 8, builds frontend assets, and verifies Laravel production caches.
+
+Before the first deployment, copy `deploy/production.env.example` to the server's managed environment configuration, replace every placeholder, and generate a unique application key. Never commit the resulting `.env` file.
+
+On the server, run the production configuration guard before changing application state:
+
+```bash
+php artisan app:production-check
+```
+
+After taking a verified database backup, the repeatable deployment sequence is available in `deploy/deploy-production.sh`. It enables maintenance mode, installs locked production dependencies, builds assets, runs forward-only migrations, caches Laravel metadata, restarts queue workers, and restores service. Do not run `migrate:fresh` outside disposable test environments.
+
+After every release, require successful responses from:
+
+```text
+/api/health
+/api/readiness
+```
+
+The health endpoint confirms the PHP application is responding. Readiness additionally verifies database and cache access. Keep the previous release artifact and a tested database restore procedure available for rollback.
+
 ## Security notes
 
 - Client validation is only a usability layer; controllers and policies must enforce server-side validation and authorization.

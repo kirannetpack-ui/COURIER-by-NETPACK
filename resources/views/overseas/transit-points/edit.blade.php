@@ -17,7 +17,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('overseas.transit-points.update', $transitPoint->id) }}">
+        <form method="POST" action="{{ route($routePrefix.'.transit-points.update', $transitPoint->id) }}">
                 @csrf
                 @method('PUT')
 

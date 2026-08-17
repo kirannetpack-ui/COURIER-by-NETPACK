@@ -106,6 +106,7 @@ class WithdrawController extends Controller
                 'description' => 'Withdrawal request to ' . $paymentMethod->display_name,
                 'status' => 'pending',
                 'reference' => 'WTH-' . date('Ymd') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT),
+                'balance_before' => $wallet->balance,
                 'balance_after' => $wallet->balance - $request->amount,
                 'metadata' => [
                     'payment_method_id' => $paymentMethod->id,

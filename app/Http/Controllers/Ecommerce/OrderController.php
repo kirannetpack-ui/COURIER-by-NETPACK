@@ -248,7 +248,7 @@ class OrderController extends Controller
                 'reminder_id' => null,
                 'reminder_type' => 'rider_order_alert',
                 'sent_to' => $rider->email,
-                'message' => "📦 New delivery order available!\n\nOrder #: {$order->order_number}\nCustomer: {$order->customer_name}\nDistance: " . ($order->distance ? $order->distance . ' km' : 'N/A') . "\nAmount: Rs. {$order->total_amount}\n\nClick to accept: " . route('rider.orders.accept', $order->id),
+                'message' => "📦 New delivery order available!\n\nOrder #: {$order->order_number}\nCustomer: {$order->customer_name}\nDistance: " . ($order->distance ? $order->distance . ' km' : 'N/A') . "\nAmount: Rs. {$order->total_amount}\n\nReview available orders: " . route('rider.orders.available'),
                 'channel' => 'database',
                 'status' => 'sent',
                 'sent_at' => now(),

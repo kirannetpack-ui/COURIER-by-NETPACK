@@ -99,9 +99,13 @@
                                         <a href="{{ route('international.partners.edit', $partner->id) }}" class="text-teal-600 hover:text-teal-800" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ route('international.partners.toggle', $partner->id) }}" class="text-{{ $partner->verification_status === 'approved' ? 'red' : 'green' }}-600 hover:text-{{ $partner->verification_status === 'approved' ? 'red' : 'green' }}-800" title="{{ $partner->verification_status === 'approved' ? 'Suspend' : 'Activate' }}">
-                                            <i class="fas fa-{{ $partner->verification_status === 'approved' ? 'pause' : 'play' }}"></i>
-                                        </a>
+                                        <form method="POST" action="{{ route('international.partners.toggle', $partner->id) }}" class="inline" onsubmit="return confirm('{{ $partner->verification_status === 'approved' ? 'Suspend' : 'Activate' }} this partner?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="text-{{ $partner->verification_status === 'approved' ? 'red' : 'green' }}-600 hover:text-{{ $partner->verification_status === 'approved' ? 'red' : 'green' }}-800" title="{{ $partner->verification_status === 'approved' ? 'Suspend' : 'Activate' }}">
+                                                <i class="fas fa-{{ $partner->verification_status === 'approved' ? 'pause' : 'play' }}"></i>
+                                            </button>
+                                        </form>
                                         <form method="POST" action="{{ route('international.partners.delete', $partner->id) }}" class="inline" onsubmit="return confirm('Delete this partner? This action cannot be undone.')">
                                             @csrf
                                             @method('DELETE')

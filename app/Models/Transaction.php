@@ -14,12 +14,15 @@ class Transaction extends Model
         'description',
         'status', // pending, completed, failed, cancelled
         'reference',
+        'reference_id',
+        'balance_before',
         'balance_after',
         'metadata',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
         'metadata' => 'array',
     ];

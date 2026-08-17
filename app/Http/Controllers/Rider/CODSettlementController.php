@@ -91,6 +91,29 @@ class CODSettlementController extends Controller
         DB::beginTransaction();
 
         try {
+            // Lock both records to prevent duplicate settlement requests.
+            $order = Order::where('rider_id', $rider->id)
+                ->whereIn('status', ['out_for_delivery', 'assigned', 'picked_up', 'in_transit'])
+                ->lockForUpdate()
+                ->findOrFail($orderId);
+            $rider = User::whereKey($rider->id)->lockForUpdate()->firstOrFail();
+            $codAmount = $order->cod_amount ?? 0;
+            $deliveryFee = $rider->rider_delivery_fee ?? 100;
+            $commissionRate = $rider->rider_commission_rate ?? 10;
+            $marginRate = $rider->rider_margin_rate ?? 15;
+            $riderCommission = ($deliveryFee * $commissionRate) / 100;
+            $adminMargin = ($deliveryFee * $marginRate) / 100;
+            $riderEarnings = $deliveryFee + $riderCommission;
+            $sellerAmount = $codAmount;
+
+            if (abs((float) $request->cod_collected_amount - (float) $codAmount) > 0.01) {
+                DB::rollBack();
+
+                return redirect()->back()
+                    ->withErrors(['cod_collected_amount' => 'The collected amount must match the order COD amount.'])
+                    ->withInput();
+            }
+
             // 1. Update order status
             $order->update([
                 'status' => 'delivered',
@@ -113,27 +136,49 @@ class CODSettlementController extends Controller
                 ]);
             }
 
-            // 3. DEDUCT COD AMOUNT FROM RIDER DEPOSIT
-            $rider->rider_deposit_balance -= $codAmount;
-            $rider->save();
+            // 3. Finalize the hold created during acceptance. Do not deduct twice.
+            $depositHold = RiderDeposit::where('rider_id', $rider->id)
+                ->where('reference_type', 'order')
+                ->where('reference_id', $order->id)
+                ->where('type', 'settlement')
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->first();
 
-            // 4. Create rider deposit record for deduction
-            RiderDeposit::create([
-                'rider_id' => $rider->id,
-                'amount' => -$codAmount,
-                'balance' => $rider->rider_deposit_balance,
-                'type' => 'settlement',
-                'reference_type' => 'order',
-                'reference_id' => $order->id,
-                'description' => "COD Settlement - Order #{$order->order_number} (COD amount deducted)",
-                'status' => 'completed',
-                'verified_at' => now(),
-                'metadata' => [
-                    'order_id' => $order->id,
-                    'cod_amount' => $codAmount,
-                    'action' => 'deduct',
-                ]
-            ]);
+            if ($depositHold) {
+                $depositHold->update([
+                    'status' => 'completed',
+                    'verified_at' => now(),
+                    'description' => "COD settlement completed for Order #{$order->order_number}",
+                ]);
+            } else {
+                // Compatibility for legacy assigned orders that have no hold record.
+                if (($rider->rider_deposit_balance ?? 0) < $codAmount) {
+                    DB::rollBack();
+
+                    return redirect()->back()->with('error', 'Insufficient rider deposit balance for settlement.');
+                }
+
+                $rider->rider_deposit_balance -= $codAmount;
+                $rider->save();
+
+                RiderDeposit::create([
+                    'rider_id' => $rider->id,
+                    'amount' => -$codAmount,
+                    'balance' => $rider->rider_deposit_balance,
+                    'type' => 'settlement',
+                    'reference_type' => 'order',
+                    'reference_id' => $order->id,
+                    'description' => "COD settlement for legacy Order #{$order->order_number}",
+                    'status' => 'completed',
+                    'verified_at' => now(),
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'cod_amount' => $codAmount,
+                        'action' => 'deduct',
+                    ],
+                ]);
+            }
 
             // 5. RELEASE SELLER PAYMENT (to seller's default account)
             $this->releaseSellerPayment($order, $sellerAmount);
@@ -190,14 +235,14 @@ class CODSettlementController extends Controller
             $this->notifySettlementComplete($settlement, $order, $rider);
 
             return redirect()->route('rider.orders.my')
-                ->with('success', "🎉 COD delivery settled! 
-                    Amount deducted from deposit: Rs. {$codAmount} | 
-                    You earned: Rs. {$riderEarnings}");
+                ->with('success', "🎉 COD delivery settled! Deposit hold finalized: Rs. {$codAmount} | You earned: Rs. {$riderEarnings}");
 
         } catch (\Exception $e) {
             DB::rollBack();
+            report($e);
+
             return redirect()->back()
-                ->with('error', 'Failed to settle COD: ' . $e->getMessage());
+                ->with('error', 'Failed to settle COD. Please try again.');
         }
     }
 

@@ -68,9 +68,13 @@
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex gap-2">
-                                        <a href="{{ route('admin.rates.surcharges.toggle', $surcharge->id) }}" class="text-{{ $surcharge->is_active ? 'red' : 'green' }}-600 hover:text-{{ $surcharge->is_active ? 'red' : 'green' }}-800" title="{{ $surcharge->is_active ? 'Deactivate' : 'Activate' }}">
-                                            <i class="fas fa-{{ $surcharge->is_active ? 'pause' : 'play' }}"></i>
-                                        </a>
+                                        <form method="POST" action="{{ route('admin.rates.toggle', $surcharge->id) }}" class="inline" onsubmit="return confirm('{{ $surcharge->is_active ? 'Deactivate' : 'Activate' }} this surcharge?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="text-{{ $surcharge->is_active ? 'red' : 'green' }}-600 hover:text-{{ $surcharge->is_active ? 'red' : 'green' }}-800" title="{{ $surcharge->is_active ? 'Deactivate' : 'Activate' }}">
+                                                <i class="fas fa-{{ $surcharge->is_active ? 'pause' : 'play' }}"></i>
+                                            </button>
+                                        </form>
                                         <form method="POST" action="{{ route('admin.rates.surcharges.destroy', $surcharge->id) }}" class="inline" onsubmit="return confirm('Delete this surcharge?')">
                                             @csrf
                                             @method('DELETE')

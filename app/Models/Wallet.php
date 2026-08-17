@@ -59,6 +59,7 @@ class Wallet extends Model
     // Add to balance
     public function addBalance($amount, $description = null, $source = null)
     {
+        $balanceBefore = $this->balance;
         $this->balance += $amount;
         $this->total_earned += $amount;
         $this->save();
@@ -68,6 +69,7 @@ class Wallet extends Model
             'type' => 'credit',
             'description' => $description,
             'source' => $source,
+            'balance_before' => $balanceBefore,
             'balance_after' => $this->balance,
             'status' => 'completed',
         ]);
@@ -82,6 +84,7 @@ class Wallet extends Model
             throw new \Exception('Insufficient balance');
         }
 
+        $balanceBefore = $this->balance;
         $this->balance -= $amount;
         $this->total_withdrawn += $amount;
         $this->save();
@@ -91,6 +94,7 @@ class Wallet extends Model
             'type' => 'debit',
             'description' => $description,
             'source' => $source,
+            'balance_before' => $balanceBefore,
             'balance_after' => $this->balance,
             'status' => 'completed',
         ]);

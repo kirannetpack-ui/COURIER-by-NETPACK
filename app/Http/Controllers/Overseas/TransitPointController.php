@@ -20,28 +20,26 @@ class TransitPointController extends Controller
     {
         $query = OverseasTransitPoint::with('partner');
 
-        // Filter by partner if specified
-        if ($request->filled('partner_id')) {
+        if ($this->canManageAllPartners() && $request->filled('partner_id')) {
             $query->where('partner_id', $request->partner_id);
-        } else {
-            // If super admin, show all; if partner, show only their own
-            if (auth()->user()->user_type !== 'super_admin' && auth()->user()->user_type !== 'admin') {
-                $query->where('partner_id', auth()->id());
-            }
+        } elseif (!$this->canManageAllPartners()) {
+            $query->where('partner_id', auth()->id());
         }
 
         $transitPoints = $query->orderBy('created_at', 'desc')->paginate(20);
-        $partners = User::where('user_type', 'overseas')->orWhere('user_type', 'overseas_partner')->get();
+        $partners = $this->availablePartners();
+        $routePrefix = $this->routePrefix();
 
-        return view('overseas.transit-points.index', compact('transitPoints', 'partners'));
+        return view('overseas.transit-points.index', compact('transitPoints', 'partners', 'routePrefix'));
     }
 
     public function create()
     {
         $types = OverseasTransitPoint::TYPES;
-        $partners = User::where('user_type', 'overseas')->orWhere('user_type', 'overseas_partner')->get();
+        $partners = $this->availablePartners();
+        $routePrefix = $this->routePrefix();
         
-        return view('overseas.transit-points.create', compact('types', 'partners'));
+        return view('overseas.transit-points.create', compact('types', 'partners', 'routePrefix'));
     }
 
     public function store(Request $request)
@@ -75,7 +73,7 @@ class TransitPointController extends Controller
         }
 
         OverseasTransitPoint::create([
-            'partner_id' => $request->partner_id,
+            'partner_id' => $this->canManageAllPartners() ? $request->integer('partner_id') : auth()->id(),
             'name' => $request->name,
             'type' => $request->type,
             'location' => $request->location,
@@ -84,22 +82,23 @@ class TransitPointController extends Controller
             'is_active' => true,
         ]);
 
-        return redirect()->route('overseas.transit-points.index')
+        return redirect()->route($this->routePrefix().'.transit-points.index')
             ->with('success', 'Transit point added successfully!');
     }
 
     public function edit($id)
     {
-        $transitPoint = OverseasTransitPoint::with('partner')->findOrFail($id);
+        $transitPoint = $this->findManagedTransitPoint($id)->load('partner');
         $types = OverseasTransitPoint::TYPES;
-        $partners = User::where('user_type', 'overseas')->orWhere('user_type', 'overseas_partner')->get();
+        $partners = $this->availablePartners();
+        $routePrefix = $this->routePrefix();
 
-        return view('overseas.transit-points.edit', compact('transitPoint', 'types', 'partners'));
+        return view('overseas.transit-points.edit', compact('transitPoint', 'types', 'partners', 'routePrefix'));
     }
 
     public function update(Request $request, $id)
     {
-        $transitPoint = OverseasTransitPoint::findOrFail($id);
+        $transitPoint = $this->findManagedTransitPoint($id);
 
         $validator = Validator::make($request->all(), [
             'partner_id' => 'required|exists:users,id',
@@ -131,7 +130,7 @@ class TransitPointController extends Controller
         }
 
         $transitPoint->update([
-            'partner_id' => $request->partner_id,
+            'partner_id' => $this->canManageAllPartners() ? $request->integer('partner_id') : auth()->id(),
             'name' => $request->name,
             'type' => $request->type,
             'location' => $request->location,
@@ -140,26 +139,52 @@ class TransitPointController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('overseas.transit-points.index')
+        return redirect()->route($this->routePrefix().'.transit-points.index')
             ->with('success', 'Transit point updated successfully!');
     }
 
     public function destroy($id)
     {
-        $transitPoint = OverseasTransitPoint::findOrFail($id);
+        $transitPoint = $this->findManagedTransitPoint($id);
         $transitPoint->delete();
 
-        return redirect()->route('overseas.transit-points.index')
+        return redirect()->route($this->routePrefix().'.transit-points.index')
             ->with('success', 'Transit point deleted successfully!');
     }
 
     public function toggle($id)
     {
-        $transitPoint = OverseasTransitPoint::findOrFail($id);
+        $transitPoint = $this->findManagedTransitPoint($id);
         $transitPoint->update(['is_active' => !$transitPoint->is_active]);
 
         $status = $transitPoint->is_active ? 'activated' : 'deactivated';
-        return redirect()->route('overseas.transit-points.index')
+        return redirect()->route($this->routePrefix().'.transit-points.index')
             ->with('success', "Transit point {$status} successfully!");
+    }
+
+    private function canManageAllPartners(): bool
+    {
+        return in_array(auth()->user()->user_type, ['super_admin', 'admin', 'staff', 'international_admin'], true);
+    }
+
+    private function availablePartners()
+    {
+        if (!$this->canManageAllPartners()) {
+            return User::whereKey(auth()->id())->get();
+        }
+
+        return User::whereIn('user_type', ['overseas', 'overseas_partner'])->get();
+    }
+
+    private function findManagedTransitPoint($id): OverseasTransitPoint
+    {
+        return OverseasTransitPoint::query()
+            ->when(!$this->canManageAllPartners(), fn ($query) => $query->where('partner_id', auth()->id()))
+            ->findOrFail($id);
+    }
+
+    private function routePrefix(): string
+    {
+        return $this->canManageAllPartners() ? 'international' : 'overseas';
     }
 }

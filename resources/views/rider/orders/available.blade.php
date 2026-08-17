@@ -86,15 +86,20 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    <a href="{{ route('rider.orders.accept', $order->id) }}" 
-                                       onclick="return confirm('Accept this order?')"
-                                       class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
-                                        <i class="fas fa-check mr-2"></i> Accept
-                                    </a>
-                                    <a href="{{ route('rider.orders.reject', $order->id) }}" 
-                                       class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
-                                        <i class="fas fa-times"></i>
-                                    </a>
+                                    <form method="POST" action="{{ route('rider.orders.accept', $order->id) }}" onsubmit="return confirm('Accept this order?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+                                            <i class="fas fa-check mr-2"></i> Accept
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('rider.orders.reject', $order->id) }}" onsubmit="return confirm('Reject this order?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition" title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>

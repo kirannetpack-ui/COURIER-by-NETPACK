@@ -16,6 +16,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\ProcessDeliveryReminders::class,
         \App\Console\Commands\ScheduleAllReminders::class,
         \App\Console\Commands\CleanupReminders::class,
+        \App\Console\Commands\ProductionReadinessCheck::class,
+        \App\Console\Commands\ProductionReadinessCheck::class,
     ];
 
     /**

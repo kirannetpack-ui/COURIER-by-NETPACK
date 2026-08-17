@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RateCalculationController;
 use App\Http\Controllers\Api\SurchargeCheckController;
+use App\Http\Controllers\Api\SystemHealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,12 +18,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/health', static function () {
-    return response()->json([
-        'status' => 'ok',
-        'timestamp' => now()->toIso8601String(),
-    ]);
-})->middleware('throttle:60,1')->name('api.health');
+Route::get('/health', [SystemHealthController::class, 'health'])
+    ->middleware('throttle:60,1')
+    ->name('api.health');
+Route::get('/readiness', [SystemHealthController::class, 'readiness'])
+    ->middleware('throttle:30,1')
+    ->name('api.readiness');
 
 Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');

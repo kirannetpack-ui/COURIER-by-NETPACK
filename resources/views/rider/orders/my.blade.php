@@ -67,27 +67,33 @@
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     @if($order->status === 'assigned')
-                                        <a href="{{ route('rider.orders.pickup', $order->id) }}" 
-                                           onclick="return confirm('Mark as picked up?')"
-                                           class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
-                                            <i class="fas fa-box mr-1"></i> Pickup
-                                        </a>
+                                        <form method="POST" action="{{ route('rider.orders.pickup', $order->id) }}" onsubmit="return confirm('Mark as picked up?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
+                                                <i class="fas fa-box mr-1"></i> Pickup
+                                            </button>
+                                        </form>
                                     @endif
                                     
                                     @if($order->status === 'picked_up')
-                                        <a href="{{ route('rider.orders.in-transit', $order->id) }}" 
-                                           onclick="return confirm('Mark as in transit?')"
-                                           class="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition text-sm">
-                                            <i class="fas fa-truck mr-1"></i> In Transit
-                                        </a>
+                                        <form method="POST" action="{{ route('rider.orders.in-transit', $order->id) }}" onsubmit="return confirm('Mark as in transit?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition text-sm">
+                                                <i class="fas fa-truck mr-1"></i> In Transit
+                                            </button>
+                                        </form>
                                     @endif
                                     
                                     @if($order->status === 'in_transit')
-                                        <a href="{{ route('rider.orders.out-for-delivery', $order->id) }}" 
-                                           onclick="return confirm('Mark as out for delivery?')"
-                                           class="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition text-sm">
-                                            <i class="fas fa-truck mr-1"></i> Out for Delivery
-                                        </a>
+                                        <form method="POST" action="{{ route('rider.orders.out-for-delivery', $order->id) }}" onsubmit="return confirm('Mark as out for delivery?')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition text-sm">
+                                                <i class="fas fa-truck mr-1"></i> Out for Delivery
+                                            </button>
+                                        </form>
                                     @endif
                                     
                                     @if($order->status === 'out_for_delivery')

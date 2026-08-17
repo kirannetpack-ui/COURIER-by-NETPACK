@@ -17,7 +17,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('overseas.transit-points.store') }}">
+        <form method="POST" action="{{ route($routePrefix.'.transit-points.store') }}">
                 @csrf
 
                 @if($errors->any())

@@ -137,6 +137,7 @@ class WalletController extends Controller
                 'description' => "Deposit to rider wallet via " . ucfirst($request->payment_method),
                 'status' => 'completed',
                 'reference' => 'DEP-' . date('Ymd') . '-' . str_pad($deposit->id, 5, '0', STR_PAD_LEFT),
+                'balance_before' => $wallet->balance,
                 'balance_after' => $wallet->balance + $amount,
             ]);
 
