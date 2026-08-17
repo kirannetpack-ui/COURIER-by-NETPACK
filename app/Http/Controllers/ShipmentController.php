@@ -305,13 +305,9 @@ class ShipmentController extends Controller
     /**
      * Display the specified shipment.
      */
-    public function show($trackingNumber)
+    public function show(Shipment $shipment)
     {
-        $shipment = Shipment::where('tracking_number', $trackingNumber)
-            ->with(['customer', 'seller', 'rider'])
-            ->firstOrFail();
-        
-        return view('tracking.show', compact('shipment'));
+        return view('tracking.public', compact('shipment'));
     }
 
     /**

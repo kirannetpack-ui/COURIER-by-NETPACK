@@ -69,7 +69,7 @@ class TrackingController extends Controller
             ];
         }
 
-        return view('tracking.show', compact('shipment'));
+        return view('tracking.public', compact('shipment'));
     }
 
     /**

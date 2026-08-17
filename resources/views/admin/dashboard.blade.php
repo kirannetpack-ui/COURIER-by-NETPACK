@@ -42,7 +42,7 @@
         <i class="fas fa-boxes w-5"></i>
         <span>Products</span>
     </a>
-    <a href="{{ route('admin.shipments') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
+    <a href="{{ route('admin.shipments.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
         <i class="fas fa-shipping-fast w-5"></i>
         <span>Shipments</span>
     </a>

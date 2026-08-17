@@ -203,7 +203,7 @@ Route::middleware(['auth'])->group(function () {
     // =============================================
     Route::get('/shipments/create', [ShipmentController::class, 'create'])->name('shipments.create');
     Route::post('/shipments', [ShipmentController::class, 'store'])->name('shipments.store');
-    Route::get('/shipments/{trackingNumber}', [ShipmentController::class, 'show'])->name('shipments.show');
+    Route::get('/shipments/{shipment}', [ShipmentController::class, 'show'])->whereNumber('shipment')->name('shipments.show');
     Route::resource('shipments', ShipmentController::class)->except(['create', 'store', 'show']);
 
     // =============================================
@@ -428,7 +428,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,do
 
     // Pickups & Shipments
     Route::get('/pickups', [AdminPickupController::class, 'index'])->name('pickups');
-    Route::get('/shipments', [AdminShipmentController::class, 'index'])->name('shipments');
+    Route::get('/shipments', [AdminShipmentController::class, 'index'])->name('shipments.index');
+    Route::get('/shipments/{id}', [AdminShipmentController::class, 'show'])->whereNumber('id')->name('shipments.show');
     Route::get('/analytics', function () {
         return view('admin.analytics');
     })->name('analytics');
