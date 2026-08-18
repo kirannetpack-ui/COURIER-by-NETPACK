@@ -1,208 +1,139 @@
 @extends('layouts.app')
 
-@section('title', 'QR Scan - HAWB')
+@section('title', 'Shipment Scan Desk')
+@section('page-title', 'Shipment Scan Desk')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm p-6">
-        <div class="text-center mb-6">
-            <i class="fas fa-qrcode text-4xl text-teal-600 mb-2"></i>
-            <h1 class="text-2xl font-bold text-gray-800">Scan HAWB QR Code</h1>
-            <p class="text-gray-500">Scan the QR code on the HAWB to update shipment status</p>
-        </div>
-
-        <!-- Camera/Scanner -->
-        <div id="scanner-container" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
-            <p class="text-sm text-gray-500 mt-4">
-                <i class="fas fa-camera mr-2"></i> Position the QR code in front of the camera
-            </p>
-        </div>
-
-        <!-- Manual Entry -->
-        <div class="mt-6">
-            <p class="text-sm text-gray-500 text-center mb-3">Or enter tracking number manually</p>
-            <div class="flex gap-2 max-w-md mx-auto">
-                <input type="text" id="manualTracking" placeholder="Enter tracking number..." 
-                       class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <button onclick="manualLookup()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
-                    <i class="fas fa-search"></i>
-                </button>
+<div class="mx-auto max-w-6xl space-y-6">
+    <section class="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 p-6 text-white shadow-lg md:p-8">
+        <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-teal-300">NETPACK operations</p>
+                <h1 class="mt-2 text-3xl font-bold">Scan a real journey milestone</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Every scan records who processed it, where it happened, the source, and the customer-facing status. Only logically valid next events are offered.</p>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="rounded-xl bg-white/10 p-3"><i class="fas fa-box mb-2 block text-lg text-teal-300"></i>Domestic</div>
+                <div class="rounded-xl bg-white/10 p-3"><i class="fas fa-plane mb-2 block text-lg text-sky-300"></i>International</div>
+                <div class="rounded-xl bg-white/10 p-3"><i class="fas fa-shield-halved mb-2 block text-lg text-emerald-300"></i>Audited</div>
             </div>
         </div>
+    </section>
 
-        <!-- Result -->
-        <div id="scanResult" class="mt-6 hidden">
-            <div class="border rounded-lg p-4 bg-gray-50">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">Tracking Number</p>
-                        <p class="font-mono font-bold text-lg" id="resultTracking"></p>
-                    </div>
-                    <span id="resultStatusBadge" class="px-3 py-1 rounded-full text-xs font-medium"></span>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
-                    <div>
-                        <p class="text-gray-500">Sender</p>
-                        <p class="font-medium" id="resultSender"></p>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Receiver</p>
-                        <p class="font-medium" id="resultReceiver"></p>
-                    </div>
-                </div>
-                <div class="mt-3 flex gap-2">
-                    <button onclick="updateStatusFromScan()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition flex-1">
-                        <i class="fas fa-sync-alt mr-2"></i> Update Status
-                    </button>
-                    <a id="trackingLink" href="#" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex-1 text-center">
-                        <i class="fas fa-external-link-alt mr-2"></i> View Tracking
-                    </a>
-                </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div><p class="text-sm font-medium text-teal-700">Step 1</p><h2 class="text-xl font-bold text-slate-900">Identify shipment</h2></div>
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700"><i class="fas fa-qrcode"></i></span>
             </div>
-        </div>
 
-        <div id="scanError" class="mt-4 hidden">
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                <i class="fas fa-exclamation-circle mr-2"></i>
-                <span id="errorMessage">Shipment not found</span>
+            <div class="mt-5 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-center">
+                <div id="reader" class="mx-auto max-w-md overflow-hidden rounded-lg"></div>
+                <button id="cameraButton" type="button" class="mt-3 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-teal-500 hover:text-teal-700"><i class="fas fa-camera mr-2"></i>Start camera scanner</button>
+                <p id="cameraHelp" class="mt-2 text-xs text-slate-500">Camera access is optional; a USB scanner or manual entry also works.</p>
             </div>
-        </div>
+
+            <form id="lookupForm" class="mt-5">
+                <label for="manualTracking" class="text-sm font-semibold text-slate-700">Tracking or HAWB number</label>
+                <div class="mt-2 flex gap-2">
+                    <input id="manualTracking" type="text" autocomplete="off" placeholder="e.g. NPI-2026-000101-7" class="min-w-0 flex-1 rounded-lg border border-slate-300 px-4 py-3 font-mono uppercase focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200">
+                    <button class="rounded-lg bg-teal-600 px-5 py-3 font-semibold text-white hover:bg-teal-700" type="submit"><i class="fas fa-search mr-2"></i>Find</button>
+                </div>
+            </form>
+            <div id="lookupMessage" class="mt-4 hidden rounded-lg p-3 text-sm"></div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div><p class="text-sm font-medium text-teal-700">Step 2</p><h2 class="text-xl font-bold text-slate-900">Record checkpoint</h2></div>
+                <span id="serviceIcon" class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500"><i class="fas fa-box-open"></i></span>
+            </div>
+
+            <div id="emptyState" class="py-14 text-center text-slate-500">
+                <i class="fas fa-barcode text-4xl text-slate-300"></i><p class="mt-3 font-medium">Scan or enter a shipment first</p><p class="mt-1 text-xs">The next valid events will appear here.</p>
+            </div>
+
+            <form id="scanForm" class="mt-5 hidden space-y-4">
+                <div class="rounded-xl bg-slate-50 p-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <div><p id="serviceLabel" class="text-xs font-semibold uppercase tracking-wide text-teal-700"></p><p id="resultTracking" class="mt-1 font-mono text-lg font-bold text-slate-900"></p><p id="routeSummary" class="mt-1 text-sm text-slate-500"></p></div>
+                        <span id="statusBadge" class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold capitalize text-blue-700"></span>
+                    </div>
+                </div>
+                <div>
+                    <label for="eventCode" class="text-sm font-semibold text-slate-700">Next physical event</label>
+                    <select id="eventCode" required class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"></select>
+                    <p class="mt-1 text-xs text-slate-500">Backward or service-incompatible scans are blocked by the server.</p>
+                </div>
+                <div><label for="scanLocation" class="text-sm font-semibold text-slate-700">Facility / location</label><input id="scanLocation" required maxlength="255" placeholder="e.g. Kathmandu Gateway" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"></div>
+                <div><label for="scanNotes" class="text-sm font-semibold text-slate-700">Operational note <span class="font-normal text-slate-400">(optional)</span></label><textarea id="scanNotes" rows="2" maxlength="1000" placeholder="Exception details, bag number, customs reference…" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"></textarea></div>
+                <button id="recordButton" type="submit" class="w-full rounded-lg bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800"><i class="fas fa-stamp mr-2"></i>Record verified scan</button>
+            </form>
+        </section>
     </div>
 </div>
 
-<!-- HTML5 QR Code Library -->
-<script src="https://unpkg.com/html5-qrcode"></script>
-
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-let scannedShipment = null;
-let html5QrCode;
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const lookupUrl = @json(route('hawb.scan'));
+const updateUrl = @json(route('hawb.update-from-scan'));
+let shipment = null;
+let scanner = null;
 
-function onScanSuccess(decodedText, decodedResult) {
-    // decodedText is the tracking number
-    console.log(`Code scanned: ${decodedText}`);
-    lookupShipment(decodedText);
-    
-    // Stop scanning after successful scan
-    if (html5QrCode) {
-        html5QrCode.stop();
-    }
+function normalizeTracking(value) {
+    const text = value.trim();
+    try { const url = new URL(text); return decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || text); }
+    catch (_) { return text; }
 }
-
-function onScanFailure(error) {
-    // Handle scan failure, usually ignore
+function showMessage(message, success = false) {
+    const element = document.getElementById('lookupMessage');
+    element.textContent = message;
+    element.className = `mt-4 rounded-lg p-3 text-sm ${success ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`;
 }
-
-// Initialize QR scanner
-document.addEventListener('DOMContentLoaded', function() {
-    html5QrCode = new Html5Qrcode("reader");
-    
-    const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-    };
-    
-    html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        onScanSuccess,
-        onScanFailure
-    ).catch(err => {
-        console.error('Unable to start scanner:', err);
-        document.getElementById('reader').innerHTML = `
-            <div class="text-center text-gray-500 py-8">
-                <i class="fas fa-exclamation-triangle text-3xl block mb-2"></i>
-                <p>Camera access denied. Please allow camera access or enter tracking manually.</p>
-            </div>
-        `;
-    });
-});
-
-function lookupShipment(trackingNumber) {
-    fetch('/hawb/scan?tracking=' + encodeURIComponent(trackingNumber))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                scannedShipment = data.shipment;
-                showResult(scannedShipment);
-            } else {
-                showError('Shipment not found with tracking number: ' + trackingNumber);
-            }
-        })
-        .catch(error => {
-            showError('Error: ' + error.message);
-        });
-}
-
-function manualLookup() {
-    const tracking = document.getElementById('manualTracking').value.trim();
-    if (!tracking) {
-        alert('Please enter a tracking number');
-        return;
-    }
-    lookupShipment(tracking);
-}
-
-function showResult(shipment) {
-    document.getElementById('scanResult').classList.remove('hidden');
-    document.getElementById('scanError').classList.add('hidden');
-    
+async function lookupShipment(value) {
+    const tracking = normalizeTracking(value);
+    if (!tracking) return;
+    const response = await fetch(lookupUrl, {method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken}, body: JSON.stringify({tracking})});
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Shipment could not be found.');
+    shipment = data.shipment;
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('scanForm').classList.remove('hidden');
     document.getElementById('resultTracking').textContent = shipment.tracking_number;
-    document.getElementById('resultSender').textContent = shipment.sender_name || 'N/A';
-    document.getElementById('resultReceiver').textContent = shipment.receiver_name || 'N/A';
-    
-    const badge = document.getElementById('resultStatusBadge');
-    const statusLabel = shipment.status_label || shipment.status;
-    const statusColor = shipment.status === 'delivered' ? 'green' : 
-                       (shipment.status === 'pending' ? 'yellow' : 'blue');
-    badge.textContent = statusLabel;
-    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-' + statusColor + '-100 text-' + statusColor + '-800';
-    
-    document.getElementById('trackingLink').href = '/track/' + shipment.tracking_number;
+    document.getElementById('serviceLabel').textContent = shipment.service.label;
+    document.getElementById('routeSummary').textContent = `${shipment.receiver_city || 'Destination'} · ${shipment.type === 'international' ? 'International' : 'Domestic'}`;
+    document.getElementById('statusBadge').textContent = shipment.status.replaceAll('_', ' ');
+    document.getElementById('serviceIcon').innerHTML = `<i class="fas ${shipment.service.icon}"></i>`;
+    document.getElementById('serviceIcon').className = 'flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700';
+    const select = document.getElementById('eventCode');
+    select.innerHTML = shipment.available_events.length ? shipment.available_events.map(event => `<option value="${event.code}">${event.label}</option>`).join('') : '<option value="">No further events available</option>';
+    document.getElementById('recordButton').disabled = shipment.available_events.length === 0;
+    showMessage('Shipment verified. Select the physical event that just occurred.', true);
 }
-
-function showError(message) {
-    document.getElementById('scanResult').classList.add('hidden');
-    document.getElementById('scanError').classList.remove('hidden');
-    document.getElementById('errorMessage').textContent = message;
-}
-
-function updateStatusFromScan() {
-    if (!scannedShipment) return;
-    
-    const status = prompt('Enter new status:\n(pending, confirmed, picked_up, in_transit, out_for_delivery, delivered, cancelled)', 'in_transit');
-    if (!status) return;
-    
-    const location = prompt('Enter location:', 'Scan Point');
-    const notes = prompt('Enter notes:', 'Status updated via QR scan');
-    
-    fetch('/hawb/update-from-scan', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            tracking: scannedShipment.tracking_number,
-            status: status,
-            location: location || 'Scan Point',
-            notes: notes || 'Status updated via QR scan'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Status updated successfully!');
-            // Reload the shipment data
-            lookupShipment(scannedShipment.tracking_number);
-        } else {
-            alert('❌ Failed to update status: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('❌ Error: ' + error.message);
-    });
-}
+document.getElementById('lookupForm').addEventListener('submit', async event => { event.preventDefault(); try { await lookupShipment(document.getElementById('manualTracking').value); } catch (error) { showMessage(error.message); } });
+document.getElementById('scanForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('recordButton');
+    button.disabled = true; button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Recording scan…';
+    try {
+        const response = await fetch(updateUrl, {method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken}, body: JSON.stringify({tracking: shipment.tracking_number, event_code: document.getElementById('eventCode').value, location: document.getElementById('scanLocation').value, notes: document.getElementById('scanNotes').value})});
+        const data = await response.json();
+        if (!response.ok || !data.success) { const validationMessage = data.errors ? Object.values(data.errors).flat()[0] : null; throw new Error(validationMessage || data.message || 'The scan could not be recorded.'); }
+        document.getElementById('scanNotes').value = '';
+        await lookupShipment(shipment.tracking_number);
+        showMessage('Verified scan recorded successfully.', true);
+    } catch (error) { showMessage(error.message); }
+    finally { button.disabled = false; button.innerHTML = '<i class="fas fa-stamp mr-2"></i>Record verified scan'; }
+});
+document.getElementById('cameraButton').addEventListener('click', async () => {
+    if (typeof Html5Qrcode === 'undefined') return showMessage('Camera scanner could not be loaded. Use manual entry.');
+    try {
+        scanner = scanner || new Html5Qrcode('reader');
+        await scanner.start({facingMode: 'environment'}, {fps: 10, qrbox: {width: 240, height: 180}}, async decoded => { await scanner.stop(); document.getElementById('manualTracking').value = normalizeTracking(decoded); try { await lookupShipment(decoded); } catch (error) { showMessage(error.message); } });
+        document.getElementById('cameraButton').classList.add('hidden');
+        document.getElementById('cameraHelp').textContent = 'Camera active — place the HAWB QR code inside the frame.';
+    } catch (_) { showMessage('Camera access was unavailable. You can continue with manual or USB-scanner entry.'); }
+});
 </script>
 @endsection

@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Shipment;
 use App\Models\DomesticShipment;
+use App\Models\Order;
 use App\Models\TrackingLocation;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 
 class TrackingController extends Controller
 {
-    public function __construct()
+    public function __construct(private readonly ShipmentScanService $scanService)
     {
-        $this->middleware('auth')->only(['updateLocation', 'updateStatus']);
+        $this->middleware('auth')->only(['getLiveLocation', 'getOrderLiveLocation', 'updateLocation', 'updateStatus']);
     }
 
     /**
@@ -50,6 +52,15 @@ class TrackingController extends Controller
             $domesticShipment = DomesticShipment::where('tracking_number', $trackingNumber)->first();
             if ($domesticShipment) {
                 return view('tracking.domestic', ['shipment' => $domesticShipment]);
+            }
+
+            // E-commerce and rider deliveries share the same public lookup,
+            // but exact rider coordinates are only exposed to authorized users.
+            $order = Order::where('tracking_number', $trackingNumber)->with('rider')->first();
+            if ($order) {
+                $canViewLive = $this->canViewOrderLiveLocation(request()->user(), $order);
+
+                return view('tracking.order', compact('order', 'canViewLive'));
             }
             
             // Not found
@@ -94,6 +105,40 @@ class TrackingController extends Controller
                 'longitude' => $location ? $location->longitude : ($shipment->current_longitude ?? null),
                 'last_updated' => $location ? $location->recorded_at->toDateTimeString() : $shipment->updated_at->toDateTimeString(),
             ]
+        ]);
+    }
+
+    /**
+     * Return the latest real rider GPS point for an e-commerce order.
+     */
+    public function getOrderLiveLocation(Order $order)
+    {
+        abort_unless($this->canViewOrderLiveLocation(request()->user(), $order), 403,
+            'You are not authorized to view this rider location.');
+
+        $location = $order->trackingLocations()->latest('timestamp')->first();
+        $lastUpdated = $location?->timestamp ?? $order->rider?->last_location_update;
+        $latitude = $location?->latitude ?? $order->rider?->current_latitude;
+        $longitude = $location?->longitude ?? $order->rider?->current_longitude;
+        $staleAfter = config('tracking.live.stale_after_seconds', 120);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $order->status,
+                'status_label' => $order->status_label,
+                'latitude' => $latitude !== null ? (float) $latitude : null,
+                'longitude' => $longitude !== null ? (float) $longitude : null,
+                'accuracy' => $location?->accuracy !== null ? (float) $location->accuracy : null,
+                'speed' => $location?->speed !== null ? (float) $location->speed : null,
+                'bearing' => $location?->bearing !== null ? (float) $location->bearing : null,
+                'last_updated' => $lastUpdated?->toIso8601String(),
+                'is_stale' => !$lastUpdated || $lastUpdated->diffInSeconds(now()) > $staleAfter,
+                'delivery' => [
+                    'latitude' => $order->delivery_latitude !== null ? (float) $order->delivery_latitude : null,
+                    'longitude' => $order->delivery_longitude !== null ? (float) $order->delivery_longitude : null,
+                ],
+            ],
         ]);
     }
 
@@ -157,16 +202,17 @@ public function updateStatus(Request $request, $shipmentId)
     // 4. Check if user has permission based on role and shipment type
     $this->authorizeStatusUpdate($user, $shipment, $request->status);
     
-    $this->assertValidStatusTransition($shipment->status, $request->status);
+    $eventCode = $this->scanService->eventCodeForStatus($request->status);
+    abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
 
-    // 5. Update the status
-    $oldStatus = $shipment->status;
-    $newStatus = $request->status;
-    $shipment->status = $newStatus;
-    $shipment->save();
-
-    // 6. Add tracking event
-    $this->addTrackingEvent($shipment, $newStatus, $request->location, $request->description, $user);
+    $this->scanService->record(
+        $shipment,
+        $eventCode,
+        $request->location,
+        $request->description,
+        $user,
+        'admin_status_update',
+    );
     
     return response()->json(['success' => true]);
 }
@@ -234,7 +280,7 @@ public function updateStatus(Request $request, $shipmentId)
 private function authorizeStatusUpdate($user, $shipment, $newStatus)
 {
     // Super Admin and Admin can update any status
-    if ($user->user_type === 'super_admin' || $user->user_type === 'admin') {
+    if (in_array($user->user_type, ['super_admin', 'admin', 'domestic_admin', 'international_admin'], true)) {
         return true;
     }
     
@@ -281,7 +327,7 @@ private function authorizeStatusUpdate($user, $shipment, $newStatus)
 
 private function authorizeTrackingView($user, Shipment $shipment): void
 {
-    if (in_array($user->user_type, ['super_admin', 'admin', 'staff'], true)) {
+    if (in_array($user->user_type, ['super_admin', 'admin', 'staff', 'domestic_admin', 'international_admin'], true)) {
         return;
     }
 
@@ -299,9 +345,27 @@ private function authorizeTrackingView($user, Shipment $shipment): void
     abort(403, 'You are not authorized to view this live location.');
 }
 
+private function canViewOrderLiveLocation($user, Order $order): bool
+{
+    if (!$user) {
+        return false;
+    }
+
+    if (in_array($user->user_type, ['super_admin', 'admin', 'staff', 'domestic_admin'], true)) {
+        return true;
+    }
+
+    return in_array((int) $user->id, array_filter([
+        (int) $order->customer_id,
+        (int) $order->client_id,
+        (int) $order->seller_id,
+        (int) $order->rider_id,
+    ]), true);
+}
+
 private function authorizeLocationUpdate($user, Shipment $shipment): void
 {
-    if (in_array($user->user_type, ['super_admin', 'admin', 'staff'], true)) {
+    if (in_array($user->user_type, ['super_admin', 'admin', 'staff', 'domestic_admin', 'international_admin'], true)) {
         return;
     }
 
@@ -320,47 +384,6 @@ private function isPartnerAssociated($user, Shipment $shipment): bool
 {
     return $user->user_type === 'overseas'
         && (int) $shipment->overseas_partner_id === (int) $user->id;
-}
-
-private function addTrackingEvent(Shipment $shipment, string $status, ?string $location, ?string $description, $user): void
-{
-    $history = $shipment->tracking_history ?? [];
-    $history[] = [
-        'status' => $status,
-        'status_label' => $this->getStatusLabel($status),
-        'description' => $description ?: $this->getStatusDescription($status),
-        'location' => $location,
-        'time' => now()->toIso8601String(),
-        'recorded_by' => $user->id,
-        'recorded_by_role' => $user->user_type,
-    ];
-
-    $shipment->forceFill(['tracking_history' => $history])->save();
-}
-
-private function assertValidStatusTransition(string $currentStatus, string $newStatus): void
-{
-    if ($currentStatus === $newStatus) {
-        return;
-    }
-
-    $transitions = [
-        'pending' => ['confirmed', 'cancelled'],
-        'confirmed' => ['processing', 'picked_up', 'cancelled'],
-        'processing' => ['picked_up', 'in_transit', 'cancelled'],
-        'picked_up' => ['in_transit', 'failed_delivery'],
-        'in_transit' => ['customs_clearance', 'out_for_delivery', 'failed_delivery', 'returned'],
-        'customs_clearance' => ['in_transit', 'out_for_delivery', 'returned'],
-        'out_for_delivery' => ['delivered', 'failed_delivery', 'returned'],
-        'failed_delivery' => ['out_for_delivery', 'returned'],
-        'delivered' => [],
-        'returned' => [],
-        'cancelled' => [],
-    ];
-
-    if (!in_array($newStatus, $transitions[$currentStatus] ?? [], true)) {
-        abort(422, "Invalid shipment status transition from {$currentStatus} to {$newStatus}.");
-    }
 }
 
 }

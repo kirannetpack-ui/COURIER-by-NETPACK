@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Overseas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +17,9 @@ class StaffScanController extends Controller
 
     public function scan()
     {
-        return view('overseas.staff.scan');
+        abort_unless(in_array(Auth::user()?->user_type, ['staff', 'super_admin', 'international_admin'], true), 403);
+
+        return view('hawb.scan');
     }
 
     public function processScan(Request $request)
@@ -28,6 +31,7 @@ class StaffScanController extends Controller
         ]);
 
         $staff = Auth::user();
+        abort_unless(in_array($staff?->user_type, ['staff', 'super_admin', 'international_admin'], true), 403);
         $shipment = Shipment::where('tracking_number', $request->tracking_number)->first();
 
         if (!$shipment) {
@@ -35,35 +39,12 @@ class StaffScanController extends Controller
                 ->with('error', 'Shipment not found.');
         }
 
-        // Update tracking based on action
-        $trackingHistory = $shipment->tracking_history ?? [];
-        $trackingHistory[] = [
-            'action' => $request->action,
-            'processed_by' => $staff->name,
-            'notes' => $request->notes,
-            'time' => now()->toDateTimeString(),
-        ];
-
-        $status = $shipment->status;
-        switch ($request->action) {
-            case 'arrival':
-                $status = 'in_transit';
-                break;
-            case 'departure':
-                $status = 'in_transit';
-                break;
-            case 'customs_clearance':
-                $status = 'customs_clearance';
-                $shipment->customs_cleared_at = now();
-                break;
-        }
-
-        $shipment->update([
-            'status' => $status,
-            'tracking_history' => $trackingHistory,
-            'processed_by' => $staff->id,
-            'status_notes' => $request->notes,
-        ]);
+        $eventCode = match ($request->action) {
+            'arrival' => 'transit_facility_arrival',
+            'departure' => 'transit_facility_departure',
+            'customs_clearance' => 'customs_hold',
+        };
+        app(ShipmentScanService::class)->record($shipment, $eventCode, null, $request->notes, $staff, 'overseas_staff_scan');
 
         return redirect()->route('overseas.staff.scan')
             ->with('success', "Shipment {$shipment->tracking_number} processed successfully!");

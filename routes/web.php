@@ -215,6 +215,7 @@ Route::middleware(['auth'])->group(function () {
         ->defaults('type', 'domestic')->name('hawb.domestic');
     Route::get('/hawb/print/{id}/{type?}', [HAWBController::class, 'printPopup'])->name('hawb.print');
     Route::get('/hawb/download/{id}/{type?}', [HAWBController::class, 'download'])->name('hawb.download');
+    Route::view('/hawb/scanner', 'hawb.scan')->name('hawb.scanner');
     Route::post('/hawb/scan', [HAWBController::class, 'scan'])->name('hawb.scan');
     Route::post('/hawb/update-from-scan', [HAWBController::class, 'updateFromScan'])->name('hawb.update-from-scan');
 
@@ -222,6 +223,7 @@ Route::middleware(['auth'])->group(function () {
     // TRACKING UPDATE ROUTES
     // =============================================
     Route::get('/tracking/live/{shipmentId}', [TrackingController::class, 'getLiveLocation'])->name('tracking.live');
+    Route::get('/tracking/orders/{order}/live', [TrackingController::class, 'getOrderLiveLocation'])->name('tracking.orders.live');
     Route::post('/tracking/update-location/{shipmentId}', [TrackingController::class, 'updateLocation'])->name('tracking.update-location');
     Route::post('/tracking/update-status/{shipmentId}', [TrackingController::class, 'updateStatus'])->name('tracking.update-status');
     Route::get('/tracking/update', function () {

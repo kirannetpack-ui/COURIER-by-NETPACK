@@ -16,6 +16,8 @@
 @section('content')
 @php
     $statusInfo = $shipment->tracking_status;
+    $serviceInfo = config('tracking.services.' . $shipment->service_type,
+        config('tracking.services.' . $shipment->shipment_type, config('tracking.services.default')));
     $events = $shipment->tracking_history ?: [[
         'status' => $shipment->status,
         'status_label' => $statusInfo['label'],
@@ -29,7 +31,7 @@
     <section class="overflow-hidden rounded-2xl bg-gradient-to-r from-teal-600 to-blue-600 p-6 text-white shadow-lg md:p-8">
         <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-                <p class="text-sm font-medium text-white/75">Shipment tracking</p>
+                <p class="flex items-center gap-2 text-sm font-medium text-white/75"><i class="fas {{ $serviceInfo['icon'] }}"></i>{{ $serviceInfo['label'] }}</p>
                 <h1 class="mt-1 text-2xl font-bold md:text-3xl">{{ $shipment->formatted_tracking_number }}</h1>
                 <p class="mt-2 text-sm text-white/80">Last updated {{ $shipment->updated_at->diffForHumans() }}</p>
             </div>
@@ -45,7 +47,7 @@
     <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs uppercase tracking-wide text-slate-500">Service</p>
-            <p class="mt-2 font-semibold text-slate-900">{{ ucfirst($shipment->service_type ?: 'Standard') }}</p>
+            <p class="mt-2 flex items-center gap-2 font-semibold text-slate-900"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700"><i class="fas {{ $serviceInfo['icon'] }}"></i></span><span>{{ $serviceInfo['label'] }}<small class="block font-normal text-slate-500">{{ $serviceInfo['promise'] }}</small></span></p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs uppercase tracking-wide text-slate-500">Origin</p>
@@ -73,13 +75,17 @@
 
             <div class="space-y-0">
                 @foreach($events as $index => $event)
-                    @php $isCurrent = $index === count($events) - 1; @endphp
+                    @php
+                        $isCurrent = $index === count($events) - 1;
+                        $eventInfo = config('tracking.statuses.' . ($event['status'] ?? ''), config('tracking.statuses.pending'));
+                        $eventIcon = $event['icon'] ?? $eventInfo['icon'];
+                    @endphp
                     <article class="relative grid grid-cols-[36px_1fr] gap-4 pb-8 last:pb-0">
                         @if(!$loop->last)
                             <span class="absolute bottom-0 left-[17px] top-9 w-0.5 bg-slate-200"></span>
                         @endif
                         <span class="{{ $isCurrent ? 'tracker-active bg-teal-600' : 'bg-emerald-500' }} relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm text-white">
-                            <i class="fas {{ $isCurrent ? 'fa-location-dot' : 'fa-check' }}"></i>
+                            <i class="fas {{ $eventIcon }}"></i>
                         </span>
                         <div class="rounded-xl border {{ $isCurrent ? 'border-teal-200 bg-teal-50/50' : 'border-slate-200' }} p-4">
                             <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">

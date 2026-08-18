@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Overseas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,19 +46,12 @@ class ShipmentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $shipment->update([
-            'status' => $request->status,
-            'overseas_tracking' => array_merge(
-                $shipment->overseas_tracking ?? [],
-                [
-                    [
-                        'status' => $request->status,
-                        'notes' => $request->notes,
-                        'time' => now()->toDateTimeString(),
-                    ]
-                ]
-            ),
-        ]);
+        if ($request->status !== $shipment->status) {
+            $scanService = app(ShipmentScanService::class);
+            $eventCode = $scanService->eventCodeForStatus($request->status);
+            abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
+            $scanService->record($shipment, $eventCode, null, $request->notes, $request->user(), 'overseas_partner');
+        }
 
         return redirect()->route('overseas.shipments.show', $id)
             ->with('success', 'Shipment status updated successfully!');

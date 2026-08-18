@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\PickupRequest;
 use App\Models\Shipment;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -209,20 +210,13 @@ class AdminController extends Controller
             'location' => 'nullable|string',
         ]);
 
-        $oldStatus = $shipment->status;
         $newStatus = $request->status;
-
-        $shipment->update([
-            'status' => $newStatus,
-            'delivery_notes' => $request->notes,
-        ]);
-
-        // Add tracking event
-        $shipment->addTrackingEvent(
-            $newStatus,
-            $request->location ?? 'Admin Update',
-            $request->notes ?? 'Status updated by admin'
-        );
+        if ($newStatus !== $shipment->status) {
+            $scanService = app(ShipmentScanService::class);
+            $eventCode = $scanService->eventCodeForStatus($newStatus);
+            abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
+            $scanService->record($shipment, $eventCode, $request->location, $request->notes, $request->user(), 'domestic_admin');
+        }
 
         return redirect()->route('domestic.shipments.show', $id)
             ->with('success', 'Shipment status updated successfully!');
