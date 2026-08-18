@@ -31,6 +31,13 @@
 
             <!-- Active Orders -->
             <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">Active Deliveries</h3>
+
+            @if($orders->count() > 0)
+                <div id="orderGpsStatus" class="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span>Starting secure GPS sharing for your active deliveries…</span>
+                </div>
+            @endif
             
             @if($orders->count() > 0)
                 <div class="space-y-4 mb-8">
@@ -273,6 +280,67 @@ document.getElementById('deliverModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeDeliverModal();
     }
+});
+
+const activeOrderIds = @json($orders->pluck('id')->values());
+const orderLocationUrl = @json(route('rider.orders.update-location'));
+let orderLocationWatch = null;
+let lastOrderLocationSentAt = 0;
+
+function setOrderGpsStatus(message, tone = 'blue') {
+    const element = document.getElementById('orderGpsStatus');
+    if (!element) return;
+    const tones = {
+        blue: 'border-blue-200 bg-blue-50 text-blue-800',
+        green: 'border-green-200 bg-green-50 text-green-800',
+        amber: 'border-amber-200 bg-amber-50 text-amber-800',
+        red: 'border-red-200 bg-red-50 text-red-800',
+    };
+    element.className = `mb-4 flex items-center gap-3 rounded-lg border p-3 text-sm ${tones[tone]}`;
+    element.innerHTML = `<i class="fas fa-satellite-dish"></i><span>${message}</span>`;
+}
+
+async function shareOrderLocation(position) {
+    const now = Date.now();
+    if (now - lastOrderLocationSentAt < {{ max(5, config('tracking.live.refresh_seconds')) * 1000 }}) return;
+    lastOrderLocationSentAt = now;
+
+    const payload = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        speed: position.coords.speed,
+        bearing: position.coords.heading,
+        altitude: position.coords.altitude,
+    };
+
+    try {
+        await Promise.all(activeOrderIds.map(async orderId => {
+            const response = await fetch(orderLocationUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
+                body: JSON.stringify({...payload, order_id: orderId}),
+            });
+            if (!response.ok) throw new Error('Location update failed');
+        }));
+        setOrderGpsStatus(`Live GPS shared · accuracy ${Math.round(position.coords.accuracy)} m`, 'green');
+    } catch (_) {
+        setOrderGpsStatus('GPS was received, but the server update failed. Retrying automatically.', 'amber');
+    }
+}
+
+if (activeOrderIds.length && navigator.geolocation) {
+    orderLocationWatch = navigator.geolocation.watchPosition(
+        shareOrderLocation,
+        error => setOrderGpsStatus(error.code === 1 ? 'Location permission is required for customer live tracking.' : 'Waiting for a stable GPS signal…', error.code === 1 ? 'red' : 'amber'),
+        {enableHighAccuracy: true, maximumAge: 10000, timeout: 15000},
+    );
+} else if (activeOrderIds.length) {
+    setOrderGpsStatus('This device does not support browser GPS.', 'red');
+}
+
+window.addEventListener('beforeunload', () => {
+    if (orderLocationWatch !== null) navigator.geolocation.clearWatch(orderLocationWatch);
 });
 </script>
 @endpush

@@ -203,7 +203,7 @@ Route::middleware(['auth'])->group(function () {
     // =============================================
     Route::get('/shipments/create', [ShipmentController::class, 'create'])->name('shipments.create');
     Route::post('/shipments', [ShipmentController::class, 'store'])->name('shipments.store');
-    Route::get('/shipments/{trackingNumber}', [ShipmentController::class, 'show'])->name('shipments.show');
+    Route::get('/shipments/{shipment}', [ShipmentController::class, 'show'])->whereNumber('shipment')->name('shipments.show');
     Route::resource('shipments', ShipmentController::class)->except(['create', 'store', 'show']);
 
     // =============================================
@@ -215,6 +215,7 @@ Route::middleware(['auth'])->group(function () {
         ->defaults('type', 'domestic')->name('hawb.domestic');
     Route::get('/hawb/print/{id}/{type?}', [HAWBController::class, 'printPopup'])->name('hawb.print');
     Route::get('/hawb/download/{id}/{type?}', [HAWBController::class, 'download'])->name('hawb.download');
+    Route::view('/hawb/scanner', 'hawb.scan')->name('hawb.scanner');
     Route::post('/hawb/scan', [HAWBController::class, 'scan'])->name('hawb.scan');
     Route::post('/hawb/update-from-scan', [HAWBController::class, 'updateFromScan'])->name('hawb.update-from-scan');
 
@@ -222,6 +223,7 @@ Route::middleware(['auth'])->group(function () {
     // TRACKING UPDATE ROUTES
     // =============================================
     Route::get('/tracking/live/{shipmentId}', [TrackingController::class, 'getLiveLocation'])->name('tracking.live');
+    Route::get('/tracking/orders/{order}/live', [TrackingController::class, 'getOrderLiveLocation'])->name('tracking.orders.live');
     Route::post('/tracking/update-location/{shipmentId}', [TrackingController::class, 'updateLocation'])->name('tracking.update-location');
     Route::post('/tracking/update-status/{shipmentId}', [TrackingController::class, 'updateStatus'])->name('tracking.update-status');
     Route::get('/tracking/update', function () {
@@ -428,7 +430,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,do
 
     // Pickups & Shipments
     Route::get('/pickups', [AdminPickupController::class, 'index'])->name('pickups');
-    Route::get('/shipments', [AdminShipmentController::class, 'index'])->name('shipments');
+    Route::get('/shipments', [AdminShipmentController::class, 'index'])->name('shipments.index');
+    Route::get('/shipments/{id}', [AdminShipmentController::class, 'show'])->whereNumber('id')->name('shipments.show');
     Route::get('/analytics', function () {
         return view('admin.analytics');
     })->name('analytics');

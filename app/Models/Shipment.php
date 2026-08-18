@@ -374,8 +374,7 @@ private static function calculateCheckDigit($number)
  */
 public function getFormattedTrackingNumberAttribute()
 {
-    $parts = str_split($this->tracking_number, 4);
-    return implode('-', $parts);
+    return strtoupper((string) $this->tracking_number);
 }
 
 /**

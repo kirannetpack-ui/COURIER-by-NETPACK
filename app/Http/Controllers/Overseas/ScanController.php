@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Overseas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,14 +17,15 @@ class ScanController extends Controller
 
     public function scan()
     {
-        return view('overseas.scan.index');
+        return view('hawb.scan');
     }
 
     public function processScan(Request $request)
     {
         $request->validate([
             'tracking_number' => 'required|string|exists:shipments,tracking_number',
-            'status' => 'required|string',
+            'event_code' => 'nullable|required_without:status|string|max:80',
+            'status' => 'nullable|required_without:event_code|string',
             'location' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
@@ -38,23 +40,13 @@ class ScanController extends Controller
                 ->with('error', 'Shipment not found or not assigned to you.');
         }
 
-        // Update tracking
-        $trackingHistory = $shipment->tracking_history ?? [];
-        $trackingHistory[] = [
-            'status' => $request->status,
-            'location' => $request->location,
-            'notes' => $request->notes,
-            'time' => now()->toDateTimeString(),
-        ];
-
-        $shipment->update([
-            'status' => $request->status,
-            'tracking_history' => $trackingHistory,
-            'status_notes' => $request->notes,
-        ]);
+        $scanService = app(ShipmentScanService::class);
+        $eventCode = $request->event_code ?: $scanService->eventCodeForStatus($request->status);
+        abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
+        $shipment = $scanService->record($shipment, $eventCode, $request->location, $request->notes, $request->user(), 'overseas_scan');
 
         return redirect()->route('overseas.scan')
-            ->with('success', "Shipment {$shipment->tracking_number} updated to: " . ucfirst($request->status));
+            ->with('success', "Shipment {$shipment->tracking_number} updated to: " . ucfirst(str_replace('_', ' ', $shipment->status)));
     }
 
     public function fetchShipment($trackingNumber)

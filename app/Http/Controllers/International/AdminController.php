@@ -10,6 +10,7 @@ use App\Models\RemoteAreaSurcharge;
 use App\Models\AdditionalCharge;
 use App\Models\Shipment;
 use App\Models\OverseasTransitPoint;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -526,20 +527,12 @@ private function parseSurchargeFile($file)
             'notes' => 'nullable|string',
         ]);
 
-        $shipment->update([
-            'status' => $request->status,
-            'status_notes' => $request->notes,
-        ]);
-
-        // Add tracking event
-        $trackingHistory = $shipment->tracking_history ?? [];
-        $trackingHistory[] = [
-            'status' => $request->status,
-            'notes' => $request->notes,
-            'time' => now()->toDateTimeString(),
-            'updated_by' => Auth::user()->name,
-        ];
-        $shipment->update(['tracking_history' => $trackingHistory]);
+        if ($request->status !== $shipment->status) {
+            $scanService = app(ShipmentScanService::class);
+            $eventCode = $scanService->eventCodeForStatus($request->status);
+            abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
+            $scanService->record($shipment, $eventCode, null, $request->notes, $request->user(), 'international_admin');
+        }
 
         return redirect()->route('international.shipments.show', $id)
             ->with('success', 'Shipment status updated successfully!');

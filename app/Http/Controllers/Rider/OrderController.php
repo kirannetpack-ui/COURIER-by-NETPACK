@@ -415,27 +415,10 @@ class OrderController extends Controller
         ->where('rider_id', Auth::id())
         ->with(['rider'])
         ->firstOrFail();
-    
-    // Get pickup location (from seller address)
-    $seller = $order->seller;
-    $order->pickup_latitude = $seller->latitude ?? $order->delivery_latitude ?? 27.7172;
-    $order->pickup_longitude = $seller->longitude ?? $order->delivery_longitude ?? 85.3240;
-    
-    // Get delivery address
-    $order->delivery_address = $order->shipping_address;
-    
-    // Get rider location
-    if ($order->rider) {
-        $order->rider->current_latitude = $order->rider->current_latitude ?? $order->delivery_latitude ?? 27.7172;
-        $order->rider->current_longitude = $order->rider->current_longitude ?? $order->delivery_longitude ?? 85.3240;
-    }
-    
-    $locations = OrderTrackingLocation::where('order_id', $order->id)
-        ->orderBy('timestamp', 'desc')
-        ->limit(50)
-        ->get();
 
-    return view('rider.orders.track', compact('order', 'locations'));
+    // Reuse the privacy-aware tracker. It polls actual GPS records written by
+    // updateLocation; the previous screen animated a simulated rider position.
+    return view('tracking.order', ['order' => $order, 'canViewLive' => true]);
 }
 
 

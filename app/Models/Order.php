@@ -9,6 +9,7 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'seller_id',
+        'customer_id',
         'client_id',
         'rider_id',
         'customer_name',
@@ -302,5 +303,14 @@ public function shipments()
             'failed' => 0,
         ];
         return $progress[$this->status] ?? 0;
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            if (blank($order->tracking_number)) {
+                $order->tracking_number = self::generateTrackingNumber();
+            }
+        });
     }
 }

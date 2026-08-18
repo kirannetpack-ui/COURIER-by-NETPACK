@@ -38,25 +38,16 @@
                             </span>
                         </td>
                         <td class="px-4 py-3">{{ $shipment->created_at->format('M d, Y') }}</td>
-                        <td class="px-4 py-3">
-                            <a href="{{ route('admin.shipments.show', $shipment->id) }}" class="text-teal-600">View</a>
-                        </td>
-
 <td class="py-3 px-4">
     <div class="flex gap-2">
         <a href="{{ route('admin.shipments.show', $shipment->id) }}" class="text-blue-600 hover:text-blue-800" title="View">
             <i class="fas fa-eye"></i>
         </a>
-        @if(auth()->user()->isAdmin() || auth()->user()->isStaff())
+        @if(in_array(auth()->user()->user_type, ['super_admin', 'admin', 'staff'], true))
         <button onclick="openTrackingModal('{{ $shipment->id }}', '{{ $shipment->tracking_number }}')" 
                 class="text-teal-600 hover:text-teal-800" title="Update Tracking">
             <i class="fas fa-sync-alt"></i>
         </button>
-        @endif
-        @if(auth()->user()->isAdmin())
-        <a href="{{ route('admin.shipments.edit', $shipment->id) }}" class="text-yellow-600 hover:text-yellow-800" title="Edit">
-            <i class="fas fa-edit"></i>
-        </a>
         @endif
     </div>
 </td>
@@ -73,4 +64,5 @@
         {{ $shipments->links() }}
     </div>
 </div>
+@include('partials.tracking-update-modal')
 @endsection

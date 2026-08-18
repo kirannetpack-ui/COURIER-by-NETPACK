@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shipment;
 use App\Models\DomesticShipment;
 use App\Models\User;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\ErrorCorrectionLevel;
@@ -12,6 +13,10 @@ use Endroid\QrCode\Writer\PngWriter;
 
 class HAWBController extends Controller
 {
+    public function __construct(private readonly ShipmentScanService $scanService)
+    {
+    }
+
     /**
      * Generate HAWB for a shipment
      */
@@ -123,8 +128,12 @@ class HAWBController extends Controller
                 'type' => $type,
                 'tracking_number' => $shipment->tracking_number,
                 'status' => $shipment->status,
+                'sender_name' => $shipment->sender_name,
+                'receiver_name' => $shipment->receiver_name,
                 'receiver_city' => $shipment->receiver_city,
                 'service_type' => $shipment->service_type,
+                'service' => config('tracking.services.' . $shipment->service_type, config('tracking.services.default')),
+                'available_events' => $this->scanService->availableEvents($shipment),
             ],
             'current_status' => $shipment->status,
             'tracking_url' => route('tracking.show', $shipment->tracking_number),
@@ -138,7 +147,8 @@ class HAWBController extends Controller
     {
         $validated = $request->validate([
             'tracking' => ['required', 'string', 'max:50'],
-            'status' => ['required', 'in:pending,confirmed,processing,picked_up,in_transit,customs_clearance,out_for_delivery,delivered,failed_delivery,returned,cancelled'],
+            'event_code' => ['nullable', 'required_without:status', 'string', 'max:80'],
+            'status' => ['nullable', 'required_without:event_code', 'in:pending,confirmed,processing,picked_up,in_transit,customs_clearance,out_for_delivery,delivered,failed_delivery,returned,cancelled'],
             'location' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -149,36 +159,25 @@ class HAWBController extends Controller
         }
 
         abort_unless($this->canUpdate($request->user(), $shipment), 403);
-        abort_unless($this->canTransition($shipment->status, $validated['status']), 422, 'Invalid shipment status transition.');
+        $eventCode = $validated['event_code'] ?? $this->scanService->eventCodeForStatus($validated['status']);
+        abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
 
-        if ($shipment instanceof DomesticShipment) {
-            $shipment->update(['status' => $validated['status']]);
-            $shipment->addTrackingEvent(
-                $validated['status'],
-                $validated['location'] ?? 'Scan point',
-                $validated['notes'] ?? 'Status updated via QR scan',
-                ['scanned_by_user_id' => $request->user()->id, 'scan_method' => 'qr'],
-            );
-        } else {
-            $history = $shipment->tracking_history ?? [];
-            $history[] = [
-                'status' => $validated['status'],
-                'status_label' => ucfirst(str_replace('_', ' ', $validated['status'])),
-                'description' => $validated['notes'] ?? 'Status updated via QR scan',
-                'location' => $validated['location'] ?? 'Scan point',
-                'time' => now()->toIso8601String(),
-                'scanned_by_user_id' => $request->user()->id,
-                'scan_method' => 'qr',
-            ];
-            $shipment->update(['status' => $validated['status'], 'tracking_history' => $history]);
-        }
+        $shipment = $this->scanService->record(
+            $shipment,
+            $eventCode,
+            $validated['location'] ?? null,
+            $validated['notes'] ?? null,
+            $request->user(),
+            'qr',
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'Status updated successfully',
             'shipment' => [
                 'tracking_number' => $shipment->tracking_number,
-                'status' => $shipment->fresh()->status,
+                'status' => $shipment->status,
+                'available_events' => $this->scanService->availableEvents($shipment),
             ],
         ]);
     }
@@ -206,7 +205,9 @@ public function printPopup($id, $type = 'international')
     private function findByTracking(string $trackingNumber): array
     {
         $trackingNumber = trim($trackingNumber);
-        $shipment = Shipment::where('tracking_number', $trackingNumber)->first();
+        $shipment = Shipment::where('tracking_number', $trackingNumber)
+            ->orWhere('hawb_number', $trackingNumber)
+            ->first();
         if ($shipment) {
             return [$shipment, 'international'];
         }
@@ -261,29 +262,6 @@ public function printPopup($id, $type = 'international')
         return $user->user_type === 'international_admin'
             || ($user->user_type === 'overseas' && (int) $shipment->overseas_partner_id === (int) $user->id)
             || ($user->user_type === 'rider' && (int) $shipment->rider_id === (int) $user->id);
-    }
-
-    private function canTransition(?string $from, string $to): bool
-    {
-        if ($from === $to) {
-            return true;
-        }
-
-        $transitions = [
-            'pending' => ['confirmed', 'processing', 'cancelled'],
-            'confirmed' => ['processing', 'picked_up', 'cancelled'],
-            'processing' => ['picked_up', 'cancelled'],
-            'picked_up' => ['in_transit', 'returned'],
-            'in_transit' => ['customs_clearance', 'out_for_delivery', 'returned'],
-            'customs_clearance' => ['in_transit', 'out_for_delivery', 'returned'],
-            'out_for_delivery' => ['delivered', 'failed_delivery', 'returned'],
-            'failed_delivery' => ['out_for_delivery', 'returned'],
-            'returned' => [],
-            'delivered' => [],
-            'cancelled' => [],
-        ];
-
-        return in_array($to, $transitions[$from] ?? [], true);
     }
 
 }
