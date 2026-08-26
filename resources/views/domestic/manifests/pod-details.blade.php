@@ -35,7 +35,7 @@
                     <i class="fas fa-arrow-left mr-2"></i> Back
                 </a>
                 @if($pod->pod_file || $pod->pod_photo)
-                    <a href="{{ asset('storage/' . ($pod->pod_file ?? $pod->pod_photo)) }}" 
+                    <a href="{{ route('domestic.manifests.pods.file', ['id' => $pod->id, 'type' => $pod->pod_file ? 'file' : 'photo']) }}"
                        target="_blank" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
                         <i class="fas fa-download mr-2"></i> Download
                     </a>
@@ -112,7 +112,7 @@
             @if($pod->recipient_signature)
                 <div class="border rounded-lg p-4 mb-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-2">✍️ Signature</h3>
-                    <p class="text-gray-600 font-mono">{{ $pod->recipient_signature }}</p>
+                    <a href="{{ route('domestic.manifests.pods.file', ['id' => $pod->id, 'type' => 'signature']) }}" target="_blank" class="text-teal-600 hover:underline">View signature</a>
                 </div>
             @endif
 
@@ -125,14 +125,14 @@
                 @if($pod->pod_file || $pod->pod_photo)
                     <div class="flex justify-center">
                         @if($pod->pod_type === 'photo' && $pod->pod_photo)
-                            <img src="{{ asset('storage/' . $pod->pod_photo) }}" 
+                            <img src="{{ route('domestic.manifests.pods.file', ['id' => $pod->id, 'type' => 'photo']) }}"
                                  alt="Delivery Photo" 
                                  class="pod-image rounded-lg border shadow-sm">
                         @elseif($pod->pod_type === 'file' && $pod->pod_file)
                             <div class="text-center p-8 bg-gray-50 rounded-lg border w-full">
                                 <i class="fas fa-file-pdf text-5xl text-red-500 mb-3 block"></i>
                                 <p class="text-gray-600">{{ basename($pod->pod_file) }}</p>
-                                <a href="{{ asset('storage/' . $pod->pod_file) }}" 
+                                <a href="{{ route('domestic.manifests.pods.file', ['id' => $pod->id, 'type' => 'file']) }}"
                                    target="_blank" class="mt-3 inline-block bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
                                     <i class="fas fa-eye mr-2"></i> View File
                                 </a>

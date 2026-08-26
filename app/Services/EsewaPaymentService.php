@@ -37,7 +37,6 @@ class EsewaPaymentService
             'success_url' => route('payment.esewa.verify'),
             'failure_url' => route('payment.esewa.failure'),
             'signed_field_names' => 'total_amount,transaction_uuid,product_code',
-            'secret' => $this->secretKey
         ];
         
         // Generate signature

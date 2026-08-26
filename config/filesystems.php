@@ -44,6 +44,24 @@ return [
             'throw' => false,
         ],
 
+        // Sensitive operational records (KYC and proof of delivery) must never
+        // be placed behind Laravel's public storage symlink. Locally this disk
+        // is private application storage; in Laravel Cloud set
+        // PRIVATE_FILESYSTEM_DRIVER=s3 and attach the private bucket.
+        'private' => [
+            'driver' => env('PRIVATE_FILESYSTEM_DRIVER', env('AWS_BUCKET') ? 's3' : 'local'),
+            'root' => storage_path('app/private'),
+            'key' => env('PRIVATE_AWS_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+            'secret' => env('PRIVATE_AWS_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
+            'region' => env('PRIVATE_AWS_DEFAULT_REGION', env('AWS_DEFAULT_REGION')),
+            'bucket' => env('PRIVATE_AWS_BUCKET', env('AWS_BUCKET')),
+            'url' => env('PRIVATE_AWS_URL'),
+            'endpoint' => env('PRIVATE_AWS_ENDPOINT', env('AWS_ENDPOINT')),
+            'use_path_style_endpoint' => env('PRIVATE_AWS_USE_PATH_STYLE_ENDPOINT', env('AWS_USE_PATH_STYLE_ENDPOINT', false)),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

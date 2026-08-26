@@ -7,6 +7,7 @@ use App\Models\Delivery;
 use App\Models\PickupRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class DeliveryController extends Controller
@@ -49,6 +50,22 @@ class DeliveryController extends Controller
                 ->withInput();
         }
 
+        $allowedTransitions = [
+            'assigned' => ['picked_up', 'failed'],
+            'accepted' => ['picked_up', 'failed'],
+            'picked_up' => ['in_transit', 'failed'],
+            'in_transit' => ['arrived', 'failed'],
+            'arrived' => ['delivered', 'failed'],
+        ];
+
+        if (!in_array($request->status, $allowedTransitions[$delivery->status] ?? [], true)) {
+            return redirect()->back()->with('error', "Delivery cannot move from {$delivery->status} to {$request->status}.");
+        }
+
+        if ($request->status === 'delivered' && !$request->hasFile('proof_image')) {
+            return redirect()->back()->withErrors(['proof_image' => 'Proof of delivery is required before completing delivery.'])->withInput();
+        }
+
         $delivery->status = $request->status;
         
         // Update timestamps based on status
@@ -72,7 +89,7 @@ class DeliveryController extends Controller
         }
 
         if ($request->hasFile('proof_image')) {
-            $path = $request->file('proof_image')->store('delivery_proofs', 'public');
+            $path = $request->file('proof_image')->store('delivery_proofs', 'private');
             $delivery->proof_of_delivery = $path;
         }
 

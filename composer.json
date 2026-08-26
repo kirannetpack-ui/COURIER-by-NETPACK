@@ -12,6 +12,7 @@
         "laravel/framework": "^12.60",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.11",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "milon/barcode": "^13.1",
         "phpoffice/phpspreadsheet": "^5.8",
         "smalot/pdfparser": "^2.12",

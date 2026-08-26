@@ -71,19 +71,28 @@ class CODSettlementController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $settlement = CODSettlement::findOrFail($id);
-
         $request->validate([
             'status' => 'required|in:pending,processing,completed,failed',
             'remarks' => 'nullable|string',
         ]);
 
-        $oldStatus = $settlement->settlement_status;
-        $newStatus = $request->status;
-
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+            $newStatus = $request->status;
+            $settlement = CODSettlement::whereKey($id)->lockForUpdate()->firstOrFail();
+            $oldStatus = $settlement->settlement_status;
+            $allowedTransitions = [
+                'pending' => ['processing', 'failed'],
+                'processing' => ['completed', 'failed'],
+                'completed' => [],
+                'failed' => [],
+            ];
+
+            if (!in_array($newStatus, $allowedTransitions[$oldStatus] ?? [], true)) {
+                DB::rollBack();
+                return redirect()->back()->with('error', "Settlement cannot move from {$oldStatus} to {$newStatus}.");
+            }
+
             $settlement->update([
                 'settlement_status' => $newStatus,
                 'remarks' => $request->remarks,
@@ -93,17 +102,17 @@ class CODSettlementController extends Controller
             ]);
 
             // Update order status
-            $order = Order::find($settlement->order_id);
+            $order = Order::whereKey($settlement->order_id)->lockForUpdate()->first();
             if ($order) {
                 $order->update([
                     'settlement_status' => $newStatus,
-                    'cod_status' => $newStatus === 'completed' ? 'settled' : $order->cod_status,
+                    'cod_status' => $newStatus === 'completed' ? 'settled' : ($newStatus === 'failed' ? 'failed' : 'collected'),
                     'cod_verified_at' => $newStatus === 'completed' ? now() : $order->cod_verified_at,
                     'cod_verified_by' => $newStatus === 'completed' ? Auth::id() : $order->cod_verified_by,
                 ]);
 
                 // If completed, release payments
-                if ($newStatus === 'completed') {
+                if ($newStatus === 'completed' && $oldStatus === 'processing') {
                     $this->releasePayments($settlement, $order);
                 }
             }
@@ -130,7 +139,7 @@ class CODSettlementController extends Controller
             return redirect()->route('admin.cod-settlements.index')
                 ->with('success', "Settlement status updated from {$oldStatus} to {$newStatus}");
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Failed to update settlement: ' . $e->getMessage());
@@ -168,9 +177,18 @@ class CODSettlementController extends Controller
             );
         }
 
-        // 3. Admin margin goes to admin wallet
+        // 3. Admin margin goes to the actual configured administrator, never
+        // an assumed user ID.
+        $admin = User::whereIn('user_type', ['super_admin', 'admin', 'domestic_admin'])
+            ->orderByRaw("case when user_type = 'super_admin' then 0 when user_type = 'admin' then 1 else 2 end")
+            ->first();
+
+        if (!$admin) {
+            throw new \RuntimeException('No administrator is available to receive the COD margin.');
+        }
+
         $adminWallet = \App\Models\Wallet::firstOrCreate(
-            ['user_id' => 1], // Super Admin user ID
+            ['user_id' => $admin->id],
             ['balance' => 0, 'pending_balance' => 0, 'total_earned' => 0, 'total_withdrawn' => 0]
         );
 
@@ -179,6 +197,10 @@ class CODSettlementController extends Controller
             "Admin margin for Order #{$order->order_number}",
             'admin_margin'
         );
+
+        if ($settlement->rider_id) {
+            User::whereKey($settlement->rider_id)->increment('total_earnings', $settlement->rider_amount);
+        }
 
         // Notify all parties
         $this->notifySettlementComplete($settlement, $order);

@@ -20,6 +20,8 @@ class PaymentController extends Controller
     
     public function createPaymentIntent(Shipment $shipment)
     {
+        abort_unless((int) $shipment->customer_id === (int) auth()->id(), 403);
+
         // Calculate split based on total amount
         $split = $this->splitService->calculateSplit($shipment->total_amount);
         
@@ -51,20 +53,24 @@ class PaymentController extends Controller
     
     public function paymentSuccess(Request $request)
     {
-        $paymentIntent = PaymentIntent::where('intent_id', $request->intent_id)->first();
+        $paymentIntent = PaymentIntent::where('intent_id', $request->intent_id)
+            ->where('customer_id', auth()->id())
+            ->first();
         
         if (!$paymentIntent) {
             return redirect()->route('shipments.index')->with('error', 'Payment intent not found');
         }
         
-        // Process instant split payment
-        $results = $this->splitService->processInstantSplit($paymentIntent);
-        
-        // Update shipment status
+        if ($paymentIntent->status !== 'paid') {
+            return redirect()->route('shipments.show', $paymentIntent->shipment)
+                ->with('error', 'Payment must be confirmed by the payment provider before the shipment can be confirmed.');
+        }
+
+        // The gateway callback has already verified the transaction. This page
+        // only reflects its result and cannot trigger a payout itself.
         $shipment = $paymentIntent->shipment;
-        $shipment->update(['payment_status' => 'paid', 'status' => 'confirmed']);
-        
+
         return redirect()->route('shipments.show', $shipment)
-            ->with('success', 'Payment successful! Funds have been distributed instantly.');
+            ->with('success', 'Payment successful! Your shipment is confirmed.');
     }
 }

@@ -126,11 +126,14 @@ class CustomerPaymentController extends Controller
         if (!$paymentIntent) {
             return redirect()->route('home')->with('error', 'Payment record not found');
         }
+
+        abort_unless((int) $paymentIntent->customer_id === (int) auth()->id(), 403);
         
         $verification = $this->khaltiService->verifyPayment($pidx);
         
-        if ($verification['success']) {
-            // Process instant split payment
+        if ($verification['success'] && abs((float) $verification['amount'] - (float) $paymentIntent->total_amount) < 0.01) {
+            // Mark a verified payment captured exactly once. Payouts remain
+            // subject to the controlled settlement workflow.
             $this->splitService->processInstantSplit($paymentIntent);
             
             // Update shipment
@@ -139,7 +142,7 @@ class CustomerPaymentController extends Controller
                 'payment_status' => 'paid',
                 'status' => 'confirmed'
             ]);
-            $shipment->addTrackingEvent('confirmed', 'System', 'Payment confirmed');
+            $shipment->addTimeline('confirmed', 'Payment confirmed', 'System');
             
             return redirect()->route('payment.success', $shipment->id)
                 ->with('success', 'Payment successful! Your order is confirmed.');
@@ -152,15 +155,16 @@ class CustomerPaymentController extends Controller
     public function verifyEsewaPayment(Request $request)
     {
         $transactionUuid = $request->transaction_uuid;
-        $amount = $request->total_amount;
-        
         $paymentIntent = PaymentIntent::where('intent_id', $transactionUuid)->first();
         
         if (!$paymentIntent) {
             return redirect()->route('home')->with('error', 'Payment record not found');
         }
+
+        abort_unless((int) $paymentIntent->customer_id === (int) auth()->id(), 403);
         
-        $verification = $this->esewaService->verifyPayment($transactionUuid, $amount);
+        // Never send a browser-provided amount to the gateway status check.
+        $verification = $this->esewaService->verifyPayment($transactionUuid, $paymentIntent->total_amount);
         
         if ($verification['success']) {
             $this->splitService->processInstantSplit($paymentIntent);
@@ -170,7 +174,7 @@ class CustomerPaymentController extends Controller
                 'payment_status' => 'paid',
                 'status' => 'confirmed'
             ]);
-            $shipment->addTrackingEvent('confirmed', 'System', 'Payment confirmed');
+            $shipment->addTimeline('confirmed', 'Payment confirmed', 'System');
             
             return redirect()->route('payment.success', $shipment->id)
                 ->with('success', 'Payment successful! Your order is confirmed.');

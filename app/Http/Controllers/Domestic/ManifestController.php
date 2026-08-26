@@ -179,6 +179,8 @@ class ManifestController extends Controller
      */
     public function updatePodStatus(Request $request, $id)
     {
+        abort_unless(in_array($request->user()->user_type, ['super_admin', 'admin', 'domestic_admin'], true), 403);
+
         $pod = ProofOfDelivery::findOrFail($id);
 
         $request->validate([
@@ -186,8 +188,12 @@ class ManifestController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $pod->status = $request->status;
-        $pod->save();
+        $pod->update([
+            'status' => $request->status,
+            'verified_by' => $request->status === 'verified' ? $request->user()->id : null,
+            'verified_at' => $request->status === 'verified' ? now() : null,
+            'rejection_reason' => $request->status === 'rejected' ? $request->notes : null,
+        ]);
 
         return redirect()->route('domestic.manifests.pods.show', $pod->id)
             ->with('success', "POD status updated to {$request->status} successfully!");
@@ -206,48 +212,73 @@ public function uploadPOD(Request $request)
         'delivery_notes' => 'nullable|string',
         'pod_photo' => 'nullable|image|max:5120', // 5MB max
         'pod_file' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png',
-        'signature_data' => 'nullable|string',
+        'signature_data' => 'nullable|string|max:1048576',
     ]);
 
     try {
         DB::beginTransaction();
 
-        // Get the shipment
-        $shipment = Shipment::find($request->shipment_id);
-        $manifestShipment = ManifestShipment::find($request->manifest_shipment_id);
+        // Lock the record and verify that this manifest line belongs to the
+        // submitted shipment. This prevents a valid user from attaching POD to
+        // an unrelated shipment by altering request IDs.
+        $shipment = Shipment::lockForUpdate()->findOrFail($request->shipment_id);
+        $manifestShipment = ManifestShipment::with('manifest')->lockForUpdate()->findOrFail($request->manifest_shipment_id);
+
+        if ((int) $manifestShipment->shipment_id !== (int) $shipment->id) {
+            abort(422, 'The selected manifest line does not belong to this shipment.');
+        }
+
+        $user = $request->user();
+        $isOperationsUser = in_array($user->user_type, ['super_admin', 'admin', 'domestic_admin', 'staff'], true);
+        $isAssignedPartner = $user->user_type === 'partner'
+            && ((int) $manifestShipment->partner_id === (int) $user->id || (int) optional($manifestShipment->manifest)->partner_id === (int) $user->id);
+
+        abort_unless($isOperationsUser || $isAssignedPartner, 403);
+
+        if ($manifestShipment->status === 'delivered' || ProofOfDelivery::where('manifest_shipment_id', $manifestShipment->id)->exists()) {
+            abort(422, 'A proof of delivery already exists for this manifest shipment.');
+        }
 
         // Handle file upload
         $podFile = null;
         $podPhoto = null;
+        $signaturePath = null;
 
         if ($request->hasFile('pod_photo')) {
             $file = $request->file('pod_photo');
             $filename = 'pod_photo_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('pods/photos', $filename, 'public');
+            $path = $file->storeAs('pods/photos', $filename, 'private');
             $podPhoto = $path;
         }
 
         if ($request->hasFile('pod_file')) {
             $file = $request->file('pod_file');
             $filename = 'pod_file_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('pods/files', $filename, 'public');
+            $path = $file->storeAs('pods/files', $filename, 'private');
             $podFile = $path;
         }
 
         // Handle signature (if provided as base64)
         if ($request->signature_data) {
             $signatureData = $request->signature_data;
-            if (strpos($signatureData, 'data:image') === 0) {
+            if (str_starts_with($signatureData, 'data:image/png;base64,')) {
                 // Decode base64 and save
                 $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
                 $signatureData = str_replace(' ', '+', $signatureData);
-                $image = base64_decode($signatureData);
+                $image = base64_decode($signatureData, true);
+                if ($image === false || $image === '') {
+                    abort(422, 'The signature image is invalid.');
+                }
                 
                 $filename = 'signature_' . time() . '_' . uniqid() . '.png';
                 $path = 'pods/signatures/' . $filename;
-                Storage::disk('public')->put($path, $image);
+                Storage::disk('private')->put($path, $image);
                 $signaturePath = $path;
             }
+        }
+
+        if (!$podPhoto && !$podFile && !$signaturePath) {
+            abort(422, 'Provide a photo, document, or signature as proof of delivery.');
         }
 
         // Create POD record
@@ -264,6 +295,7 @@ public function uploadPOD(Request $request)
             'delivery_notes' => $request->delivery_notes,
             'delivered_at' => $request->delivered_at ?? now(),
             'status' => 'uploaded',
+            'metadata' => ['storage_disk' => 'private'],
         ]);
 
         // Update shipment status
@@ -286,6 +318,42 @@ public function uploadPOD(Request $request)
             ->withInput();
     }
 }
+
+    /**
+     * Serve POD artifacts only to authorised operations users or the partner
+     * assigned to the manifest. New records live on the private disk; this
+     * keeps old records viewable while they are migrated out of public storage.
+     */
+    public function downloadPodFile(Request $request, $id, $type)
+    {
+        $pod = ProofOfDelivery::with('manifestShipment.manifest')->findOrFail($id);
+        $user = $request->user();
+        $isOperationsUser = in_array($user->user_type, ['super_admin', 'admin', 'domestic_admin', 'staff'], true);
+        $manifestShipment = $pod->manifestShipment;
+        $isAssignedPartner = $user->user_type === 'partner' && $manifestShipment
+            && ((int) $manifestShipment->partner_id === (int) $user->id || (int) optional($manifestShipment->manifest)->partner_id === (int) $user->id);
+
+        abort_unless($isOperationsUser || $isAssignedPartner, 403);
+
+        $path = match ($type) {
+            'photo' => $pod->pod_photo,
+            'file' => $pod->pod_file,
+            'signature' => $pod->recipient_signature,
+            default => abort(404),
+        };
+
+        abort_unless($path, 404);
+        $disk = data_get($pod->metadata, 'storage_disk') === 'private' ? 'private' : 'public';
+        abort_unless(Storage::disk($disk)->exists($path), 404);
+
+        if (in_array($type, ['photo', 'signature'], true)) {
+            return Storage::disk($disk)->response($path, basename($path), [
+                'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+            ]);
+        }
+
+        return Storage::disk($disk)->download($path, basename($path));
+    }
 
 /**
  * Show upload form for POD

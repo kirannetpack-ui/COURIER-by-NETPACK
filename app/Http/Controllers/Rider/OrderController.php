@@ -8,6 +8,7 @@ use App\Models\Delivery;
 use App\Models\OrderTrackingLocation;
 use App\Models\ReminderLog;
 use App\Models\RiderDeposit;
+use App\Models\User;
 use App\Services\TrackingNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -354,7 +355,7 @@ class OrderController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'signature' => 'nullable|string',
+            'signature' => 'required|string|max:255',
             'photo' => 'nullable|image|max:2048',
             'notes' => 'nullable|string',
         ]);
@@ -372,6 +373,10 @@ class OrderController extends Controller
                 $delivery->update([
                     'status' => 'delivered',
                     'delivered_at' => now(),
+                    'metadata' => array_merge($delivery->metadata ?? [], [
+                        'recipient_name_confirmed' => $request->signature,
+                        'delivery_notes' => $request->notes,
+                    ]),
                 ]);
             }
 

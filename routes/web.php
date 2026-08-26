@@ -288,6 +288,7 @@ Route::middleware(['auth'])->group(function () {
 
         // IMPORTANT: POD routes must come BEFORE the {id} route
         Route::get('/pods', [DomesticManifestController::class, 'pods'])->name('pods');
+        Route::get('/pods/{id}/file/{type}', [DomesticManifestController::class, 'downloadPodFile'])->name('pods.file');
         Route::get('/pods/{id}', [DomesticManifestController::class, 'showPod'])->name('pods.show');
         Route::put('/pods/{id}/status', [DomesticManifestController::class, 'updatePodStatus'])->name('pods.update-status');
 

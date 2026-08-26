@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Auth;
 
 class KYCController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function show()
     {
         $user = Auth::user();
@@ -32,14 +37,16 @@ class KYCController extends Controller
         foreach ($requiredDocs as $field => $label) {
             if ($request->hasFile($field)) {
                 $file = $request->file($field);
-                $path = $file->store('kyc/' . $user->id, 'public');
+                $path = $file->store('kyc/' . $user->id, 'private');
                 $user->$field = $path;
                 $user->save();
             }
         }
         
-        $user->kyc_verified = true;
-        $user->kyc_verified_at = now();
+        // Uploading documents is not verification. Approval remains an
+        // explicit back-office action after a reviewer has checked them.
+        $user->kyc_verified = false;
+        $user->kyc_verified_at = null;
         $user->save();
         
         return redirect()->route('dashboard')

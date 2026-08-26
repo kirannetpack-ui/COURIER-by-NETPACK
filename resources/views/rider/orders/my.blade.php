@@ -218,7 +218,7 @@
                     <div id="codFields" class="hidden mb-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
                         <p class="text-sm text-blue-700">
                             <i class="fas fa-info-circle mr-2"></i>
-                            COD amount will be deducted from your deposit immediately upon delivery.
+                            COD collection is submitted for finance verification before any wallet payment is released.
                         </p>
                         <div class="mt-3">
                             <label class="block text-sm font-medium mb-1">COD Collected Amount <span class="text-red-500">*</span></label>
@@ -229,8 +229,8 @@
                         </div>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">Signature (Optional)</label>
-                        <input type="text" name="signature" 
+                        <label class="block text-sm font-medium mb-1">Recipient name <span class="text-red-500">*</span></label>
+                        <input type="text" name="signature" required
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                                placeholder="Recipient name">
                     </div>
@@ -258,7 +258,9 @@
 <script>
 function showDeliverModal(orderId, paymentMethod) {
     const form = document.getElementById('deliverForm');
-    form.action = '/rider/orders/deliver/' + orderId;
+    form.action = paymentMethod === 'cod'
+        ? '/rider/cod/settle/' + orderId
+        : '/rider/orders/deliver/' + orderId;
     
     // Show COD fields if payment method is COD
     const codFields = document.getElementById('codFields');

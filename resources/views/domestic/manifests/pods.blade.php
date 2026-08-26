@@ -138,7 +138,7 @@
                                             
                                             <!-- Download Button - if file exists -->
                                             @if($pod->pod_file || $pod->pod_photo)
-                                                <a href="{{ asset('storage/' . ($pod->pod_file ?? $pod->pod_photo)) }}" 
+                                                <a href="{{ route('domestic.manifests.pods.file', ['id' => $pod->id, 'type' => $pod->pod_file ? 'file' : 'photo']) }}"
                                                    target="_blank" class="text-teal-600 hover:text-teal-800" title="Download">
                                                     <i class="fas fa-download"></i>
                                                 </a>

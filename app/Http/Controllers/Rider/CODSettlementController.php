@@ -61,19 +61,20 @@ class CODSettlementController extends Controller
     }
 
     /**
-     * Complete COD delivery - IMMEDIATE SETTLEMENT
+     * Declare collected COD after delivery. Finance must verify the collection
+     * before any seller, rider, or company wallet is credited.
      */
     public function settleCOD(Request $request, $orderId)
     {
         $rider = Auth::user();
         $order = Order::where('rider_id', $rider->id)
             ->where('id', $orderId)
-            ->whereIn('status', ['out_for_delivery', 'assigned', 'picked_up', 'in_transit'])
+            ->where('status', 'out_for_delivery')
             ->firstOrFail();
 
         $request->validate([
             'cod_collected_amount' => 'required|numeric|min:0',
-            'signature' => 'nullable|string',
+            'signature' => 'required|string|max:255',
             'notes' => 'nullable|string',
         ]);
 
@@ -93,10 +94,17 @@ class CODSettlementController extends Controller
         try {
             // Lock both records to prevent duplicate settlement requests.
             $order = Order::where('rider_id', $rider->id)
-                ->whereIn('status', ['out_for_delivery', 'assigned', 'picked_up', 'in_transit'])
+                ->where('status', 'out_for_delivery')
                 ->lockForUpdate()
                 ->findOrFail($orderId);
             $rider = User::whereKey($rider->id)->lockForUpdate()->firstOrFail();
+
+            if (CODSettlement::where('order_id', $order->id)->lockForUpdate()->exists()) {
+                DB::rollBack();
+
+                return redirect()->back()
+                    ->with('error', 'This COD order has already been submitted for settlement.');
+            }
             $codAmount = $order->cod_amount ?? 0;
             $deliveryFee = $rider->rider_delivery_fee ?? 100;
             $commissionRate = $rider->rider_commission_rate ?? 10;
@@ -120,8 +128,8 @@ class CODSettlementController extends Controller
                 'delivered_at' => now(),
                 'cod_collected_amount' => $request->cod_collected_amount,
                 'cod_collected_at' => now(),
-                'cod_status' => 'settled',
-                'settlement_status' => 'completed',
+                'cod_status' => 'collected',
+                'settlement_status' => 'processing',
                 'seller_amount' => $sellerAmount,
                 'rider_amount' => $riderEarnings,
                 'margin_amount' => $adminMargin,
@@ -149,7 +157,7 @@ class CODSettlementController extends Controller
                 $depositHold->update([
                     'status' => 'completed',
                     'verified_at' => now(),
-                    'description' => "COD settlement completed for Order #{$order->order_number}",
+                    'description' => "COD collection declared for Order #{$order->order_number}; awaiting finance verification",
                 ]);
             } else {
                 // Compatibility for legacy assigned orders that have no hold record.
@@ -180,29 +188,11 @@ class CODSettlementController extends Controller
                 ]);
             }
 
-            // 5. RELEASE SELLER PAYMENT (to seller's default account)
-            $this->releaseSellerPayment($order, $sellerAmount);
-
-            // 6. ADD RIDER EARNINGS to rider wallet
-            $wallet = Wallet::firstOrCreate(
-                ['user_id' => $rider->id],
-                ['balance' => 0, 'pending_balance' => 0]
-            );
-            $wallet->addBalance(
-                $riderEarnings,
-                "Delivery fee + commission for Order #{$order->order_number}",
-                'delivery'
-            );
-
-            // 7. ADD ADMIN MARGIN to admin wallet
-            $this->addAdminMargin($adminMargin, $order);
-
-            // 8. Update rider stats
+            // 5. Record the completed delivery. Financial release happens only
+            // after an authorised finance/admin user verifies the collection.
             $rider->increment('total_deliveries');
-            $rider->total_earnings += $riderEarnings;
-            $rider->save();
 
-            // 9. Create COD settlement record (for reference)
+            // 6. Create one processing settlement record for the order.
             $settlement = CODSettlement::create([
                 'order_id' => $order->id,
                 'delivery_id' => $delivery->id ?? null,
@@ -214,12 +204,12 @@ class CODSettlementController extends Controller
                 'seller_amount' => $sellerAmount,
                 'rider_amount' => $riderEarnings,
                 'margin_amount' => $adminMargin,
-                'settlement_status' => 'completed',
-                'settlement_date' => now(),
+                'settlement_status' => 'processing',
+                'settlement_date' => null,
                 'settlement_reference' => 'SET-' . date('Ymd') . '-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
                 'collected_at' => now(),
-                'verified_at' => now(),
-                'verified_by' => $rider->id,
+                'verified_at' => null,
+                'verified_by' => null,
                 'metadata' => [
                     'collected_amount' => $request->cod_collected_amount,
                     'signature' => $request->signature,
@@ -232,10 +222,10 @@ class CODSettlementController extends Controller
             DB::commit();
 
             // Notify all parties
-            $this->notifySettlementComplete($settlement, $order, $rider);
+            $this->notifySettlementSubmitted($settlement, $order, $rider);
 
             return redirect()->route('rider.orders.my')
-                ->with('success', "🎉 COD delivery settled! Deposit hold finalized: Rs. {$codAmount} | You earned: Rs. {$riderEarnings}");
+                ->with('success', "COD collection submitted for finance verification. Deposit hold finalized: Rs. {$codAmount}");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -376,9 +366,9 @@ class CODSettlementController extends Controller
         return response()->json($stats);
     }
 
-    private function notifySettlementComplete($settlement, $order, $rider)
+    private function notifySettlementSubmitted($settlement, $order, $rider)
     {
-        $message = "✅ COD SETTLEMENT COMPLETED\n\n";
+        $message = "COD COLLECTION AWAITS VERIFICATION\n\n";
         $message .= "Order: #{$order->order_number}\n";
         $message .= "Rider: {$rider->name}\n";
         $message .= "COD Amount: Rs. {$settlement->cod_amount}\n";
@@ -386,7 +376,7 @@ class CODSettlementController extends Controller
         $message .= "Admin Margin: Rs. {$settlement->admin_margin}\n";
         $message .= "Seller Amount: Rs. {$settlement->seller_amount}\n";
         $message .= "Settlement Reference: {$settlement->settlement_reference}\n";
-        $message .= "Completed at: " . now()->format('Y-m-d H:i:s');
+        $message .= "Declared at: " . now()->format('Y-m-d H:i:s');
 
         // Notify admin
         $admins = User::whereIn('user_type', ['admin', 'super_admin', 'domestic_admin'])->get();
@@ -394,7 +384,7 @@ class CODSettlementController extends Controller
             ReminderLog::create([
                 'pickup_request_id' => null,
                 'reminder_id' => null,
-                'reminder_type' => 'cod_settlement_complete',
+                'reminder_type' => 'cod_settlement_pending_verification',
                 'sent_to' => $admin->email,
                 'message' => $message,
                 'channel' => 'database',
@@ -403,26 +393,7 @@ class CODSettlementController extends Controller
                 'metadata' => [
                     'settlement_id' => $settlement->id,
                     'order_id' => $order->id,
-                    'action' => 'settled',
-                ]
-            ]);
-        }
-
-        // Notify seller
-        $seller = User::find($order->seller_id);
-        if ($seller) {
-            ReminderLog::create([
-                'pickup_request_id' => null,
-                'reminder_id' => null,
-                'reminder_type' => 'seller_settlement',
-                'sent_to' => $seller->email,
-                'message' => "COD payment of Rs. {$settlement->seller_amount} has been credited to your wallet for Order #{$order->order_number}",
-                'channel' => 'database',
-                'status' => 'sent',
-                'sent_at' => now(),
-                'metadata' => [
-                    'order_id' => $order->id,
-                    'amount' => $settlement->seller_amount,
+                    'action' => 'submitted_for_verification',
                 ]
             ]);
         }
