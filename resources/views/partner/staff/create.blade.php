@@ -33,9 +33,13 @@
                     <input type="text" name="phone" required class="w-full px-3 py-2 border rounded-lg">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2">Password</label>
-                    <input type="text" name="password" value="password123" class="w-full px-3 py-2 border rounded-lg">
-                    <p class="text-xs text-gray-500">Default: password123</p>
+                    <label class="block text-sm font-medium mb-2">Temporary password *</label>
+                    <input type="password" name="password" required autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg">
+                    <p class="text-xs text-gray-500">Use at least 12 characters with upper and lower case letters, a number, and a symbol.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Confirm temporary password *</label>
+                    <input type="password" name="password_confirmation" required autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg">
                 </div>
             </div>
             

@@ -8,11 +8,16 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class EcommerceTestSeeder extends Seeder
 {
     public function run()
     {
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('E-commerce test data may only be seeded in local or testing environments.');
+        }
+
         $this->command->info('🛒 Seeding E-commerce test data...');
 
         // Clear existing data (optional)

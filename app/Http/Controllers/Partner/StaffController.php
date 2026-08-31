@@ -8,6 +8,7 @@ use App\Models\PartnerStaff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class StaffController extends Controller
 {
@@ -27,6 +28,7 @@ class StaffController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:partner_staff',
+            'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
             'phone' => 'required|string',
             'position' => 'required|string',
             'role' => 'required|in:admin,scanner,delivery_boy,dispatcher',
@@ -39,7 +41,7 @@ class StaffController extends Controller
             'partner_id' => Auth::guard('partner')->id(),
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password ?? 'password123'),
+            'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'position' => $request->position,
             'role' => $request->role,

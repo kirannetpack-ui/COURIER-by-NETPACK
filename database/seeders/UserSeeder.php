@@ -11,8 +11,8 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->environment('production') && !filter_var(env('ALLOW_DEMO_SEEDING', false), FILTER_VALIDATE_BOOL)) {
-            throw new RuntimeException('Demo accounts cannot be seeded in production unless ALLOW_DEMO_SEEDING=true.');
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('Demo accounts may only be seeded in local or testing environments.');
         }
 
         $accounts = [
