@@ -340,10 +340,8 @@
 <body>
 
 @php
-    $weightVal = number_format($shipment->weight ?? 0, 2);
-    $serviceName = strtoupper($shipment->service_name ?? $shipment->service_type ?? 'Standard');
-    $isCod = (bool) ($shipment->is_cod ?? false);
-    $codAmount = $shipment->cod_amount ?? 0;
+    $weightVal = number_format($shipment->actual_weight ?? $shipment->chargeable_weight ?? $shipment->weight ?? 0, 2);
+    $serviceName = strtoupper($shipment->service_name ?? $shipment->service_type ?? 'Standard Express');
 @endphp
 
 <div class="print-actions">
@@ -364,19 +362,15 @@
             <div class="copy-tag">{{ $copyTitle }}</div>
         </div>
 
-        <!-- Waybill & Payment Status -->
+        <!-- Waybill Identifier & Classification -->
         <div class="waybill-row">
             <div>
                 <span class="id-label">Domestic Waybill / Consignment Number</span>
                 <span class="waybill-val">{{ $shipment->tracking_number }}</span>
             </div>
             <div class="cod-badge">
-                <span class="id-label">Payment Mode</span>
-                @if($isCod && $codAmount > 0)
-                    <span class="cod-amount">C.O.D: Rs. {{ number_format($codAmount, 2) }}</span>
-                @else
-                    <span class="prepaid-amount">PREPAID / NON-COD</span>
-                @endif
+                <span class="id-label">Consignment Classification</span>
+                <span class="prepaid-amount">OFFICIAL FREIGHT MANIFEST</span>
             </div>
         </div>
 

@@ -240,17 +240,17 @@
             </div>
         </div>
         
-        <!-- Weight & Pricing -->
+        <!-- Weight & Package Specifications -->
         <div class="info-grid">
             <div class="info-box">
-                <div class="info-label">WEIGHT</div>
+                <div class="info-label">WEIGHT SPECIFICATION</div>
                 <div>Actual: {{ $shipment->actual_weight }} kg</div>
                 <div>Chargeable: {{ $shipment->chargeable_weight }} kg</div>
             </div>
             <div class="info-box">
-                <div class="info-label">PRICING</div>
-                <div>Shipping: रू {{ number_format($shipment->shipping_cost, 2) }}</div>
-                <div><strong>Total: रू {{ number_format($shipment->total_amount, 2) }}</strong></div>
+                <div class="info-label">PACKAGE SPECIFICATION</div>
+                <div>Type: {{ strtoupper($shipment->package_type ?? 'PARCEL') }}</div>
+                <div><strong>Pieces: {{ $shipment->boxes ?? 1 }} PKG</strong></div>
             </div>
         </div>
         
@@ -264,14 +264,14 @@
                 <div class="box-header">Box {{ $index + 1 }}</div>
                 <table class="items-table">
                     <thead>
-                        <tr><th>Product</th><th>Weight</th><th>Price</th></tr>
+                        <tr><th>Product</th><th>Weight</th><th>Quantity</th></tr>
                     </thead>
                     <tbody>
                         @foreach($box as $item)
                         <tr>
                             <td>{{ $item['name'] }}</td>
                             <td>{{ $item['weight'] }} kg</td>
-                            <td>रू {{ number_format($item['price'], 2) }}</td>
+                            <td>{{ $item['quantity'] ?? '1 Unit' }}</td>
                         </tr>
                         @endforeach
                     </tbody>

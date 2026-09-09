@@ -65,7 +65,11 @@ class ShipmentController extends Controller
     
     // Status filter
     if ($request->has('status') && $request->status) {
-        $query->where('status', $request->status);
+        if ($request->status === 'ongoing') {
+            $query->whereNotIn('status', ['delivered', 'cancelled', 'returned']);
+        } else {
+            $query->where('status', $request->status);
+        }
     }
     
     // Shipment type filter

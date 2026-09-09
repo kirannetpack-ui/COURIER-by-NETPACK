@@ -159,6 +159,11 @@ class User extends Authenticatable
         return $this->hasMany(Shipment::class, 'customer_id');
     }
 
+    public function domesticShipments()
+    {
+        return $this->hasMany(DomesticShipment::class, 'client_id');
+    }
+
     public function shipmentsAsCustomer()
     {
         return $this->clientShipments();

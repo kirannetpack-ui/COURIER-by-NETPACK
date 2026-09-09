@@ -121,6 +121,7 @@
                 <div>
                     <select name="status" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                         <option value="">All Status</option>
+                        <option value="ongoing" {{ request('status') === 'ongoing' ? 'selected' : '' }}>⚡ Ongoing (Active)</option>
                         <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                         <option value="confirmed" {{ request('status') === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                         <option value="picked_up" {{ request('status') === 'picked_up' ? 'selected' : '' }}>Picked Up</option>
@@ -174,9 +175,9 @@
                         <tbody>
                             @foreach($shipments as $shipment)
                                 <tr class="border-b hover:bg-gray-50 transition">
-                                    <td class="py-3 px-4 font-mono text-sm">{{ $shipment->tracking_number }}</td>
-                                    <td class="py-3 px-4 font-mono text-xs">{{ $shipment->hawb_number ?? 'N/A' }}</td>
-                                    <td class="py-3 px-4">{{ $shipment->receiver_name }}</td>
+                                    <td class="py-3 px-4 font-mono text-sm font-semibold text-teal-700">{{ $shipment->tracking_number }}</td>
+                                    <td class="py-3 px-4 font-mono text-xs text-slate-600">{{ $shipment->hawb_number ?? 'N/A' }}</td>
+                                    <td class="py-3 px-4 font-medium">{{ $shipment->receiver_name }}</td>
                                     <td class="py-3 px-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-medium 
                                             {{ $shipment->shipment_type === 'international' ? 'bg-indigo-100 text-indigo-800' : 
@@ -198,22 +199,38 @@
                                     </td>
                                     <td class="py-3 px-4 text-sm">{{ $shipment->created_at->format('M d, Y') }}</td>
                                     <td class="py-3 px-4">
-                                        <div class="flex gap-2">
-                                            <a href="{{ route('tracking.show', $shipment->tracking_number) }}" 
-                                               class="text-blue-600 hover:text-blue-800" title="Track">
-                                                <i class="fas fa-map-marker-alt"></i>
+                                        <div class="flex items-center gap-1.5">
+                                            <!-- Details -->
+                                            <a href="{{ route('shipments.show', $shipment->id) }}" 
+                                               class="p-1.5 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-800 transition" 
+                                               title="View Consignment Details">
+                                                <i class="fas fa-eye text-xs"></i>
                                             </a>
-                                            @if($shipment->status !== 'delivered' && $shipment->status !== 'cancelled')
+                                            <!-- Radar Tracking -->
+                                            <a href="{{ route('tracking.show', $shipment->tracking_number) }}" 
+                                               class="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition" 
+                                               title="Live Radar Tracking">
+                                                <i class="fas fa-location-crosshairs text-xs"></i>
+                                            </a>
+                                            <!-- HAWB Copy View -->
+                                            <a href="{{ $shipment->shipment_type === 'domestic' ? route('hawb.domestic', $shipment->id) : route('hawb.international', $shipment->id) }}" 
+                                               target="_blank"
+                                               class="p-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800 transition" 
+                                               title="View HAWB Copy">
+                                                <i class="fas fa-file-invoice text-xs"></i>
+                                            </a>
+                                            <!-- Print HAWB Document -->
+                                            <a href="{{ route('hawb.print', ['id' => $shipment->id, 'type' => ($shipment->shipment_type === 'domestic' ? 'domestic' : 'international')]) }}" 
+                                               target="_blank"
+                                               class="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition" 
+                                               title="Print HAWB Document">
+                                                <i class="fas fa-print text-xs"></i>
+                                            </a>
+                                            @if($shipment->status !== 'delivered' && $shipment->status !== 'cancelled' && ($isSuperAdmin || $isDomesticAdmin || $shipment->customer_id === auth()->id()))
                                                 <a href="{{ route('shipments.edit', $shipment->id) }}" 
-                                                   class="text-teal-600 hover:text-teal-800" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                            @endif
-                                            @if($isSuperAdmin || $isDomesticAdmin || $isInternationalAdmin)
-                                                <a href="{{ route('hawb.international', $shipment->id) }}" 
-                                                   target="_blank"
-                                                   class="text-purple-600 hover:text-purple-800" title="HAWB">
-                                                    <i class="fas fa-file-alt"></i>
+                                                   class="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 transition" 
+                                                   title="Edit Consignment">
+                                                    <i class="fas fa-edit text-xs"></i>
                                                 </a>
                                             @endif
                                         </div>

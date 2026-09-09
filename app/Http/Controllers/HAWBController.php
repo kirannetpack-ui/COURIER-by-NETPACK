@@ -25,7 +25,11 @@ class HAWBController extends Controller
         $shipment = $this->findShipment($id, $type);
         abort_unless($this->canView(auth()->user(), $shipment), 403);
 
-        return $type === 'domestic'
+        $isDomestic = $type === 'domestic'
+            || ($shipment instanceof DomesticShipment)
+            || ($shipment instanceof Shipment && $shipment->shipment_type === 'domestic');
+
+        return $isDomestic
             ? $this->generateDomesticHAWB($shipment)
             : $this->generateInternationalHAWB($shipment);
     }
@@ -192,14 +196,47 @@ public function printPopup($id, $type = 'international')
     abort_unless($this->canView(auth()->user(), $shipment), 403);
     $qrCode = $this->generateQRCode($shipment->tracking_number);
 
+    if ($shipment instanceof DomesticShipment || ($shipment instanceof Shipment && $shipment->shipment_type === 'domestic')) {
+        $type = 'domestic';
+    }
+
     return view('hawb.print-popup', compact('shipment', 'qrCode', 'type'));
 }
 
-    private function findShipment($id, string $type)
+    private function findShipment($id, string &$type = 'international')
     {
-        return $type === 'domestic'
-            ? DomesticShipment::with(['client', 'partner'])->findOrFail($id)
-            : Shipment::with(['customer', 'seller', 'rider', 'overseasPartner'])->findOrFail($id);
+        if ($type === 'domestic') {
+            $shipment = DomesticShipment::with(['client', 'partner'])->find($id);
+            if ($shipment) {
+                return $shipment;
+            }
+
+            $shipment = Shipment::with(['customer', 'seller', 'rider', 'overseasPartner'])->find($id);
+            if ($shipment) {
+                if ($shipment->shipment_type !== 'domestic') {
+                    $type = 'international';
+                }
+                return $shipment;
+            }
+
+            abort(404, 'Shipment not found');
+        }
+
+        $shipment = Shipment::with(['customer', 'seller', 'rider', 'overseasPartner'])->find($id);
+        if ($shipment) {
+            if ($shipment->shipment_type === 'domestic') {
+                $type = 'domestic';
+            }
+            return $shipment;
+        }
+
+        $shipment = DomesticShipment::with(['client', 'partner'])->find($id);
+        if ($shipment) {
+            $type = 'domestic';
+            return $shipment;
+        }
+
+        abort(404, 'Shipment not found');
     }
 
     private function findByTracking(string $trackingNumber): array
@@ -223,21 +260,13 @@ public function printPopup($id, $type = 'international')
             return false;
         }
 
-        if (in_array($user->user_type, ['super_admin', 'admin', 'staff'], true)) {
+        if (in_array($user->user_type, ['super_admin', 'admin', 'staff', 'domestic_admin', 'international_admin'], true)) {
             return true;
         }
 
         if ($shipment instanceof DomesticShipment) {
-            if ($user->user_type === 'domestic_admin') {
-                return true;
-            }
-
             return (int) $shipment->client_id === (int) $user->id
                 || (int) $shipment->partner_id === (int) $user->id;
-        }
-
-        if ($user->user_type === 'international_admin') {
-            return true;
         }
 
         return in_array((int) $user->id, array_filter([

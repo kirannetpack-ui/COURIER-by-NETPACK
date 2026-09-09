@@ -22,17 +22,44 @@
     
     @php
         $sidebarClient = auth()->user();
-        $sidebarOngoingShipments = $sidebarClient ? $sidebarClient->clientShipments()
-            ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
-            ->latest('updated_at')
-            ->take(3)
-            ->get() : collect();
-        $sidebarOngoingCount = $sidebarClient ? $sidebarClient->clientShipments()
-            ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
-            ->count() : 0;
-        $sidebarHistoryCount = $sidebarClient ? $sidebarClient->clientShipments()
-            ->where('status', 'delivered')
-            ->count() : 0;
+        $sidebarOngoingShipments = collect();
+        $sidebarOngoingCount = 0;
+        $sidebarHistoryCount = 0;
+
+        if ($sidebarClient) {
+            $sidebarOngoingShipments = $sidebarClient->clientShipments()
+                ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+                ->latest('updated_at')
+                ->take(4)
+                ->get();
+
+            $sidebarOngoingCount = $sidebarClient->clientShipments()
+                ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+                ->count();
+
+            $sidebarHistoryCount = $sidebarClient->clientShipments()
+                ->where('status', 'delivered')
+                ->count();
+
+            if (class_exists(\App\Models\DomesticShipment::class)) {
+                $domOngoingCount = \App\Models\DomesticShipment::where('client_id', $sidebarClient->id)
+                    ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+                    ->count();
+                $sidebarOngoingCount += $domOngoingCount;
+
+                $sidebarHistoryCount += \App\Models\DomesticShipment::where('client_id', $sidebarClient->id)
+                    ->where('status', 'delivered')
+                    ->count();
+
+                if ($sidebarOngoingShipments->isEmpty() && $domOngoingCount > 0) {
+                    $sidebarOngoingShipments = \App\Models\DomesticShipment::where('client_id', $sidebarClient->id)
+                        ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+                        ->latest('updated_at')
+                        ->take(4)
+                        ->get();
+                }
+            }
+        }
     @endphp
 
     <nav class="p-3 space-y-1 text-xs">
@@ -43,19 +70,31 @@
             <span>Client Dashboard</span>
         </a>
 
-        <!-- Express Pickup Request (Booking) -->
-        <a href="{{ route('domestic.pickup.create') }}" 
-           class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.pickup.create*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-            <i class="fas fa-plus-circle w-4 text-center text-teal-400"></i>
-            <span>Book New Pickup</span>
-        </a>
+        <!-- Booking Actions Section -->
+        <div class="pt-2">
+            <p class="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest px-3 mb-1.5">Create / Book</p>
+            <div class="space-y-1">
+                <!-- Express Pickup Request (Booking) -->
+                <a href="{{ route('domestic.pickup.create') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.pickup.create*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fas fa-truck-pickup w-4 text-center text-teal-400"></i>
+                    <span>Book Domestic Pickup</span>
+                </a>
+                <!-- New Air Cargo Consignment -->
+                <a href="{{ route('shipments.create') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('shipments.create*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fas fa-plus-circle w-4 text-center text-indigo-400"></i>
+                    <span>New Consignment (AWB)</span>
+                </a>
+            </div>
+        </div>
 
         <!-- ============================================== -->
-        <!-- TRACKING & CONSIGNMENT RADAR (ONGOING + HISTORY) -->
+        <!-- SHIPMENTS SUITE (ONGOING, HISTORY & HAWB)     -->
         <!-- ============================================== -->
         <div class="pt-2">
             <div class="flex items-center justify-between px-3 mb-1.5">
-                <p class="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest">Tracking & Radar</p>
+                <p class="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest">Shipments & Radar</p>
                 @if($sidebarOngoingCount > 0)
                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -67,8 +106,8 @@
             </div>
 
             <!-- Ongoing Tracking (Active Consignments) -->
-            <a href="{{ route('shipments.index', ['status' => 'in_transit']) }}" 
-               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->get('status') === 'in_transit' ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <a href="{{ route('shipments.index', ['status' => 'ongoing']) }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->get('status') === 'ongoing' || request()->get('status') === 'in_transit' ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-satellite-dish w-4 text-center text-emerald-400"></i>
                 <span class="font-medium">Ongoing Tracking</span>
                 <span class="ml-auto bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded">
@@ -76,26 +115,50 @@
                 </span>
             </a>
 
-            <!-- Active Ongoing Items Preview in Sidebar -->
+            <!-- Active Ongoing Items Preview in Sidebar with Details and HAWB buttons -->
             @if($sidebarOngoingShipments->isNotEmpty())
-                <div class="ml-3 pl-3 my-1.5 border-l border-slate-800 space-y-1">
+                <div class="ml-2 pl-2 my-2 border-l-2 border-teal-500/40 space-y-2">
                     @foreach($sidebarOngoingShipments as $ongoing)
-                        <a href="{{ route('tracking.show', $ongoing->tracking_number) }}" 
-                           class="block px-2.5 py-1.5 rounded-lg bg-slate-800/40 hover:bg-slate-800 hover:border-teal-500/40 border border-slate-700/40 transition group"
-                           title="Track {{ $ongoing->tracking_number }} ({{ $ongoing->destination }})">
+                        @php
+                            $isDom = ($ongoing instanceof \App\Models\DomesticShipment) || (($ongoing->shipment_type ?? null) === 'domestic');
+                            $destText = $ongoing->destination ?? $ongoing->receiver_city ?? 'Destination';
+                            $ongoingType = $isDom ? 'domestic' : 'international';
+                        @endphp
+                        <div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 hover:border-teal-500/40 transition">
                             <div class="flex items-center justify-between gap-1">
-                                <span class="font-mono font-bold text-[11px] text-teal-300 group-hover:text-teal-200 truncate">
+                                <span class="font-mono font-bold text-[11px] text-teal-300 truncate">
                                     {{ $ongoing->tracking_number }}
                                 </span>
-                                <i class="fas fa-arrow-up-right-from-square text-[9px] text-slate-400 group-hover:text-teal-300"></i>
-                            </div>
-                            <div class="flex items-center justify-between gap-1 text-[10px] text-slate-400 mt-0.5">
-                                <span class="truncate">{{ $ongoing->destination ?? 'Destination' }}</span>
-                                <span class="uppercase font-semibold text-[9px] px-1 py-0.2 rounded bg-slate-900 text-teal-400 border border-teal-500/20">
+                                <span class="uppercase font-semibold text-[8px] px-1.5 py-0.5 rounded bg-slate-900 text-emerald-400 border border-emerald-500/20">
                                     {{ str_replace('_', ' ', $ongoing->status ?? 'Active') }}
                                 </span>
                             </div>
-                        </a>
+                            <p class="text-[10px] text-slate-400 truncate mt-0.5">
+                                <i class="fas fa-location-dot text-[9px] text-teal-400 mr-0.5"></i> {{ $destText }}
+                            </p>
+                            <!-- 3 Direct Action Buttons: Details, Radar Tracking, HAWB Print -->
+                            <div class="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-slate-700/50">
+                                <a href="{{ route('shipments.show', $ongoing->id) }}" 
+                                   class="flex-1 py-1 px-1 rounded-md bg-slate-700/60 hover:bg-teal-600 text-[9px] font-semibold text-slate-200 hover:text-white text-center transition flex items-center justify-center gap-1"
+                                   title="View Shipment Details">
+                                    <i class="fas fa-eye text-[9px]"></i>
+                                    <span>Details</span>
+                                </a>
+                                <a href="{{ route('tracking.show', $ongoing->tracking_number) }}" 
+                                   class="flex-1 py-1 px-1 rounded-md bg-slate-700/60 hover:bg-blue-600 text-[9px] font-semibold text-slate-200 hover:text-white text-center transition flex items-center justify-center gap-1"
+                                   title="Live Radar Tracking">
+                                    <i class="fas fa-satellite-dish text-[9px]"></i>
+                                    <span>Radar</span>
+                                </a>
+                                <a href="{{ route('hawb.print', ['id' => $ongoing->id, 'type' => $ongoingType]) }}" 
+                                   target="_blank"
+                                   class="flex-1 py-1 px-1 rounded-md bg-purple-600/30 hover:bg-purple-600 text-[9px] font-semibold text-purple-200 hover:text-white text-center transition flex items-center justify-center gap-1"
+                                   title="Print / View HAWB Copy">
+                                    <i class="fas fa-print text-[9px]"></i>
+                                    <span>HAWB</span>
+                                </a>
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             @endif
@@ -110,11 +173,21 @@
                 </span>
             </a>
 
-            <!-- Master Shipment Registry -->
+            <!-- Master Shipment Registry & Details -->
             <a href="{{ route('shipments.index') }}" 
                class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('shipments.index') && !request()->has('status') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-boxes-stacked w-4 text-center text-slate-400"></i>
-                <span>All Consignments</span>
+                <span>All Consignments & Details</span>
+            </a>
+
+            <!-- HAWB Copies & Print Documents -->
+            <a href="{{ route('shipments.index') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-purple-300">
+                <i class="fas fa-file-invoice w-4 text-center text-purple-400"></i>
+                <span>HAWB Copies & Print</span>
+                <span class="ml-auto bg-purple-950/80 text-purple-300 border border-purple-800/50 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                    {{ $sidebarOngoingCount + $sidebarHistoryCount }} Copies
+                </span>
             </a>
 
             <!-- Sidebar Quick Tracking Lookup Form -->
@@ -134,6 +207,13 @@
                 <i class="fas fa-external-link-alt ml-auto text-[10px] opacity-60"></i>
             </a>
         </div>
+
+        <!-- Domestic Pickup Requests Tracker -->
+        <a href="{{ route('domestic.pickup.my-requests') }}" 
+           class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.pickup.my-requests*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-dolly w-4 text-center text-amber-400"></i>
+            <span>Pickup Requests</span>
+        </a>
 
         <!-- Grocery Box -->
         <a href="{{ route('grocery.box') }}" 

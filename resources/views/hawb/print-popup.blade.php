@@ -107,16 +107,16 @@
     <div class="hawb-container">
         <!-- Header -->
         <div class="hawb-header">
-            <div class="logo">NET<span>PACK</span></div>
+            <div class="logo">COURIER <span>with NETPACK</span></div>
             <div>
                 <span class="hawb-badge">{{ strtoupper($type ?? 'INTERNATIONAL') }}</span>
-                <span style="margin-left: 10px; font-size: 12px; color: #64748b;">HAWB #{{ $shipment->id }}</span>
+                <span style="margin-left: 10px; font-size: 12px; color: #64748b;">HAWB #{{ $shipment->hawb_number ?? $shipment->id }}</span>
             </div>
         </div>
 
         <h1 style="text-align:center; font-size:24px; font-weight:bold; color:#1e293b; letter-spacing:2px;">
             HOUSE AIR WAYBILL
-            <div style="font-size:12px; color:#64748b; font-weight:normal; letter-spacing:0;">Shipment Document</div>
+            <div style="font-size:12px; color:#64748b; font-weight:normal; letter-spacing:0;">Official Consignment Note</div>
         </h1>
 
         <!-- Tracking Number -->
@@ -133,10 +133,10 @@
                     QR Code
                 </div>
             @endif
-            <p style="font-size:10px; color:#64748b; margin-top:4px;">Scan to track your shipment</p>
+            <p style="font-size:10px; color:#64748b; margin-top:4px;">Scan to track your consignment</p>
         </div>
 
-        <!-- Shipment Details -->
+        <!-- Shipment Specifications (Non-Monetary) -->
         <div class="info-grid">
             <div class="info-group">
                 <div class="label">Service Type</div>
@@ -147,15 +147,15 @@
                 <div class="value">{{ strtoupper($shipment->shipment_type ?? 'Parcel') }}</div>
             </div>
             <div class="info-group">
-                <div class="label">Weight</div>
-                <div class="value">{{ number_format($shipment->chargeable_weight ?? 0, 2) }} kg</div>
+                <div class="label">Chargeable Weight</div>
+                <div class="value">{{ number_format($shipment->chargeable_weight ?? $shipment->actual_weight ?? 0, 2) }} kg</div>
             </div>
             <div class="info-group">
-                <div class="label">Total Amount</div>
-                <div class="value">$ {{ number_format($shipment->total_amount ?? 0, 2) }}</div>
+                <div class="label">Pieces / Package</div>
+                <div class="value">{{ $shipment->boxes ?? 1 }} PKG</div>
             </div>
             <div class="info-group">
-                <div class="label">Status</div>
+                <div class="label">Current Status</div>
                 <div class="value" style="color: {{ $shipment->status === 'delivered' ? '#10b981' : ($shipment->status === 'pending' ? '#f59e0b' : '#3b82f6') }}">
                     {{ ucfirst(str_replace('_', ' ', $shipment->status)) }}
                 </div>
@@ -208,7 +208,7 @@
         <!-- Print Button -->
         <div class="no-print" style="text-align:center; margin-top:20px; padding-top:15px; border-top:1px solid #e2e8f0;">
             <button onclick="window.print()" style="background:#0d9488; color:white; border:none; padding:10px 30px; border-radius:8px; font-size:14px; cursor:pointer;">
-                🖨 Print HAWB
+                🖨 Print HAWB Document
             </button>
         </div>
     </div>

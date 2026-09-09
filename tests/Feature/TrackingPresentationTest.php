@@ -212,6 +212,118 @@ class TrackingPresentationTest extends TestCase
             ->assertSee('NPI-2026-ACTIVE-888');
     }
 
+    public function test_client_sidebar_has_shipment_details_and_hawb_print_actions(): void
+    {
+        $client = User::factory()->create([
+            'user_type' => 'client',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $activeShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'tracking_number' => 'NPD-2026-SIDEBAR-99',
+            'destination' => 'Chitwan Hub',
+            'status' => 'in_transit',
+        ]);
+
+        $response = $this->actingAs($client)->get(route('client.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Ongoing Tracking')
+            ->assertSee('Tracking History')
+            ->assertSee('All Consignments')
+            ->assertSee('HAWB Copies')
+            ->assertSee('NPD-2026-SIDEBAR-99')
+            ->assertSee(route('shipments.show', $activeShipment->id))
+            ->assertSee(route('tracking.show', $activeShipment->tracking_number))
+            ->assertSee(route('hawb.print', ['id' => $activeShipment->id, 'type' => 'international']));
+    }
+
+    public function test_hawb_copies_have_zero_charges_for_all_services(): void
+    {
+        $client = User::factory()->create([
+            'user_type' => 'client',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $intlShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'tracking_number' => 'NPI-2026-NOCHARGE-1',
+            'shipment_type' => 'parcel',
+            'shipping_cost' => 1250.00,
+            'total_amount' => 1350.00,
+            'status' => 'in_transit',
+        ]);
+
+        $domShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'tracking_number' => 'NPD-2026-NOCHARGE-2',
+            'shipment_type' => 'domestic',
+            'shipping_cost' => 500.00,
+            'total_amount' => 550.00,
+            'status' => 'in_transit',
+        ]);
+
+        // 1. International HAWB
+        $intlResponse = $this->actingAs($client)->get(route('hawb.international', $intlShipment->id));
+        $intlResponse->assertOk()
+            ->assertSee('HOUSE AIR WAYBILL')
+            ->assertSee('NPI-2026-NOCHARGE-1')
+            ->assertDontSee('1250')
+            ->assertDontSee('1350')
+            ->assertDontSee('रू')
+            ->assertDontSee('Rs.')
+            ->assertDontSee('$');
+
+        // 2. Domestic HAWB
+        $domResponse = $this->actingAs($client)->get(route('hawb.domestic', $domShipment->id));
+        $domResponse->assertOk()
+            ->assertSee('OFFICIAL FREIGHT MANIFEST')
+            ->assertSee('NPD-2026-NOCHARGE-2')
+            ->assertDontSee('500')
+            ->assertDontSee('550')
+            ->assertDontSee('रू')
+            ->assertDontSee('Rs.')
+            ->assertDontSee('$')
+            ->assertDontSee('C.O.D');
+
+        // 3. Print Popup HAWB
+        $printResponse = $this->actingAs($client)->get(route('hawb.print', ['id' => $intlShipment->id, 'type' => 'international']));
+        $printResponse->assertOk()
+            ->assertSee('HOUSE AIR WAYBILL')
+            ->assertSee('NPI-2026-NOCHARGE-1')
+            ->assertDontSee('1250')
+            ->assertDontSee('1350')
+            ->assertDontSee('रू')
+            ->assertDontSee('Rs.')
+            ->assertDontSee('$');
+    }
+
+    public function test_client_can_view_shipments_list_with_details_and_hawb_links(): void
+    {
+        $client = User::factory()->create([
+            'user_type' => 'client',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $shipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'tracking_number' => 'NPI-2026-LIST-01',
+            'status' => 'in_transit',
+        ]);
+
+        $response = $this->actingAs($client)->get(route('shipments.index'));
+        $response->assertOk()
+            ->assertSee('NPI-2026-LIST-01')
+            ->assertSee(route('shipments.show', $shipment->id))
+            ->assertSee(route('tracking.show', $shipment->tracking_number))
+            ->assertSee(route('hawb.international', $shipment->id))
+            ->assertSee(route('hawb.print', ['id' => $shipment->id, 'type' => 'international']));
+    }
+
     private function createShipment(array $attributes = []): Shipment
     {
         $customer = $attributes['customer_id'] ?? null;
