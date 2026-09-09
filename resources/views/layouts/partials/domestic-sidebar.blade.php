@@ -1,15 +1,10 @@
 <!-- Domestic Admin Sidebar -->
 <aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0" x-show="sidebarOpen" x-transition>
-    <div class="p-4 border-b border-gray-700">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center">
-                <i class="fas fa-truck text-white"></i>
-            </div>
-            <div>
-                <h2 class="text-lg font-bold text-teal-400">NetPack Domestic</h2>
-                <p class="text-xs text-gray-400">Domestic & E-commerce Panel</p>
-            </div>
-        </div>
+    <div class="p-4 border-b border-gray-800 flex flex-col gap-2">
+        <x-logo variant="white" size="sm" :href="route('domestic.dashboard')" />
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 w-fit">
+            <i class="fas fa-truck-fast text-[9px]"></i> Domestic Operations
+        </span>
     </div>
     
     <!-- User Info -->

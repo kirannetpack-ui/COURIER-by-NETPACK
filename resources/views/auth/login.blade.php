@@ -1,322 +1,234 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>COURIER with NETPACK · Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <title>Sign In &middot; COURIER with NETPACK</title>
+
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Vite Pipeline Assets -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            background: linear-gradient(145deg, #f0f4f8 0%, #dce4ec 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-        }
-
-        .container {
-            max-width: 480px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 40px;
-            padding: 2.5rem 2.5rem;
-            box-shadow: 0 25px 50px -10px rgba(0, 20, 30, 0.25),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .app-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .app-header .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-bottom: 0.3rem;
-        }
-
-        .app-header .logo i {
-            font-size: 2.5rem;
-            color: #1e5b77;
-        }
-
-        .app-header .logo h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #0b2b3b;
-            letter-spacing: -0.5px;
-        }
-
-        .app-header .logo h1 span {
-            color: #2a7faa;
-        }
-
-        .app-header p {
-            color: #3a5b6b;
-            font-size: 0.95rem;
-            opacity: 0.8;
-        }
-
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-
-        .form-group label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #1f4353;
-            margin-bottom: 0.3rem;
-        }
-
-        .form-group label .required {
-            color: #d32f2f;
-            font-size: 0.7rem;
-        }
-
-        .form-group label i {
-            color: #2a7faa;
-            width: 1.1rem;
-            font-size: 0.9rem;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 20px;
-            font-size: 0.95rem;
-            color: #0b2b3b;
-            transition: all 0.2s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #2a7faa;
-            background: white;
-            box-shadow: 0 4px 12px rgba(42, 127, 170, 0.12), inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .form-group input::placeholder {
-            color: #8ba2b0;
-            font-weight: 300;
-            font-size: 0.9rem;
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 0.85rem;
-            background: #1e5b77;
-            border: none;
-            border-radius: 60px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 8px 18px -6px rgba(26, 80, 102, 0.3);
-            margin-top: 0.5rem;
-        }
-
-        .btn-primary i {
-            font-size: 1.1rem;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #134a62;
-            transform: scale(1.01);
-            box-shadow: 0 12px 24px -8px rgba(19, 74, 98, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 1.1rem;
-            height: 1.1rem;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.8s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            color: #d32f2f;
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            display: none;
-            align-items: flex-start;
-            gap: 0.5rem;
-            background: rgba(211, 47, 47, 0.05);
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            border-left: 3px solid #d32f2f;
-        }
-
-        .error-message.show {
-            display: flex;
-        }
-
-        .error-message ul {
-            margin: 0;
-            padding-left: 1.2rem;
-        }
-
-        .error-message ul li {
-            margin-bottom: 0.2rem;
-        }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: #2a5a6b;
-        }
-
-        .form-footer a {
-            color: #1e5b77;
-            font-weight: 600;
-            text-decoration: none;
-            border-bottom: 1px dotted rgba(30, 91, 119, 0.3);
-            cursor: pointer;
-        }
-
-        .form-footer a:hover {
-            border-bottom: 1px solid #1e5b77;
-        }
-
-        .remember-me {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-        }
-
-        .remember-me label {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            color: #3a5b6b;
-            cursor: pointer;
-        }
-
-        .remember-me a {
-            color: #2a7faa;
-            text-decoration: none;
-        }
-
-        .remember-me a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 1.8rem 1.2rem;
-            }
-            .app-header .logo h1 {
-                font-size: 1.8rem;
-            }
+        body { font-family: 'Inter', sans-serif; }
+        .font-heading { font-family: 'Outfit', 'Inter', sans-serif; }
+        .hero-mesh {
+            background: radial-gradient(at 0% 0%, rgba(13, 148, 136, 0.25) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, rgba(10, 25, 47, 0.4) 0px, transparent 50%),
+                        linear-gradient(135deg, #0A192F 0%, #0F2D4A 55%, #0B3B48 100%);
         }
     </style>
 </head>
-<body>
+<body class="min-h-full hero-mesh flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
 
-<div class="container">
-    <!-- Header -->
-    <div class="app-header">
-        <div class="logo">
-            <i class="fas fa-box"></i>
-            <h1>NET<span>PACK</span></h1>
+    <!-- Top Navigation Bar -->
+    <div class="fixed top-0 left-0 right-0 z-20 px-6 py-4 flex justify-between items-center bg-slate-950/30 backdrop-blur-md border-b border-white/10">
+        <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-semibold tracking-wider transition">
+            <i class="fas fa-arrow-left text-teal-400"></i> Back to Homepage
+        </a>
+        <div class="flex items-center gap-3 text-xs">
+            <span class="text-white/60 hidden sm:inline">Need assistance?</span>
+            <a href="tel:+97715970123" class="text-teal-300 font-semibold hover:text-teal-200 transition flex items-center gap-1.5">
+                <i class="fas fa-phone-volume"></i> +977-1-5970123
+            </a>
         </div>
-        <p>Nepal's Trusted Delivery & E-Commerce Platform</p>
     </div>
 
-    <!-- LOGIN FORM -->
-    <form method="POST" action="{{ route('login.submit') }}">
-        @csrf
+    <div class="sm:mx-auto sm:w-full sm:max-w-md px-4 mt-8">
+        <!-- Main Login Card -->
+        <div class="bg-white/95 backdrop-blur-2xl py-8 px-6 sm:px-10 rounded-3xl shadow-2xl border border-white/60 space-y-6">
+            
+            <!-- Brand Logo Center -->
+            <div class="text-center">
+                <div class="flex justify-center mb-3">
+                    <x-logo size="xl" :href="route('home')" />
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-900 tracking-tight font-heading">
+                    Account Portal Sign In
+                </h2>
+                <p class="text-xs text-slate-500 mt-1">
+                    Secure access for operations, merchants, partners, and riders
+                </p>
+            </div>
 
-        <div class="form-group">
-            <label for="email"><i class="fas fa-envelope"></i> Email Address <span class="required">*</span></label>
-            <input type="email" id="email" name="email" placeholder="your@email.com" value="{{ old('email') }}" required autofocus />
-        </div>
+            <!-- Error Alerts -->
+            @if(session('error'))
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl flex items-start gap-3 text-xs leading-relaxed animate-shake">
+                    <i class="fas fa-circle-exclamation text-rose-600 text-base shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold">Authentication notice:</strong>
+                        <p class="mt-0.5">{{ session('error') }}</p>
+                    </div>
+                </div>
+            @endif
 
-        <div class="form-group">
-            <label for="password"><i class="fas fa-lock"></i> Password <span class="required">*</span></label>
-            <input type="password" id="password" name="password" placeholder="Enter your password" required />
-        </div>
+            @if ($errors->any())
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl flex items-start gap-3 text-xs leading-relaxed">
+                    <i class="fas fa-triangle-exclamation text-rose-600 text-base shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold">Please correct the errors below:</strong>
+                        <ul class="list-disc list-inside mt-1 space-y-0.5">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
 
-        <div class="remember-me">
-            <label>
-                <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }} /> Remember me
-            </label>
-            <!-- Removed the forgot password link to avoid route error -->
-        </div>
+            @if(session('success'))
+                <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-3 text-xs">
+                    <i class="fas fa-circle-check text-emerald-600 text-base"></i>
+                    <span>{{ session('success') }}</span>
+                </div>
+            @endif
 
-        @if ($errors->any())
-            <div class="error-message show">
-                <i class="fas fa-exclamation-circle"></i>
-                <div>
-                    <strong>Please fix the following errors:</strong>
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+            <!-- Quick Demo Role Switcher -->
+            <div class="bg-slate-50 rounded-2xl p-3 border border-slate-200/80">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fas fa-bolt text-amber-500"></i> Quick Role Demo Autofill
+                    </span>
+                    <span class="text-[10px] text-slate-400">Click to load credentials</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+                    <button type="button" onclick="fillRole('superadmin@netpack.test', 'Netpack!Admin#2026', 'Super Admin')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        👑 Super Admin
+                    </button>
+                    <button type="button" onclick="fillRole('international.admin@netpack.test', 'Netpack!International#2026', 'International Admin')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        ✈️ Global Admin
+                    </button>
+                    <button type="button" onclick="fillRole('domestic.admin@netpack.test', 'Netpack!Domestic#2026', 'Domestic Admin')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        🚚 Domestic Admin
+                    </button>
+                    <button type="button" onclick="fillRole('seller@test.com', 'Netpack!Seller#2026', 'E-Commerce Seller')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        🏪 Seller Merchant
+                    </button>
+                    <button type="button" onclick="fillRole('rider@test.com', 'Netpack!Rider#2026', 'Delivery Rider')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        🛵 Delivery Rider
+                    </button>
+                    <button type="button" onclick="fillRole('customer@netpack.test', 'Netpack!Customer#2026', 'Client')" 
+                            class="py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-teal-500 hover:text-teal-700 font-semibold transition text-center shadow-2xs">
+                        👤 Client
+                    </button>
                 </div>
             </div>
-        @endif
 
-        <button type="submit" class="btn-primary" id="loginBtn">
-            <i class="fas fa-sign-in-alt"></i> Sign In
-        </button>
+            <!-- LOGIN FORM -->
+            <form method="POST" action="{{ route('login.submit') }}" id="loginForm" class="space-y-4">
+                @csrf
 
-        <div class="form-footer">
-            Don't have an account? <a href="{{ route('register') }}">Create one</a>
+                <!-- Email Input -->
+                <div>
+                    <label for="email" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span><i class="fas fa-envelope text-teal-600 mr-1.5"></i> Email Address</span>
+                        <span class="text-[10px] text-rose-500 font-semibold">*Required</span>
+                    </label>
+                    <div class="relative">
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus
+                               placeholder="your.email@netpack.test"
+                               class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-500/15 transition shadow-2xs" />
+                    </div>
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <label for="password" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span><i class="fas fa-lock text-teal-600 mr-1.5"></i> Password</span>
+                        <button type="button" onclick="togglePasswordVisibility()" class="text-[11px] text-teal-700 hover:underline">
+                            <span id="pwdToggleText">Show password</span>
+                        </button>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="password" name="password" required
+                               placeholder="••••••••••••"
+                               class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-500/15 transition shadow-2xs" />
+                    </div>
+                </div>
+
+                <!-- Remember Me & Public Tracking -->
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 select-none">
+                        <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }} 
+                               class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30" />
+                        <span>Keep me signed in</span>
+                    </label>
+                    <a href="{{ route('tracking.page') }}" class="text-xs font-bold text-teal-700 hover:text-teal-800 transition">
+                        Track a parcel instead &rarr;
+                    </a>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="loginBtn"
+                        class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-700 via-teal-600 to-teal-700 hover:from-teal-800 hover:to-teal-800 text-white font-bold text-sm shadow-md shadow-teal-700/25 transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i class="fas fa-right-to-bracket text-base"></i>
+                    <span>Sign In to Dashboard</span>
+                </button>
+            </form>
+
+            <!-- Card Footer -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>New business account?</span>
+                <a href="{{ route('register') }}" class="font-bold text-teal-700 hover:underline">
+                    Register Client Account &rarr;
+                </a>
+            </div>
         </div>
-    </form>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.querySelector('form');
-    const loginBtn = document.getElementById('loginBtn');
+        <!-- Security & IATA Compliance Footer -->
+        <div class="text-center mt-6 text-xs text-slate-400 space-y-1">
+            <p>&copy; {{ date('Y') }} COURIER with NETPACK Ltd. Registered Courier Operator &middot; Nepal</p>
+            <p class="text-[11px] text-slate-400">Encrypted 256-Bit SSL Connection &middot; Role-Enforced Multi-Tenant Access</p>
+        </div>
+    </div>
 
-    loginForm.addEventListener('submit', function() {
-        loginBtn.disabled = true;
-        loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+    <!-- Script for autofill and form submission -->
+    <script>
+    function fillRole(email, password, roleName) {
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = password;
+        const btn = document.getElementById('loginBtn');
+        btn.classList.add('ring-4', 'ring-teal-400');
+        setTimeout(() => btn.classList.remove('ring-4', 'ring-teal-400'), 600);
+    }
+
+    function togglePasswordVisibility() {
+        const input = document.getElementById('password');
+        const text = document.getElementById('pwdToggleText');
+        if (input.type === 'password') {
+            input.type = 'text';
+            text.innerText = 'Hide password';
+        } else {
+            input.type = 'password';
+            text.innerText = 'Show password';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+
+        if (loginForm && loginBtn) {
+            loginForm.addEventListener('submit', function() {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin text-base"></i> Authenticating...';
+                loginBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            });
+        }
     });
-});
-</script>
-
+    </script>
 </body>
 </html>

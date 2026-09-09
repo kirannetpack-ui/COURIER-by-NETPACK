@@ -1,182 +1,288 @@
 <!-- Super Admin Sidebar -->
-<aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0" x-show="sidebarOpen" x-transition>
-    <div class="p-4 border-b border-gray-700">
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none" x-show="sidebarOpen" x-transition>
+    <!-- Brand Header -->
+    <div class="p-4 border-b border-slate-800 flex flex-col gap-2">
+        <x-logo variant="white" size="sm" :href="route('admin.dashboard')" />
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 w-fit tracking-wider uppercase">
+            <i class="fas fa-crown text-[10px] text-amber-400"></i> Super Administrator
+        </span>
+    </div>
+    
+    <!-- User Card -->
+    <div class="p-3 mx-3 my-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center">
-                <i class="fas fa-crown text-white"></i>
+            <div class="w-9 h-9 bg-gradient-to-tr from-teal-600 to-teal-400 rounded-lg flex items-center justify-center font-bold text-white shadow-sm flex-shrink-0">
+                {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
             </div>
-            <div>
-                <h2 class="text-lg font-bold text-teal-400">NetPack Admin</h2>
-                <p class="text-xs text-gray-400">Super Admin Panel</p>
+            <div class="min-w-0 flex-1">
+                <p class="font-bold text-xs text-white truncate">{{ auth()->user()->name ?? 'Super Admin' }}</p>
+                <p class="text-[11px] text-teal-300/80 truncate">{{ auth()->user()->email ?? 'admin@netpack.com' }}</p>
             </div>
         </div>
     </div>
     
-    <!-- User Info -->
-    <div class="p-4 border-b border-gray-700">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center">
-                <i class="fas fa-user text-white"></i>
-            </div>
-            <div>
-                <p class="font-medium text-sm">{{ auth()->user()->name ?? 'Admin' }}</p>
-                <p class="text-xs text-gray-400">{{ auth()->user()->email ?? '' }}</p>
-            </div>
-        </div>
-    </div>
-    
-    <nav class="p-4 space-y-1">
-        <!-- Dashboard -->
-        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.dashboard') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-            <i class="fas fa-chart-pie w-5"></i>
-            <span>Dashboard</span>
+    <nav class="p-3 space-y-1 text-xs">
+        <!-- Dashboard Overview -->
+        <a href="{{ route('admin.dashboard') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('admin.dashboard') ? 'bg-teal-600 text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-chart-pie w-4 text-center"></i>
+            <span>Operations Dashboard</span>
         </a>
 
-        <!-- User Management -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">User Management</p>
-            
-            <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.users*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-users w-5"></i>
-                <span>All Users</span>
-                <span class="ml-auto bg-blue-600 text-xs px-2 py-1 rounded-full">{{ \App\Models\User::count() }}</span>
+        <!-- ============================================== -->
+        <!-- TRACKING SUITE (NEW - Full Visibility) -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <div class="flex items-center justify-between px-3 mb-1">
+                <p class="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest">Tracking Suite</p>
+                <span class="px-1.5 py-0.2 bg-teal-500/20 text-teal-300 text-[9px] rounded font-mono font-bold">LIVE</span>
+            </div>
+
+            <!-- Public / Master Tracker -->
+            <a href="{{ route('tracking.page') }}" target="_blank"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-white group">
+                <i class="fas fa-search-location w-4 text-center text-teal-400 group-hover:scale-110 transition"></i>
+                <span class="font-medium">Master Search & Radar</span>
+                <i class="fas fa-external-link-alt ml-auto text-[10px] opacity-60"></i>
+            </a>
+
+            <!-- Shipment Registry -->
+            <a href="{{ route('admin.shipments.index') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.shipments*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-boxes-stacked w-4 text-center text-blue-400"></i>
+                <span>Shipment Registry</span>
+                <span class="ml-auto bg-blue-500/20 text-blue-300 text-[10px] font-mono px-1.5 py-0.5 rounded">{{ \App\Models\Shipment::count() }}</span>
+            </a>
+
+            <!-- Live Telemetry & GPS Update -->
+            <a href="{{ route('tracking.update') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('tracking.update*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-satellite-dish w-4 text-center text-emerald-400"></i>
+                <span>Update Telemetry / Status</span>
+            </a>
+
+            <!-- HAWB Barcode Scanner -->
+            <a href="{{ route('hawb.scanner') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('hawb.scanner*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-qrcode w-4 text-center text-amber-400"></i>
+                <span>HAWB Barcode Scanner</span>
+            </a>
+
+            <!-- Rider Live Fleet Radar -->
+            <a href="{{ route('admin.riders.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.riders*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-motorcycle w-4 text-center text-purple-400"></i>
+                <span>Rider GPS Radar</span>
+                <span class="ml-auto bg-emerald-500/20 text-emerald-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                    {{ \App\Models\User::where('user_type', 'rider')->where('is_online', true)->count() }} Online
+                </span>
             </a>
         </div>
 
-        <!-- Domestic Services -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Domestic Services</p>
-            
-            <a href="{{ route('admin.partners.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.partners*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-handshake w-5"></i>
-                <span>Partners</span>
+        <!-- ============================================== -->
+        <!-- SERVICE PORTALS (All Service Admin Portals) -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Service Portals</p>
+
+            <a href="{{ route('international.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-plane-departure w-4 text-center text-sky-400"></i>
+                <span>✈️ International Admin</span>
             </a>
+
+            <a href="{{ route('domestic.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.dashboard*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-truck-fast w-4 text-center text-teal-400"></i>
+                <span>🚚 Domestic Admin</span>
+            </a>
+
+            <a href="{{ route('ecommerce.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('ecommerce.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-store w-4 text-center text-amber-400"></i>
+                <span>🛒 E-Commerce Admin</span>
+            </a>
+
+            <a href="{{ route('seller.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-shop w-4 text-center text-emerald-400"></i>
+                <span>🏪 Merchant Seller</span>
+            </a>
+
+            <a href="{{ route('rider.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rider.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-helmet-safety w-4 text-center text-yellow-400"></i>
+                <span>🛵 Rider Dispatch</span>
+            </a>
+
+            <a href="{{ route('partner.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-handshake w-4 text-center text-indigo-400"></i>
+                <span>🤝 Partner Network</span>
+            </a>
+
+            <a href="{{ route('client.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('client.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-user-shield w-4 text-center text-pink-400"></i>
+                <span>👤 Client Portal</span>
+            </a>
+
+            <a href="{{ route('overseas.dashboard') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('overseas.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-earth-asia w-4 text-center text-cyan-400"></i>
+                <span>🌐 Overseas Hub</span>
+            </a>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- USER & STAKEHOLDER MANAGEMENT -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Users & Partners</p>
             
-            <a href="{{ route('admin.domestic.rates') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.domestic.rates*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-money-bill-wave w-5"></i>
+            <a href="{{ route('admin.users.index') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.users*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-users-gear w-4 text-center"></i>
+                <span>All Users</span>
+                <span class="ml-auto bg-slate-700 text-slate-200 text-[10px] px-2 py-0.5 rounded-full font-mono">{{ \App\Models\User::count() }}</span>
+            </a>
+
+            <a href="{{ route('admin.partners.index') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.partners*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-handshake-angle w-4 text-center"></i>
+                <span>Domestic Partners</span>
+            </a>
+
+            <a href="{{ route('admin.overseas-partners.index') }}" 
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.overseas-partners*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-globe-americas w-4 text-center"></i>
+                <span>Overseas Partners</span>
+            </a>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- DOMESTIC LOGISTICS -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Domestic Logistics</p>
+            
+            <a href="{{ route('admin.domestic.rates') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.rates*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-money-bill-wave w-4 text-center"></i>
                 <span>Domestic Rates</span>
             </a>
             
-            <a href="{{ route('admin.domestic.zones') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.domestic.zones*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-map w-5"></i>
+            <a href="{{ route('admin.domestic.zones') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.zones*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-map-location-dot w-4 text-center"></i>
                 <span>Delivery Zones</span>
             </a>
             
-            <a href="{{ route('admin.domestic.shipments') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.domestic.shipments*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-truck w-5"></i>
+            <a href="{{ route('admin.domestic.shipments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.shipments*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-truck-ramp-box w-4 text-center"></i>
                 <span>Domestic Shipments</span>
             </a>
+
+            <a href="{{ route('domestic.manifests.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.index') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-file-lines w-4 text-center"></i>
+                <span>Manifests</span>
+                <span class="ml-auto bg-slate-700 text-slate-200 text-[10px] px-1.5 py-0.5 rounded font-mono">{{ \App\Models\Manifest::count() }}</span>
+            </a>
+
+            <a href="{{ route('domestic.manifests.pods') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.pods*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-signature w-4 text-center"></i>
+                <span>Proof of Delivery (POD)</span>
+                <span class="ml-auto bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-mono">{{ \App\Models\ProofOfDelivery::count() }}</span>
+            </a>
         </div>
 
-      <!-- MANIFESTS -->
-<div class="pt-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">MANIFESTS</p>
-    
-    <!-- All Manifests -->
-    <a href="{{ route('domestic.manifests.index') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.index') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-boxes w-5 {{ request()->routeIs('domestic.manifests.index') ? 'text-blue-600' : 'text-gray-500' }}"></i>
-        <span>All Manifests</span>
-        <span class="ml-auto bg-blue-600 text-xs text-white px-2 py-1 rounded-full">{{ App\Models\Manifest::count() }}</span>
-    </a>
-    
-    <!-- Create Manifest -->
-    @if(Route::has('domestic.manifests.create'))
-    <a href="{{ route('domestic.manifests.create') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.create') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-plus-circle w-5 {{ request()->routeIs('domestic.manifests.create') ? 'text-blue-600' : 'text-green-500' }}"></i>
-        <span>Create Manifest</span>
-    </a>
-    @endif
-    
-    <!-- Proof of Delivery -->
-    <a href="{{ route('domestic.manifests.pods') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.pods*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-file-signature w-5 {{ request()->routeIs('domestic.manifests.pods*') ? 'text-blue-600' : 'text-purple-500' }}"></i>
-        <span>Proof of Delivery</span>
-        <span class="ml-auto bg-green-600 text-xs text-white px-2 py-1 rounded-full">{{ App\Models\ProofOfDelivery::count() }}</span>
-    </a>
-</div>
-
-        <!-- International Services -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">International Services</p>
+        <!-- ============================================== -->
+        <!-- INTERNATIONAL LOGISTICS -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">International Cargo</p>
             
-            <a href="{{ route('admin.overseas-partners.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.overseas-partners*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-globe w-5"></i>
-                <span>Overseas Partners</span>
-            </a>
-            
-            <a href="{{ route('admin.rates.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.rates*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-file-invoice-dollar w-5"></i>
+            <a href="{{ route('admin.rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
                 <span>International Rates</span>
             </a>
-        </div>
 
-        <!-- Rider Monitoring -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Rider Monitoring</p>
-            
-            <a href="{{ route('admin.riders.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.riders*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-motorcycle w-5"></i>
-                <span>Rider Dashboard</span>
-                <span class="ml-auto bg-green-600 text-xs px-2 py-1 rounded-full">{{ \App\Models\User::where('user_type', 'rider')->where('is_online', true)->count() }}</span>
+            <a href="{{ route('admin.rates.surcharges') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates.surcharges*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-receipt w-4 text-center"></i>
+                <span>Remote & Surcharges</span>
+            </a>
+
+            <a href="{{ route('international.transit-points.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.transit-points*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-hubspot w-4 text-center"></i>
+                <span>Transit Hubs & Points</span>
             </a>
         </div>
 
-        <!-- Settlements -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Settlements</p>
+        <!-- ============================================== -->
+        <!-- COMMUNICATIONS & REMINDERS (NEW) -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Communications</p>
             
-            <a href="{{ route('admin.cod-settlements.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.cod-settlements*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-money-bill-transfer w-5"></i>
+            <a href="{{ route('admin.communications') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.communications*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-triangle-exclamation w-4 text-center text-amber-400"></i>
+                <span>Alerts & Delay Hub</span>
+                @php
+                    $pendingReminders = \App\Models\DeliveryReminder::where('is_sent', false)->count();
+                @endphp
+                @if($pendingReminders > 0)
+                    <span class="ml-auto bg-amber-500/20 text-amber-300 text-[10px] font-mono px-1.5 py-0.5 rounded">{{ $pendingReminders }}</span>
+                @endif
+            </a>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- SETTLEMENTS & FINANCE -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Financial Settlements</p>
+            
+            <a href="{{ route('admin.cod-settlements.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.cod-settlements*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-money-bill-transfer w-4 text-center"></i>
                 <span>COD Settlements</span>
-                <span class="ml-auto bg-red-600 text-xs px-2 py-1 rounded-full">{{ \App\Models\CODSettlement::where('settlement_status', 'pending')->count() }}</span>
+                @php
+                    $pendingCod = \App\Models\CODSettlement::where('settlement_status', 'pending')->count();
+                @endphp
+                @if($pendingCod > 0)
+                    <span class="ml-auto bg-red-500/20 text-red-300 text-[10px] font-mono px-1.5 py-0.5 rounded">{{ $pendingCod }}</span>
+                @endif
             </a>
             
-            <a href="{{ route('admin.partner-charges.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.partner-charges*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-hand-holding-usd w-5"></i>
+            <a href="{{ route('admin.partner-charges.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.partner-charges*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-hand-holding-dollar w-4 text-center"></i>
                 <span>Partner Charges</span>
             </a>
         </div>
 
-        <!-- Reports -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Reports</p>
+        <!-- ============================================== -->
+        <!-- SYSTEM & REPORTS -->
+        <!-- ============================================== -->
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">System & Reports</p>
             
-            <a href="{{ route('admin.reports') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('admin.reports*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-file-alt w-5"></i>
-                <span>Reports</span>
+            <a href="{{ route('admin.reports') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.reports*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-chart-line w-4 text-center"></i>
+                <span>Analytics & Reports</span>
             </a>
-            
-            <a href="{{ route('admin.reports.shipments') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-truck w-5"></i>
-                <span>Shipment Reports</span>
-            </a>
-            
-            <a href="{{ route('admin.reports.financial') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-chart-bar w-5"></i>
-                <span>Financial Reports</span>
-            </a>
-        </div>
 
-        <!-- System -->
-        <div class="pt-4 mt-4 border-t border-gray-700">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">System</p>
-            
-            <a href="{{ route('profile') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('profile') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-user-circle w-5"></i>
+            <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.settings*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-sliders w-4 text-center"></i>
+                <span>System Settings</span>
+            </a>
+
+            <a href="{{ route('profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('profile') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-id-badge w-4 text-center"></i>
                 <span>My Profile</span>
             </a>
             
-            <form method="POST" action="{{ route('logout') }}" class="block">
+            <form method="POST" action="{{ route('logout') }}" class="block pt-2">
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition text-gray-300 hover:text-red-400">
-                    <i class="fas fa-sign-out-alt w-5"></i>
-                    <span>Logout</span>
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 transition text-slate-400 hover:text-red-400 font-medium">
+                    <i class="fas fa-arrow-right-from-bracket w-4 text-center"></i>
+                    <span>Sign Out</span>
                 </button>
             </form>
         </div>

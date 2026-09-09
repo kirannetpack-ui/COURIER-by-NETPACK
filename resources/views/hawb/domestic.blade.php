@@ -1,478 +1,492 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Domestic HAWB - {{ $shipment->tracking_number }}</title>
+    <title>Domestic Waybill - {{ $shipment->tracking_number }} - COURIER with NETPACK</title>
     <style>
         @page {
-            size: A4;
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 6mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         body {
-            font-family: 'Courier New', 'Arial', sans-serif;
+            font-family: 'Helvetica Neue', Arial, 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 5mm;
-            background: #f0f0f0;
+            padding: 4mm;
+            background: #e2e8f0;
+            color: #0f172a;
+            font-size: 11px;
         }
-        .hawb-page {
-            max-width: 100%;
-            background: white;
-            padding: 6mm 8mm;
+        .hawb-sheet {
+            max-width: 200mm;
             margin: 0 auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #ffffff;
+            padding: 5mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .hawb-container {
-            border: 1px solid #333;
-            border-radius: 2px;
-            padding: 6mm 8mm;
-            margin-bottom: 8mm;
+        .hawb-unit {
+            border: 2px solid #0f172a;
+            border-radius: 4px;
+            padding: 4mm;
+            margin-bottom: 5mm;
             page-break-inside: avoid;
-            background: white;
+            background: #ffffff;
+            position: relative;
         }
-        .hawb-container:last-child {
+        .hawb-unit:last-child {
             margin-bottom: 0;
         }
-        /* Header */
-        .hawb-header {
+
+        /* Header Bar */
+        .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #0d9488;
             padding-bottom: 4px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
-        .hawb-header .logo {
-            font-size: 20px;
-            font-weight: bold;
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand-title {
+            font-size: 18px;
+            font-weight: 800;
             color: #0d9488;
-            letter-spacing: 1px;
-        }
-        .hawb-header .logo span {
-            color: #1e293b;
-        }
-        .hawb-badge {
-            background: #0d9488;
-            color: white;
-            padding: 2px 12px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
-        .hawb-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: #1e293b;
-            margin: 2px 0 4px 0;
             text-transform: uppercase;
         }
-        .hawb-title .sub {
-            font-size: 9px;
-            color: #64748b;
-            font-weight: normal;
-            letter-spacing: 1px;
-        }
-        /* Tracking Number */
-        .tracking-number {
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            padding: 4px;
-            background: #f8fafc;
-            border: 1px dashed #94a3b8;
-            border-radius: 4px;
-            margin: 4px 0 6px 0;
+        .brand-title span {
             color: #0f172a;
         }
-        /* QR + Info Row */
-        .qr-info-row {
-            display: flex;
-            gap: 10px;
-            margin: 4px 0 6px 0;
-            align-items: stretch;
-        }
-        .qr-section {
-            flex: 0 0 auto;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 4px 6px;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-width: 100px;
-        }
-        .qr-section img {
-            width: 100px;
-            height: 100px;
-            display: block;
-        }
-        .qr-section .qr-label {
-            font-size: 7px;
-            color: #94a3b8;
-            margin-top: 2px;
+        .badge-pill {
+            background: #0d9488;
+            color: #ffffff;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 9px;
+            font-weight: 700;
             letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
-        .info-cards {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 4px;
-        }
-        .info-card {
-            border: 1px solid #e2e8f0;
+        .copy-tag {
+            font-size: 9px;
+            font-weight: 700;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 2px 8px;
             border-radius: 4px;
-            padding: 4px 6px;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            border: 1px solid #cbd5e1;
         }
-        .info-card .label {
-            font-size: 7px;
+
+        /* Waybill & COD Bar */
+        .waybill-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+        .id-label {
+            font-size: 8px;
+            font-weight: 700;
             text-transform: uppercase;
             color: #64748b;
-            font-weight: 600;
             letter-spacing: 0.5px;
         }
-        .info-card .value {
+        .waybill-val {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: 1.5px;
+        }
+        .cod-badge {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .cod-amount {
+            font-size: 15px;
+            font-weight: 800;
+            color: #b91c1c;
+        }
+        .prepaid-amount {
+            font-size: 14px;
+            font-weight: 800;
+            color: #047857;
+        }
+
+        /* Routing Grid */
+        .routing-strip {
+            display: grid;
+            grid-template-columns: 1.2fr 1.2fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .route-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 4px 6px;
+        }
+        .route-card .card-val {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             color: #0f172a;
             margin-top: 1px;
         }
-        .service-badge {
-            display: inline-block;
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 9px;
-            font-weight: 600;
+
+        /* QR + Specs */
+        .mid-section {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 8px;
+            margin-bottom: 6px;
         }
-        .service-badge.flash { background: #fef2f2; color: #dc2626; }
-        .service-badge.same_day { background: #fffbeb; color: #d97706; }
-        .service-badge.standard { background: #eff6ff; color: #2563eb; }
-        .service-badge.himalayan { background: #faf5ff; color: #7c3aed; }
-        /* Sender/Receiver */
-        .party-section {
+        .qr-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            text-align: center;
+        }
+        .qr-box img {
+            width: 84px;
+            height: 84px;
+            display: block;
+        }
+        .qr-sub {
+            font-size: 7px;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .spec-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 4px 6px;
+            background: #f8fafc;
+        }
+        .spec-item .val {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* Parties */
+        .parties-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
-            margin: 4px 0 6px 0;
+            margin-bottom: 6px;
         }
-        .party-box {
-            border: 1px solid #e2e8f0;
+        .party-pane {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 5px 7px;
+            background: #ffffff;
+        }
+        .party-pane.shipper {
+            border-left: 3px solid #0d9488;
+        }
+        .party-pane.consignee {
+            border-left: 3px solid #2563eb;
+            background: #f8fafc;
+        }
+        .party-tag {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .party-pane.shipper .party-tag { color: #0d9488; }
+        .party-pane.consignee .party-tag { color: #2563eb; }
+        .party-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .party-desc {
+            font-size: 9px;
+            color: #334155;
+            line-height: 1.35;
+            margin-top: 2px;
+        }
+        .party-phone {
+            font-size: 9px;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 3px;
+        }
+
+        /* POD Signature Area */
+        .pod-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 6px;
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
             padding: 4px 6px;
-            background: #fafafa;
+            margin-bottom: 4px;
+            background: #ffffff;
         }
-        .party-box .label {
+        .pod-field {
             font-size: 8px;
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .party-box .label.shipper { color: #0d9488; }
-        .party-box .label.consignee { color: #2563eb; }
-        .party-box .name {
-            font-size: 11px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-top: 1px;
-        }
-        .party-box .address {
-            font-size: 9px;
             color: #475569;
-            margin-top: 1px;
-            line-height: 1.3;
         }
-        .party-box .phone {
-            font-size: 8px;
-            color: #64748b;
-            margin-top: 1px;
+        .pod-line {
+            border-bottom: 1px dotted #94a3b8;
+            height: 16px;
+            margin-top: 2px;
         }
-        /* Footer */
-        .footer {
-            margin-top: 4px;
-            padding-top: 4px;
+
+        .unit-footer {
             border-top: 1px solid #e2e8f0;
+            padding-top: 3px;
+            font-size: 7.5px;
+            color: #64748b;
             display: flex;
             justify-content: space-between;
-            font-size: 7px;
-            color: #94a3b8;
         }
-        .footer .company {
-            font-weight: 600;
-            color: #0f172a;
-        }
-        .footer .terms {
-            text-align: right;
-            font-size: 6.5px;
-            line-height: 1.3;
-        }
-        .hawb-id {
-            font-size: 7px;
-            color: #94a3b8;
-            text-align: right;
-            margin-top: 2px;
-            border-top: 1px dotted #e2e8f0;
-            padding-top: 2px;
-        }
-        /* Divider between HAWBs */
-        .hawb-divider {
+
+        .cut-divider {
             text-align: center;
+            font-size: 9px;
             color: #94a3b8;
-            font-size: 10px;
-            padding: 2px 0;
-            border-bottom: 1px dashed #e2e8f0;
-            margin-bottom: 8mm;
+            font-family: monospace;
+            padding: 3px 0;
+            margin-bottom: 5mm;
+            border-bottom: 1px dashed #cbd5e1;
         }
+
+        /* Print Controls */
+        .print-actions {
+            max-width: 200mm;
+            margin: 12px auto;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+        .btn-print {
+            background: #0d9488;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .btn-print:hover { background: #0f766e; }
+        .btn-back {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
         @media print {
             body {
-                background: white;
-                padding: 3mm;
-            }
-            .hawb-page {
-                box-shadow: none;
+                background: #ffffff;
                 padding: 0;
             }
-            .hawb-container {
-                border-color: #ccc;
-                margin-bottom: 6mm;
+            .hawb-sheet {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
             }
-            .hawb-divider {
-                border-bottom-color: #ccc;
+            .print-actions {
+                display: none !important;
             }
-        }
-        @media (max-width: 600px) {
-            .info-cards {
-                grid-template-columns: 1fr 1fr;
-            }
-            .party-section {
-                grid-template-columns: 1fr;
-            }
-            .qr-info-row {
-                flex-direction: column;
-                align-items: center;
+            .hawb-unit {
+                border-color: #000000;
+                margin-bottom: 4mm;
             }
         }
     </style>
 </head>
 <body>
-    <div class="hawb-page">
-        <!-- HAWB 1 -->
-        <div class="hawb-container">
-            <!-- Header -->
-            <div class="hawb-header">
-                <div class="logo">NET<span>PACK</span></div>
-                <span class="hawb-badge">DOMESTIC</span>
-            </div>
 
-            <!-- Title -->
-            <div class="hawb-title">
-                DOMESTIC AIR WAYBILL
-                <div class="sub">Domestic Shipment Document</div>
-            </div>
+@php
+    $weightVal = number_format($shipment->weight ?? 0, 2);
+    $serviceName = strtoupper($shipment->service_name ?? $shipment->service_type ?? 'Standard');
+    $isCod = (bool) ($shipment->is_cod ?? false);
+    $codAmount = $shipment->cod_amount ?? 0;
+@endphp
 
-            <!-- Tracking Number -->
-            <div class="tracking-number">
-                {{ $shipment->tracking_number }}
-            </div>
+<div class="print-actions">
+    <button onclick="window.print()" class="btn-print">🖨 Print Domestic Consignment Note (A4 · 2 Copies)</button>
+    <a href="{{ route('tracking.show', $shipment->tracking_number) }}" class="btn-back">📦 Public Tracking</a>
+</div>
 
-            <!-- QR + Info -->
-            <div class="qr-info-row">
-                <div class="qr-section">
-                    {!! $qrCode !!}
-                    <div class="qr-label">Scan to Track</div>
-                </div>
-                <div class="info-cards">
-                    <div class="info-card">
-                        <div class="label">Service</div>
-                        <div class="value">
-                            <span class="service-badge {{ $shipment->service_type ?? 'standard' }}">
-                                {{ strtoupper($shipment->service_type ?? 'STANDARD') }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Type</div>
-                        <div class="value">{{ strtoupper($shipment->shipment_type ?? 'Parcel') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Weight</div>
-                        <div class="value">{{ number_format($shipment->weight ?? 0, 2) }} kg</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Status</div>
-                        <div class="value" style="color: {{ $shipment->status === 'delivered' ? '#10b981' : ($shipment->status === 'pending' ? '#f59e0b' : '#3b82f6') }}">
-                            {{ ucfirst(str_replace('_', ' ', $shipment->status)) }}
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="hawb-sheet">
 
-            <!-- Sender & Receiver -->
-            <div class="party-section">
-                <div class="party-box">
-                    <div class="label shipper">SHIPPER / SENDER</div>
-                    <div class="name">{{ $shipment->sender_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->sender_address ?? '' }}<br>
-                        {{ $shipment->sender_city ?? '' }}, {{ $shipment->sender_zone ?? '' }}
-                    </div>
-                    <div class="phone"><i class="fas fa-phone"></i> {{ $shipment->sender_phone ?? 'N/A' }}</div>
-                </div>
-                <div class="party-box">
-                    <div class="label consignee">CONSIGNEE / RECEIVER</div>
-                    <div class="name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->receiver_address ?? '' }}<br>
-                        {{ $shipment->receiver_city ?? '' }}, {{ $shipment->receiver_zone ?? '' }}
-                    </div>
-                    <div class="phone">
-                        <i class="fas fa-phone"></i> {{ $shipment->receiver_phone ?? 'N/A' }}
-                        @if($shipment->receiver_ward)
-                            <br><i class="fas fa-map-pin"></i> Ward: {{ $shipment->receiver_ward }}
-                        @endif
-                    </div>
-                </div>
+    @foreach(['COPY 1 · CONSIGNEE DELIVERY RUNSHEET COPY', 'COPY 2 · PROOF OF DELIVERY (POD) CARRIER COPY'] as $copyTitle)
+    <div class="hawb-unit">
+        <!-- Header -->
+        <div class="header-bar">
+            <div class="brand-logo">
+                <span class="brand-title">COURIER with <span>NETPACK</span></span>
+                <span class="badge-pill">Domestic Express Logistics</span>
             </div>
+            <div class="copy-tag">{{ $copyTitle }}</div>
+        </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <div>
-                    <span class="company">COURIER with NETPACK</span><br>
-                    Kathmandu, Nepal
-                </div>
-                <div class="terms">
-                    <div style="font-weight:600; color:#0f172a;">Terms & Conditions</div>
-                    This document is subject to NETPACK's terms of carriage.<br>
-                    support@netpack.com
-                </div>
+        <!-- Waybill & Payment Status -->
+        <div class="waybill-row">
+            <div>
+                <span class="id-label">Domestic Waybill / Consignment Number</span>
+                <span class="waybill-val">{{ $shipment->tracking_number }}</span>
             </div>
-
-            <div class="hawb-id">
-                HAWB #{{ $shipment->id }} | Generated: {{ now()->format('d M Y H:i') }}
+            <div class="cod-badge">
+                <span class="id-label">Payment Mode</span>
+                @if($isCod && $codAmount > 0)
+                    <span class="cod-amount">C.O.D: Rs. {{ number_format($codAmount, 2) }}</span>
+                @else
+                    <span class="prepaid-amount">PREPAID / NON-COD</span>
+                @endif
             </div>
         </div>
 
-        <!-- Divider -->
-        <div class="hawb-divider">— — — — — — — — — — — — — — — — — — — — — — — — — — — — — —</div>
-
-        <!-- HAWB 2 -->
-        <div class="hawb-container">
-            <!-- Header -->
-            <div class="hawb-header">
-                <div class="logo">NET<span>PACK</span></div>
-                <span class="hawb-badge">DOMESTIC</span>
+        <!-- Routing -->
+        <div class="routing-strip">
+            <div class="route-card">
+                <div class="id-label">Origin Zone / City</div>
+                <div class="card-val">{{ $shipment->sender_city ?? 'Kathmandu' }}</div>
             </div>
-
-            <!-- Title -->
-            <div class="hawb-title">
-                DOMESTIC AIR WAYBILL
-                <div class="sub">Domestic Shipment Document</div>
+            <div class="route-card">
+                <div class="id-label">Destination City</div>
+                <div class="card-val">{{ $shipment->receiver_city ?? 'Nepal Destination' }}</div>
             </div>
-
-            <!-- Tracking Number -->
-            <div class="tracking-number">
-                {{ $shipment->tracking_number }}
+            <div class="route-card">
+                <div class="id-label">Service Tier</div>
+                <div class="card-val">{{ $serviceName }}</div>
             </div>
+            <div class="route-card">
+                <div class="id-label">Assigned Partner / Hub</div>
+                <div class="card-val">{{ $shipment->partner->name ?? 'NETPACK Central Hub' }}</div>
+            </div>
+        </div>
 
-            <!-- QR + Info -->
-            <div class="qr-info-row">
-                <div class="qr-section">
-                    {!! $qrCode !!}
-                    <div class="qr-label">Scan to Track</div>
+        <!-- QR + Specs -->
+        <div class="mid-section">
+            <div class="qr-box">
+                {!! $qrCode !!}
+                <span class="qr-sub">Scan to Track</span>
+            </div>
+            <div class="specs-grid">
+                <div class="spec-item">
+                    <div class="id-label">Actual Weight</div>
+                    <div class="val">{{ $weightVal }} KG</div>
                 </div>
-                <div class="info-cards">
-                    <div class="info-card">
-                        <div class="label">Service</div>
-                        <div class="value">
-                            <span class="service-badge {{ $shipment->service_type ?? 'standard' }}">
-                                {{ strtoupper($shipment->service_type ?? 'STANDARD') }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Type</div>
-                        <div class="value">{{ strtoupper($shipment->shipment_type ?? 'Parcel') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Weight</div>
-                        <div class="value">{{ number_format($shipment->weight ?? 0, 2) }} kg</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Status</div>
-                        <div class="value" style="color: {{ $shipment->status === 'delivered' ? '#10b981' : ($shipment->status === 'pending' ? '#f59e0b' : '#3b82f6') }}">
-                            {{ ucfirst(str_replace('_', ' ', $shipment->status)) }}
-                        </div>
-                    </div>
+                <div class="spec-item">
+                    <div class="id-label">Package Type</div>
+                    <div class="val">{{ ucfirst($shipment->package_type ?? 'Parcel') }}</div>
                 </div>
-            </div>
-
-            <!-- Sender & Receiver -->
-            <div class="party-section">
-                <div class="party-box">
-                    <div class="label shipper">SHIPPER / SENDER</div>
-                    <div class="name">{{ $shipment->sender_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->sender_address ?? '' }}<br>
-                        {{ $shipment->sender_city ?? '' }}, {{ $shipment->sender_zone ?? '' }}
-                    </div>
-                    <div class="phone"><i class="fas fa-phone"></i> {{ $shipment->sender_phone ?? 'N/A' }}</div>
+                <div class="spec-item">
+                    <div class="id-label">Delivery Target</div>
+                    <div class="val">{{ $shipment->estimated_delivery_at ? $shipment->estimated_delivery_at->format('M d · h:i A') : 'Same Day / 24H' }}</div>
                 </div>
-                <div class="party-box">
-                    <div class="label consignee">CONSIGNEE / RECEIVER</div>
-                    <div class="name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->receiver_address ?? '' }}<br>
-                        {{ $shipment->receiver_city ?? '' }}, {{ $shipment->receiver_zone ?? '' }}
-                    </div>
-                    <div class="phone">
-                        <i class="fas fa-phone"></i> {{ $shipment->receiver_phone ?? 'N/A' }}
-                        @if($shipment->receiver_ward)
-                            <br><i class="fas fa-map-pin"></i> Ward: {{ $shipment->receiver_ward }}
-                        @endif
-                    </div>
+                <div class="spec-item">
+                    <div class="id-label">Delivery Ward / Zone</div>
+                    <div class="val">Ward: {{ $shipment->receiver_ward ?? 'N/A' }}</div>
+                </div>
+                <div class="spec-item">
+                    <div class="id-label">Booking Date</div>
+                    <div class="val">{{ $shipment->created_at->format('d M Y') }}</div>
+                </div>
+                <div class="spec-item">
+                    <div class="id-label">Special Handling</div>
+                    <div class="val">{{ $shipment->special_instructions ? substr($shipment->special_instructions, 0, 18) . '...' : 'Standard Fragile' }}</div>
                 </div>
             </div>
+        </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <div>
-                    <span class="company">COURIER with NETPACK</span><br>
-                    Kathmandu, Nepal
+        <!-- Parties: Shipper & Consignee -->
+        <div class="parties-row">
+            <!-- Shipper -->
+            <div class="party-pane shipper">
+                <div class="party-tag">Sender / Consignor (Nepal)</div>
+                <div class="party-name">{{ $shipment->sender_name ?? 'N/A' }}</div>
+                <div class="party-desc">
+                    {{ $shipment->sender_address ?? '' }}<br>
+                    {{ $shipment->sender_city ?? 'Kathmandu' }}, Nepal
                 </div>
-                <div class="terms">
-                    <div style="font-weight:600; color:#0f172a;">Terms & Conditions</div>
-                    This document is subject to NETPACK's terms of carriage.<br>
-                    support@netpack.com
-                </div>
+                <div class="party-phone">📞 {{ $shipment->sender_phone ?? 'N/A' }}</div>
             </div>
 
-            <div class="hawb-id">
-                HAWB #{{ $shipment->id }} | Generated: {{ now()->format('d M Y H:i') }}
+            <!-- Consignee -->
+            <div class="party-pane consignee">
+                <div class="party-tag">Receiver / Consignee</div>
+                <div class="party-name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
+                <div class="party-desc">
+                    {{ $shipment->receiver_address ?? '' }}<br>
+                    {{ $shipment->receiver_city ?? '' }} @if($shipment->receiver_zone)· {{ $shipment->receiver_zone }} @endif
+                </div>
+                <div class="party-phone">📞 {{ $shipment->receiver_phone ?? 'N/A' }}</div>
             </div>
+        </div>
+
+        <!-- POD Signature Bar -->
+        <div class="pod-row">
+            <div>
+                <span class="pod-field">Recipient Received By (Name):</span>
+                <div class="pod-line"></div>
+            </div>
+            <div>
+                <span class="pod-field">Receiver Signature / Stamp:</span>
+                <div class="pod-line"></div>
+            </div>
+            <div>
+                <span class="pod-field">Date & Time of Delivery:</span>
+                <div class="pod-line"></div>
+            </div>
+        </div>
+
+        <div class="unit-footer">
+            <span>COURIER with NETPACK Ltd. · Domestic Delivery Express · All 7 Provinces of Nepal</span>
+            <span>Customer Service: +977-1-5970123 · support@couriernetpack.com</span>
         </div>
     </div>
 
-    <!-- Print Button -->
-    <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 210mm; margin-left: auto; margin-right: auto;">
-        <button onclick="window.print()" style="background: #0d9488; color: white; border: none; padding: 10px 40px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
-            🖨 Print HAWB (2 per page - Vertical)
-        </button>
-        <button onclick="window.location.href='{{ route('tracking.show', $shipment->tracking_number) }}'" 
-                style="background: #1e293b; color: white; border: none; padding: 10px 40px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: 10px; font-weight: 600;">
-            📦 Back to Tracking
-        </button>
-    </div>
+    @if(!$loop->last)
+        <div class="cut-divider">✂ — — — — — — — — CUT HERE FOR PROOF OF DELIVERY (POD) COPY — — — — — — — — ✂</div>
+    @endif
+    @endforeach
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</div>
+
 </body>
 </html>

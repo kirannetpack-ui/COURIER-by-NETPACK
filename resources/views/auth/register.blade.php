@@ -10,14 +10,11 @@
 <body class="bg-gray-50 font-sans">
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-teal-600 text-white py-4 shadow-lg">
+        <header class="bg-slate-900 text-white py-3.5 shadow-md border-b border-slate-800">
             <div class="container mx-auto px-4 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-box text-2xl"></i>
-                    <h1 class="text-xl font-bold">NetPack Logistics</h1>
-                </div>
-                <a href="{{ route('login') }}" class="text-sm hover:underline">
-                    <i class="fas fa-sign-in-alt mr-1"></i> Login
+                <x-logo variant="white" size="sm" :href="route('home')" />
+                <a href="{{ route('login') }}" class="text-xs font-semibold text-teal-300 hover:text-white transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">
+                    <i class="fas fa-sign-in-alt"></i> Back to Login
                 </a>
             </div>
         </header>
@@ -26,45 +23,45 @@
         <div class="flex-1 container mx-auto px-4 py-8">
             <div class="max-w-4xl mx-auto">
                 <!-- Service Type Selection -->
-                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 text-center mb-2">Create Your Account</h2>
-                    <p class="text-gray-600 text-center mb-6">Join Nepal's leading logistics platform</p>
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-slate-200/80">
+                    <h2 class="text-2xl font-bold text-gray-800 text-center mb-1">Create Your Client / Business Account</h2>
+                    <p class="text-gray-500 text-xs text-center mb-6">Join COURIER with NETPACK &bull; Nepal's Premier Multi-Service Logistics Platform</p>
                     
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                        <a href="{{ route('register') }}?type=customer" 
-                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'customer' ? 'bg-teal-600 text-white' : 'bg-gray-100 hover:bg-gray-200' }}">
-                            <i class="fas fa-user text-xl block mb-1"></i>
-                            <span class="text-sm">Customer</span>
+                        <a href="{{ route('register') }}?type=client" 
+                           class="p-3 rounded-lg text-center transition {{ (isset($userType) && in_array($userType, ['client', 'customer'])) ? 'bg-teal-600 text-white shadow-sm font-semibold' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                            <i class="fas fa-user-shield text-xl block mb-1"></i>
+                            <span class="text-sm">Client</span>
                         </a>
                         <a href="{{ route('register') }}?type=seller" 
-                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'seller' ? 'bg-teal-600 text-white' : 'bg-gray-100 hover:bg-gray-200' }}">
+                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'seller' ? 'bg-teal-600 text-white shadow-sm font-semibold' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
                             <i class="fas fa-store text-xl block mb-1"></i>
                             <span class="text-sm">Seller</span>
                         </a>
                         <a href="{{ route('register') }}?type=rider" 
-                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'rider' ? 'bg-teal-600 text-white' : 'bg-gray-100 hover:bg-gray-200' }}">
+                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'rider' ? 'bg-teal-600 text-white shadow-sm font-semibold' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
                             <i class="fas fa-motorcycle text-xl block mb-1"></i>
                             <span class="text-sm">Rider</span>
                         </a>
                         <a href="{{ route('register') }}?type=partner" 
-                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'partner' ? 'bg-teal-600 text-white' : 'bg-gray-100 hover:bg-gray-200' }}">
+                           class="p-3 rounded-lg text-center transition {{ isset($userType) && $userType === 'partner' ? 'bg-teal-600 text-white shadow-sm font-semibold' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
                             <i class="fas fa-handshake text-xl block mb-1"></i>
                             <span class="text-sm">Partner</span>
                         </a>
                     </div>
 
                     <!-- Current Selection Info -->
-                    <div class="text-center text-sm text-gray-500">
+                    <div class="text-center text-xs text-gray-500">
                         <i class="fas fa-info-circle text-teal-500"></i>
-                        You are registering as: <strong class="text-teal-600">{{ ucfirst($userType ?? 'customer') }}</strong>
+                        You are registering as: <strong class="text-teal-600 font-bold uppercase">{{ (in_array($userType ?? 'client', ['client', 'customer'])) ? 'Client' : ucfirst($userType) }}</strong>
                     </div>
                 </div>
 
                 <!-- Registration Form -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80">
                     <form method="POST" action="{{ route('register.submit') }}">
                         @csrf
-                        <input type="hidden" name="user_type" value="{{ $userType ?? 'customer' }}">
+                        <input type="hidden" name="user_type" value="{{ in_array($userType ?? 'client', ['client', 'customer']) ? 'client' : $userType }}">
 
                         @if($errors->any())
                             <div class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">

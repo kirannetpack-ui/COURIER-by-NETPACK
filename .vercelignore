@@ -1,0 +1,13 @@
+.git
+.github
+.env
+.env.example
+.env.backup
+.codex-build
+deliverables
+node_modules
+tests
+storage/*.key
+storage/logs/*
+phpunit.xml
+README.md

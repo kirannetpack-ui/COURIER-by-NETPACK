@@ -154,6 +154,10 @@ Route::get('/track', function () {
     return view('tracking.lookup');
 })->name('tracking.page');
 
+Route::get('/tracking', function () {
+    return redirect()->route('tracking.page');
+});
+
 Route::get('/track/search', function (Request $request) {
     $trackingNumber = $request->get('tracking');
     if ($trackingNumber) {
@@ -439,6 +443,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
     Route::get('/settings', function () {
         return view('admin.settings');
     })->name('settings');
+
+    // Communications & Delay Management
+    Route::get('/communications', [\App\Http\Controllers\Admin\CommunicationController::class, 'index'])->name('communications');
+    Route::post('/communications/send-delay', [\App\Http\Controllers\Admin\CommunicationController::class, 'sendDelayAlert'])->name('communications.send-delay');
+    Route::post('/communications/resend/{id}', [\App\Http\Controllers\Admin\CommunicationController::class, 'resendReminder'])->name('communications.resend');
 });
 
 // =============================================

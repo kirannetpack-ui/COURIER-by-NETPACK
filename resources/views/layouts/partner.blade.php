@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Partner Panel') - NetPack</title>
+    <title>@yield('title', 'Partner Panel') - COURIER with NETPACK</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -17,23 +17,10 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
             <!-- Top Bar -->
-            <header class="bg-white shadow-sm px-6 py-4 sticky top-0 z-10">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <button @click="sidebarOpen = !sidebarOpen" class="text-gray-600 hover:text-gray-900">
-                            <i class="fas fa-bars text-xl"></i>
-                        </button>
-                        <h1 class="text-xl font-semibold text-gray-800">@yield('page-title', 'Partner Panel')</h1>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm text-gray-500">{{ auth()->user()->name ?? '' }}</span>
-                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Online</span>
-                    </div>
-                </div>
-            </header>
+            @include('layouts.partials.header')
 
             <!-- Page Content -->
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 @if(session('success'))
                     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
                         {{ session('success') }}

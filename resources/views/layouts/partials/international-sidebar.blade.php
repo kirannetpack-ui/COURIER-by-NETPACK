@@ -1,8 +1,10 @@
 <!-- International Service Sidebar -->
 <aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0">
-    <div class="p-4 border-b border-gray-700">
-        <h2 class="text-xl font-bold text-teal-400">NetPack International</h2>
-        <p class="text-xs text-gray-400 mt-1">International Service Panel</p>
+    <div class="p-4 border-b border-gray-800 flex flex-col gap-2">
+        <x-logo variant="white" size="sm" :href="route('international.dashboard')" />
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 w-fit">
+            <i class="fas fa-plane-departure text-[9px]"></i> International Air Cargo
+        </span>
     </div>
     
     <nav class="p-4 space-y-1">

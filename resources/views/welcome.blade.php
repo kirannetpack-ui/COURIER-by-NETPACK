@@ -1,291 +1,467 @@
-{{-- resources/views/welcome.blade.php --}}
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>COURIER with NETPACK - International Shipping from Nepal</title>
+    <title>COURIER with NETPACK - Nepal's Premier International, Domestic & E-Commerce Courier</title>
     
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vite Pipeline Assets -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        * {
+        body {
             font-family: 'Inter', sans-serif;
         }
-        .hero-gradient {
-            background: linear-gradient(135deg, #0A2540 0%, #00D2B6 100%);
+        h1, h2, h3, .font-heading {
+            font-family: 'Outfit', 'Inter', sans-serif;
         }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .hero-mesh {
+            background: linear-gradient(135deg, #0A192F 0%, #0F3952 45%, #0D9488 100%);
         }
-        .hover-scale {
-            transition: transform 0.3s ease;
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
         }
-        .hover-scale:hover {
-            transform: translateY(-5px);
+        .glow-effect {
+            box-shadow: 0 10px 30px -10px rgba(13, 148, 136, 0.45);
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg fixed w-full z-50">
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-teal-500 selection:text-white">
+
+    <!-- Top Announcement Bar -->
+    <div class="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                    🇳🇵 NEPAL EXPEDITION
+                </span>
+                <span>Air Cargo to USA, UK, Australia, EU & Express Door Delivery across all 7 Provinces</span>
+            </div>
+            <div class="flex items-center gap-4 text-[11px]">
+                <span class="flex items-center gap-1.5"><i class="fas fa-headset text-teal-400"></i> +977-1-5970123</span>
+                <span class="hidden md:inline">|</span>
+                <span class="flex items-center gap-1.5"><i class="fas fa-shield-halved text-teal-400"></i> IATA & Customs Verified</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-box-open text-teal-600 text-2xl"></i>
-                    <span class="font-bold text-xl text-gray-800">COURIER with NETPACK</span>
-                    <span class="text-xs text-teal-600 hidden md:block">Courier Service</span>
-                </div>
-                
+            <div class="flex justify-between items-center h-20">
+                <!-- Brand Logo -->
+                <x-logo size="lg" :href="route('home')" />
+
                 <!-- Navigation Links -->
-                <div class="hidden md:flex items-center space-x-6">
-                    <a href="#home" class="text-gray-600 hover:text-teal-600 transition">Home</a>
-                    <a href="#services" class="text-gray-600 hover:text-teal-600 transition">Services</a>
-                    <a href="{{ url('/grocery-box') }}" class="text-gray-600 hover:text-teal-600 transition">Grocery Box</a>
-                    <a href="{{ url('/track') }}" class="text-gray-600 hover:text-teal-600 transition">Track Order</a>
-                </div>
-                
-                <!-- Auth Buttons -->
-                <div class="flex items-center space-x-3">
+                <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-700">
+                    <a href="#services" class="hover:text-teal-600 transition">Three Core Services</a>
+                    <a href="#network" class="hover:text-teal-600 transition">Nepal & Global Network</a>
+                    <a href="{{ route('tracking.page') }}" class="text-teal-700 font-bold hover:text-teal-800 transition flex items-center gap-1.5">
+                        <i class="fas fa-barcode"></i> Track Shipment
+                    </a>
+                    <a href="{{ url('/grocery-box') }}" class="hover:text-teal-600 transition flex items-center gap-1.5">
+                        <i class="fas fa-basket-shopping text-teal-600"></i> Grocery Box
+                    </a>
+                </nav>
+
+                <!-- Auth & Portal Action Buttons -->
+                <div class="flex items-center gap-3">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="text-gray-600 hover:text-teal-600">
-                            <i class="fas fa-tachometer-alt mr-1"></i> Dashboard
+                        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-teal-700 transition shadow-sm">
+                            <i class="fas fa-tachometer-alt"></i> Portal Dashboard
                         </a>
-                        <form method="POST" action="{{ url('/logout') }}" class="inline">
-                            @csrf
-                            <button type="submit" class="text-red-600 hover:text-red-700">
-                                <i class="fas fa-sign-out-alt mr-1"></i> Logout
-                            </button>
-                        </form>
                     @else
-                        <a href="{{ url('/login') }}" class="text-gray-600 hover:text-teal-600 transition">
-                            <i class="fas fa-sign-in-alt mr-1"></i> Login
+                        <a href="{{ route('login') }}" class="text-slate-700 hover:text-teal-600 font-semibold text-sm px-3 py-2 transition">
+                            Sign In
                         </a>
-                        <a href="{{ url('/register') }}" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
-                            <i class="fas fa-user-plus mr-1"></i> Sign Up
+                        <a href="{{ route('register') }}" class="inline-flex items-center gap-2 bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-teal-700 transition shadow-md shadow-teal-600/20">
+                            <i class="fas fa-user-plus"></i> Open Account
                         </a>
                     @endauth
                 </div>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <!-- Hero Section -->
-    <section id="home" class="hero-gradient min-h-screen flex items-center pt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <div class="grid md:grid-cols-2 gap-12 items-center">
-                <div class="text-white">
-                    <h1 class="text-4xl md:text-6xl font-bold mb-4">
-                        Ship from Nepal to <span class="text-teal-300">Worldwide</span>
-                    </h1>
-                    <p class="text-lg md:text-xl mb-8 text-white/90">
-                        International courier service with real-time tracking, instant payments, and professional support.
-                    </p>
-                    <div class="flex flex-wrap gap-4">
-                        <a href="{{ url('/grocery-box') }}" class="bg-white text-teal-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-flex items-center">
-                            <i class="fas fa-box-open mr-2"></i> Start Shopping
-                        </a>
-                        <a href="{{ url('/track') }}" class="glass-effect text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition inline-flex items-center">
-                            <i class="fas fa-map-marker-alt mr-2"></i> Track Package
-                        </a>
+    <!-- Hero Section with Instant Tracking Bar -->
+    <section class="hero-mesh relative overflow-hidden text-white pt-16 pb-24 lg:pt-24 lg:pb-32">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <!-- Left Hero Copy -->
+                <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-teal-500/20 px-4 py-1.5 text-xs font-semibold text-teal-300 border border-teal-400/30">
+                        <i class="fas fa-award"></i> The Most Comprehensive Courier Ecosystem in Nepal
                     </div>
-                    
-                    <!-- Stats -->
-                    <div class="grid grid-cols-3 gap-4 mt-12 pt-8 border-t border-white/20">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
+                        Delivering Nepal to the <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-200 to-cyan-300">World</span> & Every Local Doorstep
+                    </h1>
+                    <p class="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+                        One unified powerhouse platform for <strong>International Air Cargo (HAWB)</strong>, <strong>Domestic Express Logistics across 77 districts</strong>, and <strong>Last-Mile E-Commerce with live rider GPS tracking & instant COD settlement</strong>.
+                    </p>
+
+                    <!-- Instant Track & Trace Hero Widget -->
+                    <div class="glass-panel p-3 rounded-2xl glow-effect max-w-xl mx-auto lg:mx-0">
+                        <form method="GET" action="{{ route('tracking.search') }}" class="flex flex-col sm:flex-row gap-2">
+                            <div class="relative flex-1">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-teal-300">
+                                    <i class="fas fa-barcode text-lg"></i>
+                                </span>
+                                <input type="text" name="tracking"
+                                       placeholder="Enter Tracking # (e.g. NPI-..., NPD-..., USNP-...)"
+                                       class="w-full pl-10 pr-4 py-3 bg-white text-slate-900 font-mono font-semibold rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 uppercase tracking-wide"
+                                       required>
+                            </div>
+                            <button type="submit"
+                                    class="bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl hover:from-teal-300 hover:to-emerald-300 transition flex items-center justify-center gap-2 shrink-0 shadow-md">
+                                <i class="fas fa-search"></i>
+                                <span>Track Package</span>
+                            </button>
+                        </form>
+                        <div class="mt-2 text-[11px] text-teal-200/80 px-2 flex items-center justify-between">
+                            <span>Supports International HAWBs, Domestic Waybills, and E-commerce Orders</span>
+                            <a href="{{ route('tracking.page') }}" class="underline hover:text-white font-semibold">Advanced Tracker →</a>
+                        </div>
+                    </div>
+
+                    <!-- Trust Stats Bar -->
+                    <div class="grid grid-cols-3 gap-6 pt-6 border-t border-white/15 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
                         <div>
-                            <p class="text-2xl font-bold">50+</p>
-                            <p class="text-sm text-white/80">Countries</p>
+                            <p class="text-2xl sm:text-3xl font-extrabold text-white font-heading">50+ Countries</p>
+                            <p class="text-xs text-slate-300">Worldwide Air Freight</p>
                         </div>
                         <div>
-                            <p class="text-2xl font-bold">10K+</p>
-                            <p class="text-sm text-white/80">Packages Shipped</p>
+                            <p class="text-2xl sm:text-3xl font-extrabold text-white font-heading">77 Districts</p>
+                            <p class="text-xs text-slate-300">All 7 Nepal Provinces</p>
                         </div>
                         <div>
-                            <p class="text-2xl font-bold">98%</p>
-                            <p class="text-sm text-white/80">On-Time Delivery</p>
+                            <p class="text-2xl sm:text-3xl font-extrabold text-white font-heading">70% Instant</p>
+                            <p class="text-xs text-slate-300">Seller COD Settlement</p>
                         </div>
                     </div>
                 </div>
-                <div class="hidden md:block">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center space-x-3 text-white">
-                                <i class="fas fa-check-circle text-teal-400"></i>
-                                <span>Instant Tracking Updates</span>
+
+                <!-- Right Hero Feature Card -->
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-6">
+                        <div class="flex items-center justify-between border-b border-white/15 pb-4">
+                            <span class="text-sm font-bold text-teal-300 uppercase tracking-wider">Operational Portals</span>
+                            <span class="inline-flex items-center gap-1.5 text-xs text-emerald-300 font-semibold">
+                                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> 24/7 Live Network
+                            </span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <!-- International Pill -->
+                            <div class="flex items-center gap-4 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 transition border border-white/10">
+                                <span class="h-10 w-10 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center text-lg shrink-0">
+                                    <i class="fas fa-plane-departure"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold">International Cargo & HAWB</h4>
+                                    <p class="text-xs text-slate-300 truncate">Air Waybills for USA, UK, EU, Australia</p>
+                                </div>
+                                <span class="text-xs text-teal-300 font-semibold"><i class="fas fa-chevron-right"></i></span>
                             </div>
-                            <div class="flex items-center space-x-3 text-white">
-                                <i class="fas fa-check-circle text-teal-400"></i>
-                                <span>70% Instant Seller Payout</span>
+
+                            <!-- Domestic Pill -->
+                            <div class="flex items-center gap-4 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 transition border border-white/10">
+                                <span class="h-10 w-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center text-lg shrink-0">
+                                    <i class="fas fa-truck-fast"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold">Domestic Express Network</h4>
+                                    <p class="text-xs text-slate-300 truncate">Flash 2-Hour, Same-Day & Himalayan Logistics</p>
+                                </div>
+                                <span class="text-xs text-teal-300 font-semibold"><i class="fas fa-chevron-right"></i></span>
                             </div>
-                            <div class="flex items-center space-x-3 text-white">
-                                <i class="fas fa-check-circle text-teal-400"></i>
-                                <span>Professional HAWB with QR</span>
+
+                            <!-- E-Commerce Pill -->
+                            <div class="flex items-center gap-4 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 transition border border-white/10">
+                                <span class="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg shrink-0">
+                                    <i class="fas fa-motorcycle"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold">E-Commerce & Rider Dispatch</h4>
+                                    <p class="text-xs text-slate-300 truncate">Live GPS tracking & Cash on Delivery</p>
+                                </div>
+                                <span class="text-xs text-teal-300 font-semibold"><i class="fas fa-chevron-right"></i></span>
                             </div>
-                            <div class="flex items-center space-x-3 text-white">
-                                <i class="fas fa-check-circle text-teal-400"></i>
-                                <span>24/7 Customer Support</span>
-                            </div>
+                        </div>
+
+                        <div class="pt-2 flex gap-3">
+                            <a href="{{ route('shipments.create') }}" class="flex-1 text-center bg-white text-slate-900 font-bold py-3 rounded-xl text-sm hover:bg-slate-100 transition shadow-sm">
+                                Book Shipment
+                            </a>
+                            <a href="{{ route('register') }}" class="flex-1 text-center border border-white/30 text-white font-bold py-3 rounded-xl text-sm hover:bg-white/10 transition">
+                                Merchant Signup
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Ambient Background Decors -->
+        <div class="absolute -bottom-20 -left-20 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute top-10 right-10 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
     </section>
 
-    <!-- Services Section -->
-    <section id="services" class="py-20 bg-white">
+    <!-- The 3 Core Delivery Pillars Section -->
+    <section id="services" class="py-24 bg-white border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Our Services</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">
-                    Comprehensive logistics solutions tailored for your business needs
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-3">
+                <span class="text-xs uppercase font-bold tracking-widest text-teal-600 bg-teal-50 px-3 py-1 rounded-full">
+                    Three Pillars of Excellence
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 font-heading">
+                    Engineered for Every Scale of Delivery in Nepal
+                </h2>
+                <p class="text-slate-600 text-base leading-relaxed">
+                    Whether you are an exporter shipping high-value handicrafts to New York, a Kathmandu retailer fulfilling express orders, or an e-commerce seller needing instant cashflow.
                 </p>
             </div>
-            
+
             <div class="grid md:grid-cols-3 gap-8">
-                <!-- Service 1 -->
-                <div class="bg-gray-50 rounded-2xl p-6 text-center hover-scale shadow-lg hover:shadow-xl">
-                    <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-box-open text-teal-600 text-3xl"></i>
+                <!-- Pillar 1: International -->
+                <div class="rounded-3xl border border-slate-200 p-8 bg-gradient-to-b from-white to-slate-50 shadow-sm hover:shadow-xl hover:border-sky-500/40 transition duration-300 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-2xl">
+                                <i class="fas fa-plane-departure"></i>
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100 px-3 py-1 rounded-full">
+                                Global Air Cargo
+                            </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 font-heading">
+                            1. International Deliveries & HAWB
+                        </h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Door-to-airport and door-to-door express courier from Nepal to USA, UK, Australia, Europe, Japan, and UAE. Featuring automated House Air Waybill (HAWB) generation, Customs export declarations, and overseas partner handoff.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 font-medium">
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-sky-600"></i> Standardized IATA-compliant HAWBs with QR code</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-sky-600"></i> Tribhuvan International Airport (TIA) customs transit</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-sky-600"></i> Commercial invoicing, document parsing & tracking</li>
+                        </ul>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Grocery Box</h3>
-                    <p class="text-gray-600 mb-4">
-                        Pack authentic Nepali products and ship worldwide with our smart box packing system.
-                    </p>
-                    <a href="{{ url('/grocery-box') }}" class="text-teal-600 font-semibold hover:text-teal-700 inline-flex items-center">
-                        Learn More <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
+                    <div class="pt-4 border-t border-slate-200">
+                        <a href="{{ route('shipments.create') }}" class="w-full inline-flex items-center justify-center gap-2 bg-sky-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-sky-700 transition">
+                            Book International <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
                 </div>
-                
-                <!-- Service 2 -->
-                <div class="bg-gray-50 rounded-2xl p-6 text-center hover-scale shadow-lg hover:shadow-xl">
-                    <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-truck text-teal-600 text-3xl"></i>
+
+                <!-- Pillar 2: Domestic -->
+                <div class="rounded-3xl border-2 border-teal-600 p-8 bg-gradient-to-b from-teal-50/40 to-white shadow-md hover:shadow-xl transition duration-300 flex flex-col justify-between space-y-6 relative">
+                    <span class="absolute -top-3 right-6 bg-teal-600 text-white text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full shadow">
+                        All 7 Provinces
+                    </span>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-2xl">
+                                <i class="fas fa-truck-fast"></i>
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-100 px-3 py-1 rounded-full">
+                                Domestic Express
+                            </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 font-heading">
+                            2. Domestic Courier Network
+                        </h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Connecting all 77 districts of Nepal. Choose between <strong>Flash (1–2 hr)</strong>, <strong>Same-Day</strong> within Kathmandu Valley, <strong>Standard</strong> inter-district delivery, and specialized <strong>Himalayan Cargo</strong> routes.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 font-medium">
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-teal-600"></i> Automated Bagging, Manifesting & Hub Forwarding</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-teal-600"></i> Verified Proof of Delivery (POD) with signature upload</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-teal-600"></i> Cash on Delivery (COD) collection at destination</li>
+                        </ul>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">International Shipping</h3>
-                    <p class="text-gray-600 mb-4">
-                        Fast and reliable shipping to USA, UK, Australia, Japan, and 50+ countries.
-                    </p>
-                    <a href="#" class="text-teal-600 font-semibold hover:text-teal-700 inline-flex items-center">
-                        Learn More <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
+                    <div class="pt-4 border-t border-slate-200">
+                        <a href="{{ route('domestic.pickup.create') }}" class="w-full inline-flex items-center justify-center gap-2 bg-teal-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-teal-700 transition">
+                            Request Domestic Pickup <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
                 </div>
-                
-                <!-- Service 3 -->
-                <div class="bg-gray-50 rounded-2xl p-6 text-center hover-scale shadow-lg hover:shadow-xl">
-                    <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-hand-holding-usd text-teal-600 text-3xl"></i>
+
+                <!-- Pillar 3: E-Commerce -->
+                <div class="rounded-3xl border border-slate-200 p-8 bg-gradient-to-b from-white to-slate-50 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition duration-300 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl">
+                                <i class="fas fa-motorcycle"></i>
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+                                E-Commerce Logistics
+                            </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 font-heading">
+                            3. E-Commerce & Rider Fulfillment
+                        </h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Built for modern online merchants. Uber-style live rider GPS tracking, instant customer notifications, automated return management, and <strong>70% instant seller settlement</strong> upon verified delivery.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 font-medium">
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> Live rider GPS map for recipients & merchants</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> Automated COD wallet accounting & rapid payout</li>
+                            <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> Seller portal with batch order entry & thermal labels</li>
+                        </ul>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Instant Payouts</h3>
-                    <p class="text-gray-600 mb-4">
-                        70% instant settlement for sellers upon successful delivery.
-                    </p>
-                    <a href="#" class="text-teal-600 font-semibold hover:text-teal-700 inline-flex items-center">
-                        Learn More <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
+                    <div class="pt-4 border-t border-slate-200">
+                        <a href="{{ route('register') }}" class="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition">
+                            Start Selling Online <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works -->
-    <section class="py-20 bg-gray-50">
+    <!-- How the Delivery Flow Works -->
+    <section class="py-20 bg-slate-50 border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">How It Works</h2>
-                <p class="text-gray-600">Simple steps to ship your package worldwide</p>
+            <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                <span class="text-xs uppercase font-bold tracking-widest text-teal-600">Smooth Logistics Process</span>
+                <h2 class="text-3xl font-extrabold text-slate-900 font-heading">How COURIER with NETPACK Operates</h2>
+                <p class="text-slate-600 text-sm">Four seamless steps from booking to doorstep confirmation.</p>
             </div>
-            
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">1</div>
-                    <h3 class="font-semibold mb-2">Create Order</h3>
-                    <p class="text-sm text-gray-600">Pack your products in our smart grocery box</p>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+                <!-- Step 1 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+                    <span class="h-12 w-12 rounded-full bg-teal-100 text-teal-800 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 font-heading">
+                        01
+                    </span>
+                    <h3 class="font-bold text-slate-900 mb-2">Book or Import</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Create an international, domestic, or e-commerce order online. The system generates an atomic tracking number and HAWB document immediately.
+                    </p>
                 </div>
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">2</div>
-                    <h3 class="font-semibold mb-2">Make Payment</h3>
-                    <p class="text-sm text-gray-600">Pay online via Khalti or eSewa</p>
+
+                <!-- Step 2 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+                    <span class="h-12 w-12 rounded-full bg-teal-100 text-teal-800 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 font-heading">
+                        02
+                    </span>
+                    <h3 class="font-bold text-slate-900 mb-2">Fast Hub Intake</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Rider collects the parcel from the sender or warehouse. The barcode/QR is scanned at the central Kathmandu hub for bagging & transit routing.
+                    </p>
                 </div>
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">3</div>
-                    <h3 class="font-semibold mb-2">We Ship</h3>
-                    <p class="text-sm text-gray-600">Your package is picked up and shipped</p>
+
+                <!-- Step 3 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+                    <span class="h-12 w-12 rounded-full bg-teal-100 text-teal-800 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 font-heading">
+                        03
+                    </span>
+                    <h3 class="font-bold text-slate-900 mb-2">Flight / Road Transit</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        International dispatches fly through airline gateways; domestic parcels travel via secured vehicle manifests across provinces.
+                    </p>
                 </div>
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl">4</div>
-                    <h3 class="font-semibold mb-2">Track Delivery</h3>
-                    <p class="text-sm text-gray-600">Real-time tracking until delivered</p>
+
+                <!-- Step 4 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+                    <span class="h-12 w-12 rounded-full bg-teal-100 text-teal-800 font-extrabold text-lg flex items-center justify-center mx-auto mb-4 font-heading">
+                        04
+                    </span>
+                    <h3 class="font-bold text-slate-900 mb-2">POD & Settlement</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Receiver signs for parcel (digital or paper POD). If COD, funds are collected and instantly settled to the seller's verified wallet.
+                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="hero-gradient py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl font-bold text-white mb-4">Ready to Ship?</h2>
-            <p class="text-white/90 mb-8 max-w-2xl mx-auto">
-                Join thousands of satisfied customers who trust COURIER with NETPACK for their international shipping needs.
+    <!-- Call to Action Banner -->
+    <section class="bg-slate-900 text-white py-16 relative overflow-hidden">
+        <div class="max-w-5xl mx-auto px-4 text-center relative z-10 space-y-6">
+            <h2 class="text-3xl sm:text-4xl font-extrabold font-heading">
+                Ready to Experience Nepal's Most Reliable Courier?
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto">
+                Join thousands of individuals, exporters, retail brands, and e-commerce stores who trust COURIER with NETPACK daily.
             </p>
-            <a href="{{ url('/register') }}" class="bg-white text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-flex items-center">
-                <i class="fas fa-user-plus mr-2"></i> Create Account
-            </a>
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+                <a href="{{ route('tracking.page') }}" class="bg-white text-slate-900 font-bold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition shadow-lg text-sm flex items-center gap-2">
+                    <i class="fas fa-barcode"></i> Track Your Shipment
+                </a>
+                <a href="{{ route('register') }}" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    <i class="fas fa-user-plus"></i> Open Free Account
+                </a>
+            </div>
         </div>
+        <div class="absolute inset-0 bg-gradient-to-r from-teal-900/30 to-blue-900/30 pointer-events-none"></div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white pt-12 pb-6">
+    <footer class="bg-slate-950 text-slate-400 pt-16 pb-8 border-t border-slate-900 text-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-4 gap-8 mb-8">
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <i class="fas fa-box-open text-teal-400 text-2xl"></i>
-                        <span class="font-bold text-xl">COURIER with NETPACK</span>
-                    </div>
-                    <p class="text-gray-400 text-sm">International courier service from Nepal to worldwide.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-900">
+                <div class="space-y-4">
+                    <x-logo variant="white" size="lg" :href="route('home')" />
+                    <p class="leading-relaxed text-slate-400">
+                        Nepal's specialized digital courier infrastructure providing international air cargo forwarding, domestic inter-district transport, and e-commerce rider logistics.
+                    </p>
+                    <p class="text-[11px] text-slate-500">Kathmandu, Bagmati Province, Nepal</p>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-3">Quick Links</h3>
-                    <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="{{ url('/grocery-box') }}" class="hover:text-teal-400">Grocery Box</a></li>
-                        <li><a href="{{ url('/track') }}" class="hover:text-teal-400">Track Shipment</a></li>
-                        <li><a href="#" class="hover:text-teal-400">Shipping Rates</a></li>
-                        <li><a href="#" class="hover:text-teal-400">Support</a></li>
+
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm">Services</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#services" class="hover:text-teal-400">International Air Cargo</a></li>
+                        <li><a href="#services" class="hover:text-teal-400">Domestic Express Courier</a></li>
+                        <li><a href="#services" class="hover:text-teal-400">E-Commerce & COD Delivery</a></li>
+                        <li><a href="{{ url('/grocery-box') }}" class="hover:text-teal-400">Smart Grocery Box</a></li>
                     </ul>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-3">Legal</h3>
-                    <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-teal-400">Terms & Conditions</a></li>
-                        <li><a href="#" class="hover:text-teal-400">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-teal-400">Refund Policy</a></li>
+
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm">Tracking & Tools</h4>
+                    <ul class="space-y-2">
+                        <li><a href="{{ route('tracking.page') }}" class="hover:text-teal-400">Public Tracking Search</a></li>
+                        <li><a href="{{ route('login') }}" class="hover:text-teal-400">Customer Portal</a></li>
+                        <li><a href="{{ route('login') }}" class="hover:text-teal-400">Seller Merchant Portal</a></li>
+                        <li><a href="{{ route('login') }}" class="hover:text-teal-400">Rider & Partner Login</a></li>
                     </ul>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-3">Contact</h3>
-                    <ul class="space-y-2 text-sm text-gray-400">
-                        <li><i class="fas fa-phone mr-2"></i> +977-1-5970123</li>
-                        <li><i class="fas fa-envelope mr-2"></i> support@couriernetpack.com</li>
-                        <li><i class="fas fa-map-marker-alt mr-2"></i> Kathmandu, Nepal</li>
+
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm">Contact Support</h4>
+                    <ul class="space-y-2 text-slate-400">
+                        <li class="flex items-center gap-2"><i class="fas fa-phone text-teal-400"></i> +977-1-5970123</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-envelope text-teal-400"></i> support@couriernetpack.com</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-clock text-teal-400"></i> Sunday–Friday, 9:00 AM – 6:00 PM</li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-6 text-center text-sm text-gray-500">
-                <p>&copy; {{ date('Y') }} COURIER with NETPACK. All rights reserved.</p>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+                <p>&copy; {{ date('Y') }} COURIER with NETPACK. All rights reserved. Registered under Laws of Nepal.</p>
+                <div class="flex gap-4">
+                    <span>Privacy Policy</span>
+                    <span>·</span>
+                    <span>Terms of Carriage</span>
+                    <span>·</span>
+                    <span>IATA Air Waybill Standards</span>
+                </div>
             </div>
         </div>
     </footer>
+
 </body>
 </html>

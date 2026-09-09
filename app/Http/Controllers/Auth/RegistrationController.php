@@ -16,11 +16,11 @@ class RegistrationController extends Controller
      */
     public function showRegistrationForm(Request $request)
     {
-        $userType = $request->get('type', 'customer');
-        $allowedTypes = ['customer', 'seller', 'rider', 'partner'];
+        $userType = $request->get('type', 'client');
+        $allowedTypes = ['client', 'customer', 'seller', 'rider', 'partner'];
         
         if (!in_array($userType, $allowedTypes)) {
-            $userType = 'customer';
+            $userType = 'client';
         }
         
         return view('auth.register', compact('userType'));
@@ -68,7 +68,7 @@ class RegistrationController extends Controller
             'gender' => ['required', 'in:male,female,other'],
             'nationality' => ['required', 'string', 'max:100'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'user_type' => ['required', 'in:customer,seller,rider,partner'],
+            'user_type' => ['required', 'in:client,customer,seller,rider,partner'],
             'address' => ['nullable', 'string', 'max:500'],
             'city' => ['nullable', 'string', 'max:100'],
             'district' => ['nullable', 'string', 'max:100'],

@@ -1,544 +1,467 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAWB - {{ $shipment->tracking_number }}</title>
+    <title>HAWB - {{ $shipment->hawb_number ?? $shipment->tracking_number }} - COURIER with NETPACK</title>
     <style>
         @page {
-            size: A4;
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 6mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         body {
-            font-family: 'Courier New', 'Arial', sans-serif;
+            font-family: 'Helvetica Neue', Arial, 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 5mm;
-            background: #f0f0f0;
+            padding: 4mm;
+            background: #e2e8f0;
+            color: #0f172a;
+            font-size: 11px;
         }
-        .hawb-page {
-            max-width: 100%;
-            background: white;
-            padding: 6mm 8mm;
+        .hawb-sheet {
+            max-width: 200mm;
             margin: 0 auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #ffffff;
+            padding: 5mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .hawb-container {
-            border: 1px solid #333;
-            border-radius: 2px;
-            padding: 6mm 8mm;
-            margin-bottom: 8mm;
+        .hawb-unit {
+            border: 2px solid #0f172a;
+            border-radius: 4px;
+            padding: 4mm;
+            margin-bottom: 5mm;
             page-break-inside: avoid;
-            background: white;
+            background: #ffffff;
             position: relative;
         }
-        .hawb-container:last-child {
+        .hawb-unit:last-child {
             margin-bottom: 0;
         }
-        /* Nepal Flag SVG Styling */
-        .nepal-flag-container {
-            position: absolute;
-            top: 4mm;
-            right: 6mm;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .nepal-flag-svg {
-            width: 50px;
-            height: 35px;
-            border-radius: 2px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-        .nepal-flag-text {
-            font-family: 'Mangal', 'Arial', 'Courier New', sans-serif;
-            font-size: 16px;
-            font-weight: bold;
-            color: #dc2626;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            letter-spacing: 1px;
-            background: rgba(255,255,255,0.85);
-            padding: 2px 10px;
-            border-radius: 4px;
-            border: 1px solid #dc2626;
-        }
-        /* Header */
-        .hawb-header {
+
+        /* Header Bar */
+        .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #0d9488;
             padding-bottom: 4px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
-        .hawb-header .logo {
-            font-size: 20px;
-            font-weight: bold;
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #0d9488;
+            text-transform: uppercase;
+        }
+        .brand-title span {
+            color: #0f172a;
+        }
+        .badge-pill {
+            background: #0d9488;
+            color: #ffffff;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .copy-tag {
+            font-size: 9px;
+            font-weight: 700;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Primary HAWB & Tracking Bar */
+        .identifier-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+        .hawb-number-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .id-label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+        .hawb-number-val {
+            font-family: 'Courier New', monospace;
+            font-size: 19px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: 2px;
+        }
+        .tracking-number-val {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            font-weight: 700;
             color: #0d9488;
             letter-spacing: 1px;
         }
-        .hawb-header .logo span {
-            color: #1e293b;
-        }
-        .hawb-badge {
-            background: #0d9488;
-            color: white;
-            padding: 2px 12px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
-        .hawb-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: #1e293b;
-            margin: 2px 0 4px 0;
-            text-transform: uppercase;
-        }
-        .hawb-title .sub {
-            font-size: 9px;
-            color: #64748b;
-            font-weight: normal;
-            letter-spacing: 1px;
-        }
-        /* Tracking Number */
-        .tracking-number {
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            padding: 4px;
-            background: #f8fafc;
-            border: 1px dashed #94a3b8;
-            border-radius: 4px;
-            margin: 4px 0 6px 0;
-            color: #0f172a;
-        }
-        /* QR + Info Row */
-        .qr-info-row {
-            display: flex;
-            gap: 10px;
-            margin: 4px 0 6px 0;
-            align-items: stretch;
-        }
-        .qr-section {
-            flex: 0 0 auto;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 4px 6px;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-width: 100px;
-        }
-        .qr-section img {
-            width: 100px;
-            height: 100px;
-            display: block;
-        }
-        .qr-section .qr-label {
-            font-size: 7px;
-            color: #94a3b8;
-            margin-top: 2px;
-            letter-spacing: 0.5px;
-        }
-        .info-cards {
-            flex: 1;
+
+        /* Routing Grid */
+        .routing-strip {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 4px;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
         }
-        .info-card {
+        .route-card {
+            background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 4px;
             padding: 4px 6px;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
-        .info-card .label {
-            font-size: 7px;
-            text-transform: uppercase;
-            color: #64748b;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .info-card .value {
+        .route-card .card-val {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             color: #0f172a;
             margin-top: 1px;
         }
-        /* Sender/Receiver */
-        .party-section {
+
+        /* QR + Package Specs */
+        .mid-section {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .qr-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            text-align: center;
+        }
+        .qr-box img {
+            width: 84px;
+            height: 84px;
+            display: block;
+        }
+        .qr-sub {
+            font-size: 7px;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .spec-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 4px 6px;
+            background: #f8fafc;
+        }
+        .spec-item .val {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* Parties: Shipper & Consignee */
+        .parties-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
-            margin: 4px 0 6px 0;
+            margin-bottom: 6px;
         }
-        .party-box {
-            border: 1px solid #e2e8f0;
+        .party-pane {
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
-            padding: 4px 6px;
-            background: #fafafa;
+            padding: 5px 7px;
+            background: #ffffff;
         }
-        .party-box .label {
+        .party-pane.shipper {
+            border-left: 3px solid #0d9488;
+        }
+        .party-pane.consignee {
+            border-left: 3px solid #2563eb;
+            background: #f8fafc;
+        }
+        .party-tag {
             font-size: 8px;
-            text-transform: uppercase;
-            font-weight: 700;
+            font-weight: 800;
             letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
         }
-        .party-box .label.shipper { color: #0d9488; }
-        .party-box .label.consignee { color: #2563eb; }
-        .party-box .name {
+        .party-pane.shipper .party-tag { color: #0d9488; }
+        .party-pane.consignee .party-tag { color: #2563eb; }
+        .party-name {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             color: #0f172a;
-            margin-top: 1px;
         }
-        .party-box .address {
+        .party-desc {
             font-size: 9px;
-            color: #475569;
-            margin-top: 1px;
-            line-height: 1.3;
-        }
-        .party-box .phone {
-            font-size: 8px;
-            color: #64748b;
-            margin-top: 1px;
-        }
-        /* Receiver box with Nepal flag watermark */
-        .party-box.consignee-box {
-            position: relative;
-            overflow: hidden;
-            border: 2px solid #2563eb;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        }
-        .party-box.consignee-box .flag-watermark {
-            position: absolute;
-            right: 4px;
-            bottom: 4px;
-            opacity: 0.12;
-            pointer-events: none;
-            font-size: 60px;
-        }
-        .party-box.consignee-box .jai-nepal-watermark {
-            position: absolute;
-            right: 12px;
-            top: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #dc2626;
-            opacity: 0.15;
-            font-family: 'Mangal', 'Arial', sans-serif;
-            pointer-events: none;
-        }
-        /* Footer */
-        .footer {
-            margin-top: 4px;
-            padding-top: 4px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            font-size: 7px;
-            color: #94a3b8;
-        }
-        .footer .company {
-            font-weight: 600;
-            color: #0f172a;
-        }
-        .footer .terms {
-            text-align: right;
-            font-size: 6.5px;
-            line-height: 1.3;
-        }
-        .hawb-id {
-            font-size: 7px;
-            color: #94a3b8;
-            text-align: right;
+            color: #334155;
+            line-height: 1.35;
             margin-top: 2px;
-            border-top: 1px dotted #e2e8f0;
-            padding-top: 2px;
         }
-        .hawb-divider {
+        .party-phone {
+            font-size: 9px;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 3px;
+        }
+
+        /* Footer & Signatures */
+        .unit-footer {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 8px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 4px;
+            font-size: 7.5px;
+            color: #64748b;
+        }
+        .sig-block {
+            border: 1px dashed #cbd5e1;
+            border-radius: 3px;
+            padding: 3px 6px;
+            text-align: right;
+        }
+
+        .cut-divider {
             text-align: center;
+            font-size: 9px;
             color: #94a3b8;
-            font-size: 10px;
-            padding: 2px 0;
-            border-bottom: 1px dashed #e2e8f0;
-            margin-bottom: 8mm;
+            font-family: monospace;
+            padding: 3px 0;
+            margin-bottom: 5mm;
+            border-bottom: 1px dashed #cbd5e1;
         }
+
+        /* Print Controls */
+        .print-actions {
+            max-width: 200mm;
+            margin: 12px auto;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+        .btn-print {
+            background: #0d9488;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .btn-print:hover {
+            background: #0f766e;
+        }
+        .btn-back {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
         @media print {
             body {
-                background: white;
-                padding: 3mm;
-            }
-            .hawb-page {
-                box-shadow: none;
+                background: #ffffff;
                 padding: 0;
             }
-            .hawb-container {
-                border-color: #ccc;
-                margin-bottom: 6mm;
+            .hawb-sheet {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
             }
-            .hawb-divider {
-                border-bottom-color: #ccc;
+            .print-actions {
+                display: none !important;
             }
-        }
-        @media (max-width: 600px) {
-            .info-cards {
-                grid-template-columns: 1fr 1fr;
-            }
-            .party-section {
-                grid-template-columns: 1fr;
-            }
-            .qr-info-row {
-                flex-direction: column;
-                align-items: center;
+            .hawb-unit {
+                border-color: #000000;
+                margin-bottom: 4mm;
             }
         }
     </style>
 </head>
 <body>
-    <div class="hawb-page">
-        <!-- HAWB 1 -->
-        <div class="hawb-container">
-            <!-- Nepal Flag with Text -->
-            <div class="nepal-flag-container">
-                <!-- Simple Nepal Flag SVG -->
-                <svg class="nepal-flag-svg" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Flag background (crimson red) -->
-                    <polygon points="0,0 80,0 80,50 0,70" fill="#dc2626"/>
-                    <!-- Blue border -->
-                    <polygon points="2,2 76,2 76,48 2,66" fill="none" stroke="#1e3a8a" stroke-width="3"/>
-                    <!-- Sun -->
-                    <circle cx="30" cy="25" r="12" fill="white" stroke="#1e3a8a" stroke-width="1.5"/>
-                    <circle cx="30" cy="25" r="8" fill="none" stroke="#dc2626" stroke-width="1.5"/>
-                    <!-- Sun rays -->
-                    <line x1="30" y1="10" x2="30" y2="15" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="30" y1="35" x2="30" y2="40" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="15" y1="25" x2="20" y2="25" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="40" y1="25" x2="45" y2="25" stroke="#1e3a8a" stroke-width="2"/>
-                    <!-- Moon -->
-                    <path d="M 50,45 Q 58,40 65,45 Q 58,50 50,45" fill="white" stroke="#1e3a8a" stroke-width="1.5"/>
-                    <path d="M 53,44 Q 58,42 62,44 Q 58,46 53,44" fill="#dc2626" stroke="none"/>
-                </svg>
-                <span class="nepal-flag-text">जय नेपाल</span>
-            </div>
 
-            <!-- Header -->
-            <div class="hawb-header">
-                <div class="logo">NET<span>PACK</span></div>
-                <span class="hawb-badge">INTERNATIONAL</span>
-            </div>
+@php
+    $hawbNumber = $shipment->hawb_number ?: ('INNP-' . date('Y') . '-' . str_pad($shipment->id, 3, '0', STR_PAD_LEFT));
+    $chargeableWeight = number_format($shipment->chargeable_weight ?? $shipment->actual_weight ?? $shipment->weight ?? 0, 2);
+    $packageType = strtoupper($shipment->package_type ?? 'Parcel');
+    $serviceType = strtoupper($shipment->service_type ?? 'Express');
+@endphp
 
-            <!-- Title -->
-            <div class="hawb-title">
-                HOUSE AIR WAYBILL
-                <div class="sub">International Shipment Document</div>
-            </div>
+<div class="print-actions">
+    <button onclick="window.print()" class="btn-print">🖨 Print House Air Waybill (A4 · 2 Copies)</button>
+    <a href="{{ route('tracking.show', $shipment->tracking_number) }}" class="btn-back">📦 Public Tracking</a>
+</div>
 
-            <!-- Tracking Number -->
-            <div class="tracking-number">
-                {{ $shipment->tracking_number }}
-            </div>
+<div class="hawb-sheet">
 
-            <!-- QR + Info -->
-            <div class="qr-info-row">
-                <div class="qr-section">
-                    {!! $qrCode !!}
-                    <div class="qr-label">Scan to Track</div>
-                </div>
-                <div class="info-cards">
-                    <div class="info-card">
-                        <div class="label">Service</div>
-                        <div class="value">{{ strtoupper($shipment->service_type ?? 'Standard') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Type</div>
-                        <div class="value">{{ strtoupper($shipment->shipment_type ?? 'Parcel') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Weight</div>
-                        <div class="value">{{ number_format($shipment->chargeable_weight ?? 0, 2) }} kg</div>
-                    </div>
-                </div>
+    @foreach(['COPY 1 · CONSIGNEE / CARGO ATTACHMENT', 'COPY 2 · CUSTOMS & AIRLINE OPERATIONS'] as $copyTitle)
+    <div class="hawb-unit">
+        <!-- Header -->
+        <div class="header-bar">
+            <div class="brand-logo">
+                <span class="brand-title">COURIER with <span>NETPACK</span></span>
+                <span class="badge-pill">HOUSE AIR WAYBILL</span>
             </div>
+            <div class="copy-tag">{{ $copyTitle }}</div>
+        </div>
 
-            <!-- Sender & Receiver -->
-            <div class="party-section">
-                <div class="party-box">
-                    <div class="label shipper">SHIPPER / SENDER</div>
-                    <div class="name">{{ $shipment->sender_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->sender_address ?? '' }}<br>
-                        {{ $shipment->sender_city ?? '' }}, {{ $shipment->sender_country ?? '' }}
-                    </div>
-                    <div class="phone"><i class="fas fa-phone"></i> {{ $shipment->sender_phone ?? 'N/A' }}</div>
-                </div>
-                <div class="party-box consignee-box">
-                    <div class="flag-watermark">🇳🇵</div>
-                    <div class="jai-nepal-watermark">जय नेपाल</div>
-                    <div class="label consignee">CONSIGNEE / RECEIVER</div>
-                    <div class="name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->receiver_address ?? '' }}<br>
-                        {{ $shipment->receiver_city ?? '' }}, {{ $shipment->receiver_country ?? '' }}
-                    </div>
-                    <div class="phone">
-                        <i class="fas fa-phone"></i> {{ $shipment->receiver_phone ?? 'N/A' }}
-                        @if($shipment->receiver_postal_code)
-                            <br><i class="fas fa-mail-bulk"></i> {{ $shipment->receiver_postal_code }}
-                        @endif
-                    </div>
-                </div>
+        <!-- HAWB & Tracking Identifiers -->
+        <div class="identifier-row">
+            <div class="hawb-number-box">
+                <span class="id-label">House Air Waybill Number (HAWB)</span>
+                <span class="hawb-number-val">{{ $hawbNumber }}</span>
             </div>
-
-            <!-- Footer -->
-            <div class="footer">
-                <div>
-                    <span class="company">COURIER with NETPACK</span><br>
-                    Kathmandu, Nepal
-                </div>
-                <div class="terms">
-                    <div style="font-weight:600; color:#0f172a;">Terms & Conditions</div>
-                    This document is subject to NETPACK's terms of carriage.<br>
-                    support@netpack.com
-                </div>
-            </div>
-
-            <div class="hawb-id">
-                HAWB #{{ $shipment->id }} | Generated: {{ now()->format('d M Y H:i') }}
+            <div>
+                <span class="id-label">Master Carrier Tracking Number</span>
+                <span class="tracking-number-val">{{ $shipment->tracking_number }}</span>
             </div>
         </div>
 
-        <!-- Divider -->
-        <div class="hawb-divider">— — — — — — — — — — — — — — — — — — — — — — — — — — — — — —</div>
-
-        <!-- HAWB 2 -->
-        <div class="hawb-container">
-            <!-- Nepal Flag with Text -->
-            <div class="nepal-flag-container">
-                <svg class="nepal-flag-svg" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="0,0 80,0 80,50 0,70" fill="#dc2626"/>
-                    <polygon points="2,2 76,2 76,48 2,66" fill="none" stroke="#1e3a8a" stroke-width="3"/>
-                    <circle cx="30" cy="25" r="12" fill="white" stroke="#1e3a8a" stroke-width="1.5"/>
-                    <circle cx="30" cy="25" r="8" fill="none" stroke="#dc2626" stroke-width="1.5"/>
-                    <line x1="30" y1="10" x2="30" y2="15" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="30" y1="35" x2="30" y2="40" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="15" y1="25" x2="20" y2="25" stroke="#1e3a8a" stroke-width="2"/>
-                    <line x1="40" y1="25" x2="45" y2="25" stroke="#1e3a8a" stroke-width="2"/>
-                    <path d="M 50,45 Q 58,40 65,45 Q 58,50 50,45" fill="white" stroke="#1e3a8a" stroke-width="1.5"/>
-                    <path d="M 53,44 Q 58,42 62,44 Q 58,46 53,44" fill="#dc2626" stroke="none"/>
-                </svg>
-                <span class="nepal-flag-text">जय नेपाल</span>
+        <!-- Routing -->
+        <div class="routing-strip">
+            <div class="route-card">
+                <div class="id-label">Origin Gateway</div>
+                <div class="card-val">KTM · Kathmandu, Nepal</div>
             </div>
-
-            <!-- Header -->
-            <div class="hawb-header">
-                <div class="logo">NET<span>PACK</span></div>
-                <span class="hawb-badge">INTERNATIONAL</span>
+            <div class="route-card">
+                <div class="id-label">Destination Country</div>
+                <div class="card-val">{{ strtoupper($shipment->receiver_country) }}</div>
             </div>
-
-            <!-- Title -->
-            <div class="hawb-title">
-                HOUSE AIR WAYBILL
-                <div class="sub">International Shipment Document</div>
+            <div class="route-card">
+                <div class="id-label">Destination City</div>
+                <div class="card-val">{{ strtoupper($shipment->receiver_city) }}</div>
             </div>
-
-            <!-- Tracking Number -->
-            <div class="tracking-number">
-                {{ $shipment->tracking_number }}
+            <div class="route-card">
+                <div class="id-label">Service Level</div>
+                <div class="card-val">{{ $serviceType }}</div>
             </div>
+        </div>
 
-            <!-- QR + Info -->
-            <div class="qr-info-row">
-                <div class="qr-section">
-                    {!! $qrCode !!}
-                    <div class="qr-label">Scan to Track</div>
+        <!-- QR + Specs -->
+        <div class="mid-section">
+            <div class="qr-box">
+                {!! $qrCode !!}
+                <span class="qr-sub">Scan to Track</span>
+            </div>
+            <div class="specs-grid">
+                <div class="spec-item">
+                    <div class="id-label">Weight (Chg.)</div>
+                    <div class="val">{{ $chargeableWeight }} KG</div>
                 </div>
-                <div class="info-cards">
-                    <div class="info-card">
-                        <div class="label">Service</div>
-                        <div class="value">{{ strtoupper($shipment->service_type ?? 'Standard') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Type</div>
-                        <div class="value">{{ strtoupper($shipment->shipment_type ?? 'Parcel') }}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="label">Weight</div>
-                        <div class="value">{{ number_format($shipment->chargeable_weight ?? 0, 2) }} kg</div>
+                <div class="spec-item">
+                    <div class="id-label">Package Type</div>
+                    <div class="val">{{ $packageType }}</div>
+                </div>
+                <div class="spec-item">
+                    <div class="id-label">Pieces / Box</div>
+                    <div class="val">{{ $shipment->boxes ?? 1 }} PKG</div>
+                </div>
+                <div class="spec-item">
+                    <div class="id-label">Dimensions (L×W×H)</div>
+                    <div class="val">
+                        {{ $shipment->length ?? '-' }}×{{ $shipment->width ?? '-' }}×{{ $shipment->height ?? '-' }} cm
                     </div>
                 </div>
-            </div>
-
-            <!-- Sender & Receiver -->
-            <div class="party-section">
-                <div class="party-box">
-                    <div class="label shipper">SHIPPER / SENDER</div>
-                    <div class="name">{{ $shipment->sender_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->sender_address ?? '' }}<br>
-                        {{ $shipment->sender_city ?? '' }}, {{ $shipment->sender_country ?? '' }}
-                    </div>
-                    <div class="phone"><i class="fas fa-phone"></i> {{ $shipment->sender_phone ?? 'N/A' }}</div>
+                <div class="spec-item">
+                    <div class="id-label">Booking Date</div>
+                    <div class="val">{{ $shipment->created_at->format('d M Y') }}</div>
                 </div>
-                <div class="party-box consignee-box">
-                    <div class="flag-watermark">🇳🇵</div>
-                    <div class="jai-nepal-watermark">जय नेपाल</div>
-                    <div class="label consignee">CONSIGNEE / RECEIVER</div>
-                    <div class="name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
-                    <div class="address">
-                        {{ $shipment->receiver_address ?? '' }}<br>
-                        {{ $shipment->receiver_city ?? '' }}, {{ $shipment->receiver_country ?? '' }}
-                    </div>
-                    <div class="phone">
-                        <i class="fas fa-phone"></i> {{ $shipment->receiver_phone ?? 'N/A' }}
-                        @if($shipment->receiver_postal_code)
-                            <br><i class="fas fa-mail-bulk"></i> {{ $shipment->receiver_postal_code }}
-                        @endif
-                    </div>
+                <div class="spec-item">
+                    <div class="id-label">Overseas Hub</div>
+                    <div class="val">{{ $shipment->overseasPartner->name ?? 'NETPACK Global Hub' }}</div>
                 </div>
             </div>
+        </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <div>
-                    <span class="company">COURIER with NETPACK</span><br>
-                    Kathmandu, Nepal
+        <!-- Parties: Shipper & Consignee -->
+        <div class="parties-row">
+            <!-- Shipper -->
+            <div class="party-pane shipper">
+                <div class="party-tag">Shipper / Sender (Nepal)</div>
+                <div class="party-name">{{ $shipment->sender_name ?? 'N/A' }}</div>
+                <div class="party-desc">
+                    {{ $shipment->sender_address ?? '' }}<br>
+                    {{ $shipment->sender_city ?? 'Kathmandu' }}, {{ $shipment->sender_country ?? 'Nepal' }}
                 </div>
-                <div class="terms">
-                    <div style="font-weight:600; color:#0f172a;">Terms & Conditions</div>
-                    This document is subject to NETPACK's terms of carriage.<br>
-                    support@netpack.com
-                </div>
+                <div class="party-phone">📞 {{ $shipment->sender_phone ?? 'N/A' }}</div>
             </div>
 
-            <div class="hawb-id">
-                HAWB #{{ $shipment->id }} | Generated: {{ now()->format('d M Y H:i') }}
+            <!-- Consignee -->
+            <div class="party-pane consignee">
+                <div class="party-tag">Consignee / Destination Receiver</div>
+                <div class="party-name">{{ $shipment->receiver_name ?? 'N/A' }}</div>
+                <div class="party-desc">
+                    {{ $shipment->receiver_address ?? '' }}<br>
+                    {{ $shipment->receiver_city }}, {{ $shipment->receiver_state ?? '' }} {{ $shipment->receiver_postal_code ?? '' }}<br>
+                    <strong>{{ strtoupper($shipment->receiver_country) }}</strong>
+                </div>
+                <div class="party-phone">📞 {{ $shipment->receiver_phone ?? 'N/A' }}</div>
+            </div>
+        </div>
+
+        <!-- Unit Footer -->
+        <div class="unit-footer">
+            <div>
+                <strong>COURIER with NETPACK Ltd.</strong> · Global Air Cargo Operations · Kathmandu, Nepal<br>
+                Carriage subject to standard international air cargo liability and IATA regulations.
+            </div>
+            <div class="sig-block">
+                Authorized Signature / Dispatch Stamp
             </div>
         </div>
     </div>
 
-    <!-- Print Button -->
-    <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 210mm; margin-left: auto; margin-right: auto;">
-        <button onclick="window.print()" style="background: #0d9488; color: white; border: none; padding: 10px 40px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600;">
-            🖨 Print HAWB (2 per page - Vertical)
-        </button>
-        <button onclick="window.location.href='{{ route('tracking.show', $shipment->tracking_number) }}'" 
-                style="background: #1e293b; color: white; border: none; padding: 10px 40px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: 10px; font-weight: 600;">
-            📦 Back to Tracking
-        </button>
-    </div>
+    @if(!$loop->last)
+        <div class="cut-divider">✂ — — — — — — — — CUT HERE FOR DUPLICATE OPERATIONS COPY — — — — — — — — ✂</div>
+    @endif
+    @endforeach
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</div>
+
 </body>
 </html>

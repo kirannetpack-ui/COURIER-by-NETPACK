@@ -43,20 +43,25 @@ class TrackingController extends Controller
      */
     public function show($trackingNumber)
     {
-        // Try to find in Shipment table first
-        $trackingNumber = trim($trackingNumber);
-        $shipment = Shipment::where('tracking_number', $trackingNumber)->first();
+        // 1. Try to find in Shipment table (by tracking_number OR hawb_number)
+        $trackingNumber = strtoupper(trim($trackingNumber));
+        $shipment = Shipment::where('tracking_number', $trackingNumber)
+            ->orWhere('hawb_number', $trackingNumber)
+            ->first();
 
         if (!$shipment) {
-            // Try domestic shipments
+            // 2. Try domestic shipments
             $domesticShipment = DomesticShipment::where('tracking_number', $trackingNumber)->first();
             if ($domesticShipment) {
                 return view('tracking.domestic', ['shipment' => $domesticShipment]);
             }
 
-            // E-commerce and rider deliveries share the same public lookup,
-            // but exact rider coordinates are only exposed to authorized users.
-            $order = Order::where('tracking_number', $trackingNumber)->with('rider')->first();
+            // 3. E-commerce and rider deliveries (by tracking_number OR order_number)
+            // exact rider coordinates are only exposed to authorized users.
+            $order = Order::where('tracking_number', $trackingNumber)
+                ->orWhere('order_number', $trackingNumber)
+                ->with('rider')
+                ->first();
             if ($order) {
                 $canViewLive = $this->canViewOrderLiveLocation(request()->user(), $order);
 

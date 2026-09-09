@@ -36,7 +36,7 @@ class User extends Authenticatable
         self::TYPE_RIDER => 'Rider',
         self::TYPE_PARTNER => 'Domestic Partner',
         self::TYPE_OVERSEAS => 'Overseas Partner',
-        self::TYPE_CUSTOMER => 'Customer',
+        self::TYPE_CUSTOMER => 'Client',
         self::TYPE_CLIENT => 'Client',
     ];
 
@@ -255,6 +255,14 @@ class User extends Authenticatable
     public function isCustomer()
     {
         return $this->user_type === self::TYPE_CUSTOMER || $this->user_type === self::TYPE_CLIENT;
+    }
+
+    /**
+     * Check if user is a client (unified entity with customer)
+     */
+    public function isClient()
+    {
+        return $this->isCustomer();
     }
 
     /**

@@ -10,9 +10,15 @@
                 <h1 class="text-xl font-semibold text-gray-800">Shipment Details</h1>
                 <p class="text-sm text-gray-500 mt-1">View domestic shipment information</p>
             </div>
-            <div class="flex gap-2">
-                <a href="{{ route('domestic.shipments') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
-                    Back
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('hawb.domestic', $shipment->id) }}" target="_blank" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 text-sm font-semibold transition flex items-center gap-1.5">
+                    <i class="fas fa-print"></i> Print HAWB
+                </a>
+                <a href="{{ route('tracking.show', $shipment->tracking_number) }}" target="_blank" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-900 text-sm font-semibold transition flex items-center gap-1.5">
+                    <i class="fas fa-search-location"></i> Public Tracker
+                </a>
+                <a href="{{ route('domestic.shipments') }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-semibold transition">
+                    <i class="fas fa-arrow-left mr-1"></i> Back
                 </a>
             </div>
         </div>

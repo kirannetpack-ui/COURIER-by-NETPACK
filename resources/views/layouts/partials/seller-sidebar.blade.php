@@ -1,8 +1,10 @@
 <!-- Seller Sidebar -->
 <aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0" x-show="sidebarOpen" x-transition>
-    <div class="p-4 border-b border-gray-700">
-        <h2 class="text-xl font-bold text-teal-400">NetPack Seller</h2>
-        <p class="text-xs text-gray-400 mt-1">Seller Panel</p>
+    <div class="p-4 border-b border-gray-800 flex flex-col gap-2">
+        <x-logo variant="white" size="sm" :href="route('seller.dashboard')" />
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 w-fit">
+            <i class="fas fa-store text-[9px]"></i> Merchant Portal
+        </span>
     </div>
     
     <!-- User Info -->

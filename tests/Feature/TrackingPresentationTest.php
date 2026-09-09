@@ -57,6 +57,56 @@ class TrackingPresentationTest extends TestCase
             ->assertSee('Update Tracking');
     }
 
+    public function test_public_tracking_resolves_via_hawb_number(): void
+    {
+        $shipment = $this->createShipment();
+
+        $this->get(route('tracking.show', 'USNP-2026-101'))
+            ->assertOk()
+            ->assertSee('NPI-2026-000101-7')
+            ->assertSee('USNP-2026-101')
+            ->assertSee('In Transit');
+    }
+
+    public function test_international_admin_can_open_shipment_details_and_view_hawb(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => 'international_admin',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+        $shipment = $this->createShipment();
+
+        $this->actingAs($admin)
+            ->get(route('international.shipments.show', $shipment->id))
+            ->assertOk()
+            ->assertSee($shipment->hawb_number)
+            ->assertSee($shipment->tracking_number);
+
+        $this->actingAs($admin)
+            ->get(route('hawb.international', $shipment->id))
+            ->assertOk()
+            ->assertSee($shipment->hawb_number)
+            ->assertSee('HOUSE AIR WAYBILL');
+    }
+
+    public function test_ecommerce_seeder_and_order_tracking_lookup(): void
+    {
+        $this->seed(\Database\Seeders\EcommerceTestSeeder::class);
+
+        $order = \App\Models\Order::first();
+        $this->assertNotNull($order);
+        $this->assertNotEmpty($order->tracking_number);
+
+        $this->get(route('tracking.show', $order->tracking_number))
+            ->assertOk()
+            ->assertSee($order->order_number);
+
+        $this->get(route('tracking.show', $order->order_number))
+            ->assertOk()
+            ->assertSee($order->tracking_number);
+    }
+
     private function createShipment(): Shipment
     {
         $customer = User::factory()->create([

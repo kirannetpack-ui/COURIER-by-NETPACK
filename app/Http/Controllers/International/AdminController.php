@@ -572,10 +572,13 @@ private function parseSurchargeFile($file)
                 ->withInput();
         }
 
-        $trackingNumber = app(\App\Services\TrackingNumberService::class)->international();
+        $trackingService = app(\App\Services\TrackingNumberService::class);
+        $trackingNumber = $trackingService->international();
+        $hawbNumber = $trackingService->internationalHawb($request->receiver_country);
 
         $shipment = Shipment::create([
             'tracking_number' => $trackingNumber,
+            'hawb_number' => $hawbNumber,
             'sender_name' => $request->sender_name,
             'sender_phone' => $request->sender_phone,
             'sender_address' => $request->sender_address,
@@ -605,7 +608,7 @@ private function parseSurchargeFile($file)
         ]);
 
         return redirect()->route('international.shipments.show', $shipment->id)
-            ->with('success', 'International shipment created successfully! Tracking: ' . $trackingNumber);
+            ->with('success', 'International shipment created successfully! Tracking: ' . $trackingNumber . ' | HAWB: ' . $hawbNumber);
     }
 
     /**

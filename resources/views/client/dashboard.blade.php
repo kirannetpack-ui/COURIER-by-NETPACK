@@ -1,178 +1,344 @@
 @extends('layouts.app')
 
-@section('title', 'Client Dashboard')
-@section('page-title', 'Client Dashboard')
-
-@section('sidebar')
-    <a href="{{ route('client.dashboard') }}" class="sidebar-link active flex items-center space-x-3 px-4 py-3 text-sm text-white">
-        <i class="fas fa-home w-5"></i>
-        <span>Dashboard</span>
-    </a>
-    <a href="{{ route('shipments.create') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-plus-circle w-5"></i>
-        <span>New Shipment</span>
-    </a>
-    <a href="{{ route('tracking.page') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-search w-5"></i>
-        <span>Track Shipment</span>
-    </a>
-    <a href="{{ route('grocery.box') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-shopping-bag w-5"></i>
-        <span>Grocery Box</span>
-    </a>
-    <a href="{{ route('client.wallet') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-wallet w-5"></i>
-        <span>Wallet</span>
-    </a>
-    <a href="{{ route('client.feedback') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-comment w-5"></i>
-        <span>Feedback</span>
-    </a>
-    <a href="{{ route('client.support') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-headset w-5"></i>
-        <span>Support</span>
-    </a>
-    <a href="{{ route('profile') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-user w-5"></i>
-        <span>Profile</span>
-    </a>
-    <a href="{{ route('client.settings') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 text-sm text-teal-200/80 hover:text-white">
-        <i class="fas fa-cog w-5"></i>
-        <span>Settings</span>
-    </a>
-@endsection
+@section('title', 'Client Portal & Dashboard - COURIER with NETPACK')
+@section('page-title', 'Client Portal')
 
 @section('content')
 <div class="space-y-6">
-    <!-- Welcome Section -->
-    <div class="gradient-bg rounded-2xl p-6 text-white">
-        <div class="flex flex-wrap justify-between items-center">
+    <!-- Welcome Header Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-2xl p-6 text-white shadow-sm border border-teal-900/40">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold">Welcome back, {{ Auth::user()->name }}!</h2>
-                <p class="text-teal-100 mt-1">Your one-stop solution for international & domestic shipping</p>
+                <div class="flex items-center gap-2 mb-1.5">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                        Unified Client Portal
+                    </span>
+                    <span class="text-xs text-slate-400">&bull; Verified Logistics Account</span>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
+                    <span>Welcome back, {{ Auth::user()->name }}!</span>
+                </h1>
+                <p class="text-xs text-slate-300 mt-1 max-w-xl">
+                    Manage pickup requests, calculate rates, track packages in real-time, and view proof-of-delivery receipts across Nepal and international destinations.
+                </p>
             </div>
-            <div class="bg-white/20 rounded-xl px-4 py-2 mt-4 md:mt-0">
-                <i class="fas fa-star text-yellow-400"></i>
-                <span class="ml-1">Premium Member</span>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1.5 bg-white/10 rounded-xl text-xs font-semibold border border-white/10 flex items-center gap-1.5">
+                    <i class="fas fa-shield-halved text-teal-400"></i>
+                    <span>Verified Client</span>
+                </span>
             </div>
         </div>
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover transition">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-gray-500 text-sm">Total Shipments</p>
-                    <p class="text-2xl font-bold text-teal-600">{{ $totalShipments }}</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Consignments</p>
+                    <p class="text-2xl font-black text-slate-900 mt-1">{{ number_format($totalShipments) }}</p>
                 </div>
-                <div class="bg-teal-100 rounded-full p-3">
-                    <i class="fas fa-box text-teal-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg">
+                    <i class="fas fa-boxes-stacked"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover transition">
+
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-gray-500 text-sm">In Transit</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ $inTransit }}</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Transit</p>
+                    <p class="text-2xl font-black text-blue-600 mt-1">{{ number_format($inTransit) }}</p>
                 </div>
-                <div class="bg-blue-100 rounded-full p-3">
-                    <i class="fas fa-truck text-blue-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                    <i class="fas fa-truck-fast"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover transition">
+
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-gray-500 text-sm">Delivered</p>
-                    <p class="text-2xl font-bold text-green-600">{{ $delivered }}</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Delivered</p>
+                    <p class="text-2xl font-black text-emerald-600 mt-1">{{ number_format($delivered) }}</p>
                 </div>
-                <div class="bg-green-100 rounded-full p-3">
-                    <i class="fas fa-check-circle text-green-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                    <i class="fas fa-circle-check"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 card-hover transition">
+
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-gray-500 text-sm">Pending</p>
-                    <p class="text-2xl font-bold text-yellow-600">{{ $pending }}</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Processing</p>
+                    <p class="text-2xl font-black text-amber-600 mt-1">{{ number_format($pending) }}</p>
                 </div>
-                <div class="bg-yellow-100 rounded-full p-3">
-                    <i class="fas fa-clock text-yellow-600"></i>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fas fa-clock"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition">
-            <h3 class="font-semibold text-lg mb-4">Quick Actions</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('shipments.create') }}" class="bg-teal-500 hover:bg-teal-600 text-white text-center py-3 rounded-lg transition">
-                    <i class="fas fa-plus-circle block text-xl mb-1"></i>
-                    New Shipment
-                </a>
-                <a href="{{ route('tracking.page') }}" class="bg-blue-500 hover:bg-blue-600 text-white text-center py-3 rounded-lg transition">
-                    <i class="fas fa-search block text-xl mb-1"></i>
-                    Track Shipment
-                </a>
-                <a href="{{ route('grocery.box') }}" class="bg-green-500 hover:bg-green-600 text-white text-center py-3 rounded-lg transition">
-                    <i class="fas fa-shopping-bag block text-xl mb-1"></i>
-                    Grocery Box
-                </a>
-                <a href="{{ route('client.feedback') }}" class="bg-purple-500 hover:bg-purple-600 text-white text-center py-3 rounded-lg transition">
-                    <i class="fas fa-comment block text-xl mb-1"></i>
-                    Feedback
-                </a>
-            </div>
+    <!-- ============================================================= -->
+    <!-- CLIENT FORM WORKBENCH: EMBEDDED OPERATIONAL FORMS -->
+    <!-- ============================================================= -->
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden" x-data="{ clientTab: 'pickup' }">
+        <div class="border-b border-slate-200 bg-slate-50/60 px-5 pt-3 flex flex-wrap gap-2">
+            <button type="button" 
+                    @click="clientTab = 'pickup'" 
+                    :class="clientTab === 'pickup' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
+                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
+                <i class="fas fa-truck-ramp-box text-teal-600"></i>
+                <span>Book Instant Package Pickup</span>
+            </button>
+
+            <button type="button" 
+                    @click="clientTab = 'track'" 
+                    :class="clientTab === 'track' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
+                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
+                <i class="fas fa-radar text-blue-600"></i>
+                <span>Live Consignment Radar</span>
+            </button>
+
+            <button type="button" 
+                    @click="clientTab = 'quote'" 
+                    :class="clientTab === 'quote' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
+                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
+                <i class="fas fa-calculator text-amber-600"></i>
+                <span>Quick Rate Estimator</span>
+            </button>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition">
-            <h3 class="font-semibold text-lg mb-4">Recent Activity</h3>
+        <!-- TAB 1: Instant Package Pickup Request Form -->
+        <div x-show="clientTab === 'pickup'" class="p-6 space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Request Doorstep Courier Pickup</h3>
+                    <p class="text-xs text-slate-500">Our nearest dispatch rider will collect your consignment and issue an on-site receipt.</p>
+                </div>
+                <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+                    Doorstep Service
+                </span>
+            </div>
+
+            <form action="{{ route('domestic.pickup.store') }}" method="POST" class="space-y-4">
+                @csrf
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pickup Address & Landmark *</label>
+                        <input type="text" name="pickup_address" required 
+                               value="{{ Auth::user()->address }}"
+                               placeholder="e.g. Ward 4, Baluwatar, Near Prime Minister House" 
+                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contact Phone *</label>
+                        <input type="text" name="phone" required 
+                               value="{{ Auth::user()->phone }}"
+                               placeholder="e.g. 9841000000" 
+                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Package Category *</label>
+                        <select name="package_type" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                            <option value="document">Legal / Business Documents</option>
+                            <option value="parcel" selected>Standard Parcel / Goods</option>
+                            <option value="fragile">Fragile Electronics / Glassware</option>
+                            <option value="grocery">Grocery & Food Parcel</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Estimated Weight (KG) *</label>
+                        <input type="number" step="0.5" min="0.1" name="estimated_weight" value="1.0" required 
+                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Preferred Pickup Window *</label>
+                        <select name="pickup_slot" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                            <option value="morning">Morning (09:00 AM - 12:00 PM)</option>
+                            <option value="afternoon" selected>Afternoon (12:00 PM - 03:00 PM)</option>
+                            <option value="evening">Evening (03:00 PM - 07:00 PM)</option>
+                            <option value="flash">⚡ Urgent Flash (Within 60 Minutes)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pickup Notes / Delivery Instructions</label>
+                    <input type="text" name="instructions" placeholder="e.g. Ring doorbell at gate 2, call upon arrival" 
+                           class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <span class="text-xs text-slate-500">
+                        <i class="fas fa-shield-check text-teal-600 mr-1"></i> Complimentary insurance up to Rs. 10,000 included.
+                    </span>
+                    <button type="submit" 
+                            class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-xs transition flex items-center gap-2">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Confirm Pickup Request</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: Live Consignment Radar Lookup -->
+        <div x-show="clientTab === 'track'" class="p-6 space-y-5" style="display: none;">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Track Consignment / HAWB</h3>
+                    <p class="text-xs text-slate-500">Search any active or completed domestic/international shipment for real-time status.</p>
+                </div>
+            </div>
+
+            <form action="{{ route('tracking.search') }}" method="GET" class="max-w-xl space-y-4">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" name="tracking" placeholder="Enter HAWB / AWB Number (e.g. NP-DOM-98214)..." required
+                           class="w-full pl-10 pr-24 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-mono">
+                    <button type="submit" class="absolute right-1.5 top-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase rounded-lg shadow-xs transition">
+                        Radar Search
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 3: Quick Rate Estimator -->
+        <div x-show="clientTab === 'quote'" class="p-6 space-y-5" style="display: none;"
+             x-data="{
+                dest: 'inside_valley',
+                weight: 1,
+                get cost() {
+                    if (this.dest === 'inside_valley') return 100 + (Math.max(0, this.weight - 1) * 50);
+                    if (this.dest === 'outside_valley') return 180 + (Math.max(0, this.weight - 1) * 80);
+                    return 2200 + (Math.max(0, this.weight - 1) * 900);
+                }
+             }">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Instant Freight Rate Estimator</h3>
+                    <p class="text-xs text-slate-500">Transparent pricing for Kathmandu Valley, Inter-district, and Global destinations.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Destination Zone</label>
+                    <select x-model="dest" class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="inside_valley">Inside Kathmandu Valley (Kathmandu, Lalitpur, Bhaktapur)</option>
+                        <option value="outside_valley">Major Cities Outside Valley (Pokhara, Biratnagar, Chitwan, etc.)</option>
+                        <option value="international">International Air Courier (Worldwide 220+ Countries)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gross Weight (KG)</label>
+                    <input type="number" step="0.5" min="0.5" x-model="weight" 
+                           class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 font-mono">
+                </div>
+
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-center">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Estimated Cost</span>
+                    <p class="text-2xl font-black text-teal-700 mt-0.5">Rs. <span x-text="cost.toLocaleString()"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT CONSIGNMENTS & ACCOUNT SUMMARY -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Shipments -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-boxes text-teal-600"></i>
+                    <span>My Recent Consignments</span>
+                </h3>
+                <a href="{{ route('shipments.index') }}" class="text-xs font-semibold text-teal-700 hover:underline">
+                    View All &rarr;
+                </a>
+            </div>
+
             @if($recentShipments->count() > 0)
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-slate-100">
                     @foreach($recentShipments as $shipment)
-                        <div class="flex items-center justify-between py-3">
+                        <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition px-2 rounded-lg">
                             <div>
-                                <p class="font-medium text-sm">{{ $shipment->tracking_number ?? 'N/A' }}</p>
-                                <p class="text-xs text-gray-500">{{ ucfirst($shipment->status ?? 'Pending') }}</p>
+                                <a href="{{ route('tracking.page') }}?tracking={{ $shipment->tracking_number }}" target="_blank"
+                                   class="font-mono font-bold text-xs text-slate-900 hover:text-teal-700 flex items-center gap-1.5">
+                                    <span>{{ $shipment->tracking_number ?? 'N/A' }}</span>
+                                    <i class="fas fa-external-link-alt text-[9px] text-slate-400"></i>
+                                </a>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    {{ $shipment->destination ?? 'Destination' }} &bull; {{ $shipment->service_type ?? 'Standard' }}
+                                </p>
                             </div>
-                            <span class="text-xs text-gray-500">{{ $shipment->created_at ? $shipment->created_at->diffForHumans() : 'N/A' }}</span>
+                            <div class="text-right">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                                    {{ str_replace('_', ' ', $shipment->status ?? 'pending') }}
+                                </span>
+                                <p class="text-[10px] text-slate-400 mt-0.5">{{ $shipment->created_at ? $shipment->created_at->diffForHumans() : '' }}</p>
+                            </div>
                         </div>
                     @endforeach
                 </div>
             @else
-                <div class="text-center py-8 text-gray-500">
-                    <i class="fas fa-inbox text-4xl mb-2 block"></i>
-                    <p>No recent shipments found</p>
-                    <a href="{{ route('shipments.create') }}" class="text-teal-500 hover:underline text-sm">Create your first shipment</a>
+                <div class="text-center py-8 text-slate-400">
+                    <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                    <p class="text-xs">No shipments found in your account yet.</p>
                 </div>
             @endif
         </div>
-    </div>
 
-    <!-- Account Information -->
-    <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition">
-        <h3 class="font-semibold text-lg mb-4">Account Information</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <p class="text-sm text-gray-500">Full Name</p>
-                <p class="font-medium">{{ Auth::user()->name }}</p>
+        <!-- Client Account Card -->
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
+            <h3 class="font-bold text-sm text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-id-card text-blue-600"></i>
+                <span>Client Account Overview</span>
+            </h3>
+
+            <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Account Name:</span>
+                    <span class="font-bold text-slate-800">{{ Auth::user()->name }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Email:</span>
+                    <span class="font-medium text-slate-800">{{ Auth::user()->email }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Contact Phone:</span>
+                    <span class="font-medium text-slate-800 font-mono">{{ Auth::user()->phone ?? 'Not provided' }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Entity Classification:</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+                        Client Account
+                    </span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                    <span class="text-slate-500">Verification:</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {{ Auth::user()->verification_status ?? 'Approved' }}
+                    </span>
+                </div>
             </div>
-            <div>
-                <p class="text-sm text-gray-500">Email</p>
-                <p class="font-medium">{{ Auth::user()->email }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500">Phone</p>
-                <p class="font-medium">{{ Auth::user()->phone ?? 'Not provided' }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500">Account Type</p>
-                <p class="font-medium capitalize">{{ Auth::user()->user_type ?? 'Customer' }}</p>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{{ route('profile') }}" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-pen-to-square"></i>
+                    <span>Edit Profile & Saved Addresses</span>
+                </a>
             </div>
         </div>
     </div>

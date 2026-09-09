@@ -195,8 +195,8 @@
 
                 <!-- Action Buttons -->
                 <div class="flex gap-3">
-                    <a href="{{ route('hawb.preview', $shipment) }}" class="flex-1 bg-teal-600 text-white text-center px-4 py-2 rounded-lg hover:bg-teal-700 transition">
-                        <i class="fas fa-file-pdf mr-2"></i> Download HAWB
+                    <a href="{{ route('hawb.international', $shipment->id) }}" target="_blank" class="flex-1 bg-teal-600 text-white text-center px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+                        <i class="fas fa-file-pdf mr-2"></i> View / Print HAWB
                     </a>
                     <a href="{{ route('shipments.show', $shipment) }}" class="flex-1 bg-gray-600 text-white text-center px-4 py-2 rounded-lg hover:bg-gray-700 transition">
                         <i class="fas fa-info-circle mr-2"></i> Details
