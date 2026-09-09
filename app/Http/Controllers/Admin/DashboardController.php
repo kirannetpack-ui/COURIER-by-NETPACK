@@ -19,13 +19,20 @@ class DashboardController extends Controller
         $recentUsers = User::orderBy('created_at', 'desc')->take(5)->get();
         $recentShipments = Shipment::orderBy('created_at', 'desc')->take(5)->get();
         
+        // Active moving shipments across the network (not delivered, cancelled, or returned)
+        $activeShipments = Shipment::whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+            ->latest('updated_at')
+            ->take(8)
+            ->get();
+        
         return view('admin.dashboard', compact(
             'totalUsers',
             'totalShipments',
             'pendingUsers',
             'totalRevenue',
             'recentUsers',
-            'recentShipments'
+            'recentShipments',
+            'activeShipments'
         ));
     }
 }

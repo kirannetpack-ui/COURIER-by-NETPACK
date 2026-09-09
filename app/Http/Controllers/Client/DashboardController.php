@@ -20,12 +20,21 @@ class DashboardController extends Controller
         $pending = (clone $shipments)->whereIn('status', ['pending', 'created', 'confirmed'])->count();
         $recentShipments = (clone $shipments)->latest()->take(5)->get();
         
+        // Active ongoing shipments for this client (not delivered, cancelled, or returned)
+        $activeShipments = (clone $shipments)
+            ->whereNotIn('status', ['delivered', 'cancelled', 'returned'])
+            ->latest('updated_at')
+            ->get();
+        $latestActiveShipment = $activeShipments->first();
+        
         return view('client.dashboard', compact(
             'totalShipments',
             'inTransit',
             'delivered',
             'pending',
-            'recentShipments'
+            'recentShipments',
+            'activeShipments',
+            'latestActiveShipment'
         ));
     }
 }

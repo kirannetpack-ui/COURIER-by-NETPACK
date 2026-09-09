@@ -83,6 +83,264 @@
     </div>
 
     <!-- ============================================================= -->
+    <!-- ACTIVE SHIPMENT LIVE TRACKING RADAR (ALWAYS VISIBLE) -->
+    <!-- ============================================================= -->
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <!-- Section Header -->
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 px-6 py-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-3.5 w-3.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-sm font-black uppercase tracking-wider text-white">Active Consignment Live Tracking</h2>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                            REAL-TIME RADAR
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-0.5">Live status, movement telemetry, and milestone tracking for ongoing consignments.</p>
+                </div>
+            </div>
+
+            @if(!empty($latestActiveShipment))
+                <a href="{{ route('tracking.show', $latestActiveShipment->tracking_number) }}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm flex-shrink-0">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span>Open Full Tracking Page</span>
+                    <i class="fas fa-arrow-right text-[11px]"></i>
+                </a>
+            @else
+                <a href="{{ route('tracking.page') }}" target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition border border-slate-700 flex-shrink-0">
+                    <i class="fas fa-search-location text-teal-400"></i>
+                    <span>Public Radar Lookup</span>
+                </a>
+            @endif
+        </div>
+
+        @if(!empty($latestActiveShipment))
+            <div class="p-6 space-y-6">
+                <!-- Top Consignment Summary Row (Clickable) -->
+                <a href="{{ route('tracking.show', $latestActiveShipment->tracking_number) }}" 
+                   class="block p-4 rounded-xl bg-slate-50 hover:bg-teal-50/40 border border-slate-200/80 hover:border-teal-500/50 transition group">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <span class="font-mono text-base sm:text-lg font-black text-slate-900 group-hover:text-teal-700 flex items-center gap-2">
+                                    <i class="fas fa-barcode text-teal-600"></i>
+                                    {{ $latestActiveShipment->tracking_number }}
+                                </span>
+                                @if($latestActiveShipment->hawb_number)
+                                    <span class="px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 text-xs font-mono font-semibold">
+                                        HAWB: {{ $latestActiveShipment->hawb_number }}
+                                    </span>
+                                @endif
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-100 text-teal-800 border border-teal-200">
+                                    {{ ucwords(str_replace('_', ' ', $latestActiveShipment->service_type ?? 'Standard Express')) }}
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-slate-500 flex items-center gap-2">
+                                <span class="font-medium text-slate-700">{{ $latestActiveShipment->origin ?? ($latestActiveShipment->sender_city ?? 'Kathmandu Hub') }}</span>
+                                <i class="fas fa-arrow-right-long text-teal-600 text-[10px]"></i>
+                                <span class="font-bold text-slate-900">{{ $latestActiveShipment->destination ?? ($latestActiveShipment->receiver_city ?? 'Destination') }}</span>
+                                @if($latestActiveShipment->receiver_name)
+                                    <span class="text-slate-400">&bull; Consignee: {{ $latestActiveShipment->receiver_name }}</span>
+                                @endif
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                @php
+                                    $st = strtolower($latestActiveShipment->status ?? 'pending');
+                                    $statusBadgeClass = match($st) {
+                                        'in_transit' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                        'out_for_delivery' => 'bg-amber-100 text-amber-800 border-amber-200',
+                                        'picked_up' => 'bg-teal-100 text-teal-800 border-teal-200',
+                                        'manifested', 'created', 'confirmed' => 'bg-purple-100 text-purple-800 border-purple-200',
+                                        default => 'bg-slate-100 text-slate-800 border-slate-200',
+                                    };
+                                @endphp
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border {{ $statusBadgeClass }}">
+                                    <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
+                                    {{ str_replace('_', ' ', $latestActiveShipment->status) }}
+                                </span>
+                                <p class="text-[11px] text-slate-400 mt-1">
+                                    Updated {{ $latestActiveShipment->updated_at ? $latestActiveShipment->updated_at->diffForHumans() : 'Recently' }}
+                                </p>
+                            </div>
+                            <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-teal-700 transition flex-shrink-0">
+                                <i class="fas fa-arrow-up-right-from-square text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- 5-Step Visual Milestone Stepper -->
+                @php
+                    $curStatus = strtolower($latestActiveShipment->status ?? 'pending');
+                    $stepIndex = 1;
+                    if (in_array($curStatus, ['picked_up', 'arrived_at_hub', 'sorted'])) {
+                        $stepIndex = 2;
+                    } elseif (in_array($curStatus, ['in_transit', 'customs_cleared', 'departed_hub', 'linehaul'])) {
+                        $stepIndex = 3;
+                    } elseif (in_array($curStatus, ['out_for_delivery', 'with_rider'])) {
+                        $stepIndex = 4;
+                    } elseif (in_array($curStatus, ['delivered'])) {
+                        $stepIndex = 5;
+                    }
+                @endphp
+
+                <div class="relative px-2">
+                    <div class="grid grid-cols-5 gap-2 text-center relative">
+                        <!-- Connecting Progress Bar -->
+                        <div class="absolute top-4 left-6 right-6 h-1 bg-slate-200 -z-0">
+                            <div class="h-1 bg-gradient-to-r from-teal-500 to-blue-600 transition-all duration-500"
+                                 style="width: {{ (($stepIndex - 1) / 4) * 100 }}%;"></div>
+                        </div>
+
+                        <!-- Step 1: Booked / Manifested -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 1 ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-slate-200 text-slate-500' }}">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-800 mt-2">Booked</p>
+                            <span class="text-[9px] text-slate-400 hidden sm:block">Intake Verified</span>
+                        </div>
+
+                        <!-- Step 2: Picked Up -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 2 ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-slate-200 text-slate-500' }}">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-800 mt-2">Picked Up</p>
+                            <span class="text-[9px] text-slate-400 hidden sm:block">Origin Facility</span>
+                        </div>
+
+                        <!-- Step 3: In Transit -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 3 ? 'bg-blue-600 text-white ring-4 ring-blue-100 animate-pulse' : 'bg-slate-200 text-slate-500' }}">
+                                <i class="fas fa-truck-fast"></i>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-800 mt-2">In Transit</p>
+                            <span class="text-[9px] text-slate-400 hidden sm:block">Corridor Movement</span>
+                        </div>
+
+                        <!-- Step 4: Out for Delivery -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 4 ? 'bg-amber-600 text-white ring-4 ring-amber-100' : 'bg-slate-200 text-slate-500' }}">
+                                <i class="fas fa-motorcycle"></i>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-800 mt-2">Out for Delivery</p>
+                            <span class="text-[9px] text-slate-400 hidden sm:block">Last-Mile Dispatch</span>
+                        </div>
+
+                        <!-- Step 5: Delivered -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 5 ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' : 'bg-slate-200 text-slate-500' }}">
+                                <i class="fas fa-circle-check"></i>
+                            </div>
+                            <p class="text-[11px] font-bold text-slate-800 mt-2">Delivered</p>
+                            <span class="text-[9px] text-slate-400 hidden sm:block">Signed Receipt</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Location & Details Box -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100 text-xs">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                        <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                            <i class="fas fa-location-dot text-teal-600"></i> Current Telemetry Location
+                        </span>
+                        <p class="font-bold text-slate-900 mt-1 text-xs">
+                            {{ $latestActiveShipment->current_location ?? ($latestActiveShipment->origin ?? 'Kathmandu Central Gateway') }}
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                        <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                            <i class="fas fa-stopwatch text-blue-600"></i> Estimated Delivery Window
+                        </span>
+                        <p class="font-bold text-slate-900 mt-1 text-xs">
+                            {{ $latestActiveShipment->estimated_delivery ? \Carbon\Carbon::parse($latestActiveShipment->estimated_delivery)->format('M d, Y (h:i A)') : 'Standard Corridor (Within 24-48 hrs)' }}
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                <i class="fas fa-scale-balanced text-amber-600"></i> Chargeable Weight
+                            </span>
+                            <p class="font-bold text-slate-900 mt-1 text-xs font-mono">
+                                {{ number_format($latestActiveShipment->chargeable_weight ?: $latestActiveShipment->actual_weight ?: 1.0, 1) }} KG
+                            </p>
+                        </div>
+                        <a href="{{ route('tracking.show', $latestActiveShipment->tracking_number) }}" 
+                           class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold text-[11px] transition shadow-xs flex items-center gap-1.5">
+                            <span>Inspect &rarr;</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- If Multiple Active Shipments, List Other Active Ones -->
+                @if($activeShipments->count() > 1)
+                    <div class="pt-3 border-t border-slate-100">
+                        <p class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fas fa-boxes-stacked text-teal-600"></i> Other Active Shipments Moving ({{ $activeShipments->count() - 1 }} More)
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            @foreach($activeShipments->skip(1)->take(3) as $other)
+                                <a href="{{ route('tracking.show', $other->tracking_number) }}" 
+                                   class="p-2.5 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50/40 transition flex items-center justify-between gap-2 group">
+                                    <div class="min-w-0">
+                                        <p class="font-mono font-bold text-xs text-slate-900 group-hover:text-teal-700 truncate">
+                                            {{ $other->tracking_number }}
+                                        </p>
+                                        <p class="text-[10px] text-slate-500 truncate mt-0.5">
+                                            &rarr; {{ $other->destination ?? 'Destination' }}
+                                        </p>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 group-hover:bg-teal-600 group-hover:text-white transition flex-shrink-0">
+                                        {{ str_replace('_', ' ', $other->status) }}
+                                    </span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @else
+            <!-- Standby Empty State When No Active Consignment is Moving -->
+            <div class="p-8 text-center space-y-4">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-xs border border-emerald-100">
+                    <i class="fas fa-circle-check"></i>
+                </div>
+                <div class="max-w-md mx-auto">
+                    <h3 class="text-sm font-bold text-slate-900">All Consignments Up to Date</h3>
+                    <p class="text-xs text-slate-500 mt-1">
+                        You have no active shipments currently moving in transit. When you book a new parcel pickup or dispatch a package, its real-time radar telemetry will stream here automatically.
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <a href="{{ route('domestic.pickup.create') }}" 
+                       class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-xs transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Book New Pickup</span>
+                    </a>
+                    <a href="{{ route('shipments.index', ['status' => 'delivered']) }}" 
+                       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                        <i class="fas fa-clock-rotate-left text-blue-600"></i>
+                        <span>View Tracking History ({{ $delivered }} Delivered)</span>
+                    </a>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <!-- ============================================================= -->
     <!-- CLIENT FORM WORKBENCH: EMBEDDED OPERATIONAL FORMS -->
     <!-- ============================================================= -->
     <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden" x-data="{ clientTab: 'pickup' }">
@@ -274,10 +532,10 @@
                     @foreach($recentShipments as $shipment)
                         <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition px-2 rounded-lg">
                             <div>
-                                <a href="{{ route('tracking.page') }}?tracking={{ $shipment->tracking_number }}" target="_blank"
+                                <a href="{{ route('tracking.show', $shipment->tracking_number) }}"
                                    class="font-mono font-bold text-xs text-slate-900 hover:text-teal-700 flex items-center gap-1.5">
                                     <span>{{ $shipment->tracking_number ?? 'N/A' }}</span>
-                                    <i class="fas fa-external-link-alt text-[9px] text-slate-400"></i>
+                                    <i class="fas fa-arrow-up-right-from-square text-[9px] text-teal-600"></i>
                                 </a>
                                 <p class="text-[11px] text-slate-500 mt-0.5">
                                     {{ $shipment->destination ?? 'Destination' }} &bull; {{ $shipment->service_type ?? 'Standard' }}

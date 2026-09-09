@@ -107,18 +107,129 @@ class TrackingPresentationTest extends TestCase
             ->assertSee($order->tracking_number);
     }
 
-    private function createShipment(): Shipment
+    public function test_client_sidebar_displays_ongoing_tracking_with_history_and_direct_links(): void
     {
-        $customer = User::factory()->create([
-            'user_type' => 'customer',
+        $client = User::factory()->create([
+            'user_type' => 'client',
             'verification_status' => 'approved',
             'registration_completed' => true,
         ]);
 
-        return Shipment::create([
+        $activeShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'hawb_number' => 'HAWB-DOM-ONGOING-1',
+            'tracking_number' => 'NPD-2026-ONGOING-1',
+            'status' => 'in_transit',
+            'current_location' => 'Sindhuli Highway Checkpoint',
+        ]);
+
+        $deliveredShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'hawb_number' => 'HAWB-DOM-PAST-1',
+            'tracking_number' => 'NPD-2026-PAST-1',
+            'status' => 'delivered',
+            'delivered_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($client)->get(route('client.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Ongoing Tracking')
+            ->assertSee('Tracking History')
+            ->assertSee('1 Active')
+            ->assertSee('1 Delivered')
+            ->assertSee('NPD-2026-ONGOING-1')
+            ->assertSee(route('tracking.show', $activeShipment->tracking_number));
+    }
+
+    public function test_client_dashboard_always_shows_active_shipment_tracking_with_full_tracking_page_link(): void
+    {
+        $client = User::factory()->create([
+            'user_type' => 'client',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $activeShipment = $this->createShipment([
+            'customer_id' => $client->id,
+            'hawb_number' => 'HAWB-DOM-777',
+            'tracking_number' => 'NPD-2026-ACTIVE-777',
+            'destination' => 'Pokhara Ward 8',
+            'origin' => 'Kathmandu Central Hub',
+            'service_type' => 'flash',
+            'status' => 'in_transit',
+            'current_location' => 'Mugling Checkpoint Corridor',
+        ]);
+
+        $response = $this->actingAs($client)->get(route('client.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Active Consignment Live Tracking')
+            ->assertSee('NPD-2026-ACTIVE-777')
+            ->assertSee('HAWB-DOM-777')
+            ->assertSee('Mugling Checkpoint Corridor')
+            ->assertSee('Open Full Tracking Page')
+            ->assertSee(route('tracking.show', $activeShipment->tracking_number));
+
+        // When clicked, the required full tracking page is opened
+        $this->actingAs($client)
+            ->get(route('tracking.show', $activeShipment->tracking_number))
+            ->assertOk()
+            ->assertSee('NPD-2026-ACTIVE-777');
+    }
+
+    public function test_admin_dashboard_shows_active_shipments_tracking_with_full_tracking_page_link(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'verification_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $activeShipment = $this->createShipment([
+            'hawb_number' => 'HAWB-NET-888',
+            'tracking_number' => 'NPI-2026-ACTIVE-888',
+            'destination' => 'London, UK',
+            'origin' => 'TIA Cargo Terminal',
+            'service_type' => 'international',
+            'shipment_type' => 'parcel',
+            'status' => 'out_for_delivery',
+            'current_location' => 'London Heathrow Customs Depot',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Active Consignment Network Tracking Radar')
+            ->assertSee('NPI-2026-ACTIVE-888')
+            ->assertSee('London Heathrow Customs Depot')
+            ->assertSee(route('tracking.show', $activeShipment->tracking_number));
+
+        // When clicked, the required full tracking page is opened
+        $this->actingAs($admin)
+            ->get(route('tracking.show', $activeShipment->tracking_number))
+            ->assertOk()
+            ->assertSee('NPI-2026-ACTIVE-888');
+    }
+
+    private function createShipment(array $attributes = []): Shipment
+    {
+        $customer = $attributes['customer_id'] ?? null;
+        if (!$customer) {
+            $customerUser = User::factory()->create([
+                'user_type' => 'customer',
+                'verification_status' => 'approved',
+                'registration_completed' => true,
+            ]);
+            $customerId = $customerUser->id;
+        } else {
+            $customerId = $customer;
+        }
+
+        $default = [
             'hawb_number' => 'USNP-2026-101',
             'tracking_number' => 'NPI-2026-000101-7',
-            'customer_id' => $customer->id,
+            'customer_id' => $customerId,
             'sender_name' => 'NETPACK Kathmandu',
             'sender_phone' => '9800000000',
             'sender_address' => 'Thamel',
@@ -145,6 +256,8 @@ class TrackingPresentationTest extends TestCase
                 'location' => 'Dubai Transit Hub',
                 'time' => now()->toIso8601String(),
             ]],
-        ]);
+        ];
+
+        return Shipment::create(array_merge($default, $attributes));
     }
 }
