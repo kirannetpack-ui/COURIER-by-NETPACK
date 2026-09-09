@@ -11,20 +11,20 @@
                     @if(request()->get('status') === 'pending')
                         Pending Verification
                     @else
-                        Admin User Management
+                        All Users
                     @endif
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">
                     @if(request()->get('status') === 'pending')
                         Review and verify pending user registrations
                     @else
-                        Manage administrators and staff members
+                        Search, filter, approve, and manage authorised account types.
                     @endif
                 </p>
             </div>
             @if(request()->get('status') !== 'pending')
                 <a href="{{ route('admin.users.create') }}" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
-                    <i class="fas fa-user-plus mr-2"></i> Add Admin
+                    <i class="fas fa-user-plus mr-2"></i> Add User
                 </a>
             @endif
         </div>
@@ -57,7 +57,7 @@
                     <div class="bg-blue-50 rounded-lg p-4">
                         <div class="flex justify-between items-center">
                             <div>
-                                <p class="text-sm text-gray-600">Total Admins</p>
+                                <p class="text-sm text-gray-600">All Users</p>
                                 <p class="text-2xl font-bold">{{ $stats['total'] ?? 0 }}</p>
                             </div>
                             <i class="fas fa-users-cog text-blue-500 text-2xl"></i>
@@ -111,7 +111,7 @@
                 <div class="flex-1 min-w-[200px]">
                     <form method="GET" action="{{ route('admin.users.index') }}" class="flex gap-2">
                         <input type="text" name="search" value="{{ request('search') }}" 
-                               placeholder="{{ request()->get('status') === 'pending' ? 'Search pending users...' : 'Search admins...' }}" 
+                               placeholder="{{ request()->get('status') === 'pending' ? 'Search pending users...' : 'Search users by name, email, or phone...' }}"
                                class="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                         @if(request()->get('status') === 'pending')
                             <input type="hidden" name="status" value="pending">
@@ -133,6 +133,8 @@
                     <a href="{{ route('admin.users.index', ['user_type' => 'staff']) }}" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 {{ request('user_type') === 'staff' ? 'bg-blue-600 text-white' : '' }}">
                         Staff
                     </a>
+                    <a href="{{ route('admin.users.index', ['user_type' => 'client']) }}" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 {{ request('user_type') === 'client' ? 'bg-teal-600 text-white' : '' }}">Client</a>
+                    <a href="{{ route('admin.users.index', ['user_type' => 'customer']) }}" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 {{ request('user_type') === 'customer' ? 'bg-gray-700 text-white' : '' }}">Customer</a>
                 </div>
                 @endif
 
@@ -235,7 +237,7 @@
                                     @if(request()->get('status') === 'pending')
                                         No pending users found. All users have been verified.
                                     @else
-                                        No admin users found.
+                                        No users match the selected filters.
                                     @endif
                                 </td>
                             </tr>

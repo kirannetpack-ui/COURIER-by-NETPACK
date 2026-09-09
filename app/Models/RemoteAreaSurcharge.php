@@ -17,12 +17,17 @@ class RemoteAreaSurcharge extends Model
         'surcharge_amount',
         'surcharge_percentage',
         'is_active',
+        'source',
+        'source_updated_at',
+        'service_conditions',
+        'currency',
     ];
 
     protected $casts = [
         'surcharge_amount' => 'decimal:2',
         'surcharge_percentage' => 'decimal:2',
         'is_active' => 'boolean',
+        'source_updated_at' => 'datetime',
     ];
 
     public function overseasPartner()

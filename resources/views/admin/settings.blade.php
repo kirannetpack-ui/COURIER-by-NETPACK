@@ -12,7 +12,7 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Site Name</label>
-                    <input type="text" value="NETPACK Courier" class="w-full border rounded px-3 py-2">
+                    <input type="text" value="COURIER with NETPACK" class="w-full border rounded px-3 py-2">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Site Email</label>

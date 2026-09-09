@@ -54,6 +54,11 @@ class ManifestShipment extends Model
         return $this->belongsTo(User::class, 'partner_id');
     }
 
+    public function events()
+    {
+        return $this->hasMany(ManifestShipmentEvent::class);
+    }
+
     public function getStatusBadgeAttribute()
     {
         $badges = [

@@ -50,7 +50,7 @@ return [
         'grocery' => ['label' => 'Grocery Box', 'icon' => 'fa-basket-shopping', 'accent' => 'emerald', 'promise' => 'Fresh local delivery'],
         'document' => ['label' => 'Document', 'icon' => 'fa-file-lines', 'accent' => 'slate', 'promise' => 'Secure document delivery'],
         'parcel' => ['label' => 'Parcel', 'icon' => 'fa-box', 'accent' => 'cyan', 'promise' => 'Tracked parcel delivery'],
-        'default' => ['label' => 'NETPACK Delivery', 'icon' => 'fa-box-open', 'accent' => 'teal', 'promise' => 'Tracked delivery'],
+        'default' => ['label' => 'COURIER with NETPACK Delivery', 'icon' => 'fa-box-open', 'accent' => 'teal', 'promise' => 'Tracked delivery'],
     ],
 
     'statuses' => [

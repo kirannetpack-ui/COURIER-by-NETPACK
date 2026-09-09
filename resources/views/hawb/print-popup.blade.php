@@ -189,7 +189,7 @@
         <!-- Footer -->
         <div class="footer">
             <div>
-                <strong>NETPACK Logistics</strong><br>
+                <strong>COURIER with NETPACK</strong><br>
                 Kathmandu, Nepal<br>
                 www.netpack.com | +977-9800000000
             </div>

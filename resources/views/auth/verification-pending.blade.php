@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verification Pending - NETPACK Courier</title>
+    <title>Verification Pending - COURIER with NETPACK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -18,7 +18,7 @@
                 </div>
                 
                 <h1 class="text-2xl font-bold text-gray-800 mb-2">Application Under Review</h1>
-                <p class="text-gray-600 mb-6">Thank you for registering with NETPACK Courier</p>
+                <p class="text-gray-600 mb-6">Thank you for registering with COURIER with NETPACK</p>
                 
                 <!-- Professional Message Box -->
                 <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 text-left">

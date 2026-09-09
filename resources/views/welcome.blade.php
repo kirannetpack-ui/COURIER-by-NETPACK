@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>NETPACK Courier - International Shipping from Nepal</title>
+    <title>COURIER with NETPACK - International Shipping from Nepal</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,7 +44,7 @@
                 <!-- Logo -->
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-box-open text-teal-600 text-2xl"></i>
-                    <span class="font-bold text-xl text-gray-800">NETPACK</span>
+                    <span class="font-bold text-xl text-gray-800">COURIER with NETPACK</span>
                     <span class="text-xs text-teal-600 hidden md:block">Courier Service</span>
                 </div>
                 
@@ -237,7 +237,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-3xl font-bold text-white mb-4">Ready to Ship?</h2>
             <p class="text-white/90 mb-8 max-w-2xl mx-auto">
-                Join thousands of satisfied customers who trust NETPACK for their international shipping needs.
+                Join thousands of satisfied customers who trust COURIER with NETPACK for their international shipping needs.
             </p>
             <a href="{{ url('/register') }}" class="bg-white text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-flex items-center">
                 <i class="fas fa-user-plus mr-2"></i> Create Account
@@ -252,7 +252,7 @@
                 <div>
                     <div class="flex items-center space-x-2 mb-4">
                         <i class="fas fa-box-open text-teal-400 text-2xl"></i>
-                        <span class="font-bold text-xl">NETPACK</span>
+                        <span class="font-bold text-xl">COURIER with NETPACK</span>
                     </div>
                     <p class="text-gray-400 text-sm">International courier service from Nepal to worldwide.</p>
                 </div>
@@ -283,7 +283,7 @@
                 </div>
             </div>
             <div class="border-t border-gray-800 pt-6 text-center text-sm text-gray-500">
-                <p>&copy; {{ date('Y') }} COURIER by NETPACK. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} COURIER with NETPACK. All rights reserved.</p>
             </div>
         </div>
     </footer>

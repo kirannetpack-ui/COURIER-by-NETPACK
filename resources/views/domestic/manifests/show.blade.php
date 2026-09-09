@@ -114,6 +114,7 @@
                                 <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Delivery Type</th>
                                 <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Status</th>
                                 <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Payment</th>
+                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,6 +128,33 @@
                                         <span class="px-2 py-1 rounded-full text-xs font-medium {{ $manifestShipment->status_badge }}">
                                             {{ ucfirst($manifestShipment->status) }}
                                         </span>
+                                    </td>
+                                    <td class="py-2 px-3">
+                                        @if(!in_array($manifestShipment->status, ['delivered', 'forwarded'], true))
+                                            <details class="min-w-[13rem]">
+                                                <summary class="cursor-pointer text-sm font-medium text-teal-700">Update</summary>
+                                                <form method="POST" action="{{ route('domestic.manifests.shipments.update-status', [$manifest, $manifestShipment]) }}" class="mt-2 space-y-2 rounded border bg-gray-50 p-2">
+                                                    @csrf @method('PUT')
+                                                    <select name="status" class="w-full rounded border-gray-300 text-xs" required>
+                                                        <option value="">Select next status</option>
+                                                        @foreach(['received' => 'Received', 'processed' => 'Processed', 'dispatched' => 'Dispatched', 'delivery_attempted' => 'Delivery attempted', 'delivered' => 'Delivered', 'exception' => 'Exception'] as $value => $label)
+                                                            <option value="{{ $value }}">{{ $label }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <input name="location" class="w-full rounded border-gray-300 text-xs" placeholder="Current location">
+                                                    <input name="notes" class="w-full rounded border-gray-300 text-xs" placeholder="Operational note">
+                                                    <button class="w-full rounded bg-teal-600 px-2 py-1 text-xs font-semibold text-white">Save status</button>
+                                                </form>
+                                                <form method="POST" action="{{ route('domestic.manifests.shipments.forward', [$manifest, $manifestShipment]) }}" class="mt-2 space-y-2 rounded border border-amber-200 bg-amber-50 p-2">
+                                                    @csrf
+                                                    <select name="partner_id" class="w-full rounded border-gray-300 text-xs" required><option value="">Forward to partner</option>@foreach($forwardPartners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}</option>@endforeach</select>
+                                                    <input name="notes" required class="w-full rounded border-gray-300 text-xs" placeholder="Reason for forwarding">
+                                                    <button class="w-full rounded bg-amber-600 px-2 py-1 text-xs font-semibold text-white">Forward</button>
+                                                </form>
+                                            </details>
+                                        @else
+                                            <span class="text-xs text-gray-500">No further action</span>
+                                        @endif
                                     </td>
                                     <td class="py-2 px-3">
                                         <span class="px-2 py-1 rounded-full text-xs font-medium {{ $manifestShipment->payment_status_badge }}">

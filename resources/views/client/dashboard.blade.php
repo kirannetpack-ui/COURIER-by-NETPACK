@@ -59,13 +59,6 @@
     </div>
 
     <!-- Quick Stats -->
-    @php
-        $totalShipments = Auth::user()->shipmentsAsCustomer ? Auth::user()->shipmentsAsCustomer->count() : 0;
-        $inTransit = Auth::user()->shipmentsAsCustomer ? Auth::user()->shipmentsAsCustomer->where('status', 'in_transit')->count() : 0;
-        $delivered = Auth::user()->shipmentsAsCustomer ? Auth::user()->shipmentsAsCustomer->where('status', 'delivered')->count() : 0;
-        $pending = Auth::user()->shipmentsAsCustomer ? Auth::user()->shipmentsAsCustomer->where('status', 'pending')->count() : 0;
-    @endphp
-
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="bg-white rounded-xl shadow-sm p-4 card-hover transition">
             <div class="flex items-center justify-between">
@@ -139,9 +132,6 @@
 
         <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition">
             <h3 class="font-semibold text-lg mb-4">Recent Activity</h3>
-            @php
-                $recentShipments = Auth::user()->shipmentsAsCustomer ? Auth::user()->shipmentsAsCustomer->take(5) : collect();
-            @endphp
             @if($recentShipments->count() > 0)
                 <div class="divide-y divide-gray-100">
                     @foreach($recentShipments as $shipment)

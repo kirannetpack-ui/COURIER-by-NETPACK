@@ -11,12 +11,14 @@ class DeliveryZone extends Model
 
     protected $fillable = [
         'partner_id',
+        'admin_id',
         'zone_name',
         'zone_code',
         'zone_type',
         'districts',
         'municipalities',
         'wards',
+        'postal_codes',
         'description',
         'is_active',
         // Rate fields for each service
@@ -41,6 +43,7 @@ class DeliveryZone extends Model
         'districts' => 'array',
         'municipalities' => 'array',
         'wards' => 'array',
+        'postal_codes' => 'array',
         'is_active' => 'boolean',
         'flash_base_rate' => 'decimal:2',
         'flash_per_kg_rate' => 'decimal:2',

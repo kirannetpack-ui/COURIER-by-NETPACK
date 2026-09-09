@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2" :class="{'justify-center': !open}">
                 <i class="fas fa-box-open text-teal-400 text-2xl"></i>
-                <span class="font-bold text-lg transition-opacity" x-show="open">NETPACK</span>
+                <span class="font-bold text-lg transition-opacity" x-show="open">COURIER with NETPACK</span>
             </div>
             <button @click="open = !open" class="text-gray-400 hover:text-white">
                 <i class="fas" :class="open ? 'fa-chevron-left' : 'fa-chevron-right'"></i>

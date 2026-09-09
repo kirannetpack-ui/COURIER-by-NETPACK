@@ -13,16 +13,19 @@ class DashboardController extends Controller
         $user = Auth::user();
         
         // Get client statistics
-        $totalShipments = $user->shipments()->count() ?? 0;
-        $inTransit = $user->shipments()->where('status', 'in_transit')->count() ?? 0;
-        $delivered = $user->shipments()->where('status', 'delivered')->count() ?? 0;
-        $pending = $user->shipments()->where('status', 'pending')->count() ?? 0;
+        $shipments = $user->clientShipments();
+        $totalShipments = $shipments->count();
+        $inTransit = (clone $shipments)->where('status', 'in_transit')->count();
+        $delivered = (clone $shipments)->where('status', 'delivered')->count();
+        $pending = (clone $shipments)->whereIn('status', ['pending', 'created', 'confirmed'])->count();
+        $recentShipments = (clone $shipments)->latest()->take(5)->get();
         
         return view('client.dashboard', compact(
             'totalShipments',
             'inTransit',
             'delivered',
-            'pending'
+            'pending',
+            'recentShipments'
         ));
     }
 }

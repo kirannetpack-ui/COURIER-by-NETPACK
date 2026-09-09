@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\RemoteAreaSurcharge;
+use App\Services\RemoteAreaSurchargeService;
 use Illuminate\Http\Request;
 
 class SurchargeCheckController extends Controller
 {
+    public function __construct(private readonly RemoteAreaSurchargeService $surcharges)
+    {
+    }
     /**
      * Check if a location has remote area surcharge
      */
@@ -17,13 +21,11 @@ class SurchargeCheckController extends Controller
             'country' => 'required|string|max:100',
             'zip_code' => 'required|string|max:20',
             'partner_id' => 'nullable|exists:users,id',
+            'service_code' => 'nullable|string|max:100',
         ]);
 
-        $surcharge = RemoteAreaSurcharge::checkSurcharge(
-            $request->country,
-            $request->zip_code,
-            $request->partner_id
-        );
+        $result = $this->surcharges->resolve($request->country, $request->zip_code, $request->partner_id, $request->service_code);
+        $surcharge = $result['surcharge'] ?? null;
 
         if ($surcharge) {
             return response()->json([
@@ -37,6 +39,10 @@ class SurchargeCheckController extends Controller
                     'message' => $this->getSurchargeMessage($surcharge),
                     'warning' => $this->getWarningMessage($surcharge),
                     'match_type' => $this->getMatchType($surcharge->zip_code_pattern, $request->zip_code),
+                    'source' => $result['source'],
+                    'last_updated_at' => $result['last_updated_at'],
+                    'currency' => $result['currency'],
+                    'service_conditions' => $result['service_conditions'],
                 ],
             ]);
         }
@@ -44,7 +50,8 @@ class SurchargeCheckController extends Controller
         return response()->json([
             'success' => true,
             'is_remote' => false,
-            'message' => 'No remote area surcharge applies to this location.',
+            'message' => 'No configured remote area surcharge applies to this location.',
+            'source' => 'manual',
         ]);
     }
 
@@ -115,15 +122,13 @@ class SurchargeCheckController extends Controller
             'locations.*.country' => 'required|string',
             'locations.*.zip_code' => 'required|string',
             'partner_id' => 'nullable|exists:users,id',
+            'locations.*.service_code' => 'nullable|string|max:100',
         ]);
 
         $results = [];
         foreach ($request->locations as $location) {
-            $surcharge = RemoteAreaSurcharge::checkSurcharge(
-                $location['country'],
-                $location['zip_code'],
-                $request->partner_id
-            );
+            $resolution = $this->surcharges->resolve($location['country'], $location['zip_code'], $request->partner_id, $location['service_code'] ?? null);
+            $surcharge = $resolution['surcharge'] ?? null;
 
             $results[] = [
                 'country' => $location['country'],
@@ -134,6 +139,10 @@ class SurchargeCheckController extends Controller
                     'surcharge_amount' => $surcharge->surcharge_amount,
                     'surcharge_percentage' => $surcharge->surcharge_percentage,
                     'zip_pattern' => $surcharge->zip_code_pattern,
+                    'source' => $resolution['source'],
+                    'last_updated_at' => $resolution['last_updated_at'],
+                    'currency' => $resolution['currency'],
+                    'service_conditions' => $resolution['service_conditions'],
                 ] : null,
             ];
         }

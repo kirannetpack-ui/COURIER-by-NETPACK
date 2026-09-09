@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Courier by NETPACK'),
+    'name' => env('APP_NAME', 'COURIER with NETPACK'),
 
     /*
     |--------------------------------------------------------------------------

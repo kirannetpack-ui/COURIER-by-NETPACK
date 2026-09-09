@@ -285,6 +285,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [DomesticManifestController::class, 'index'])->name('index');
         Route::get('/create', [DomesticManifestController::class, 'create'])->name('create');
         Route::post('/', [DomesticManifestController::class, 'store'])->name('store');
+        Route::post('/scan-bag', [DomesticManifestController::class, 'scanBag'])->name('scan-bag');
 
         // IMPORTANT: POD routes must come BEFORE the {id} route
         Route::get('/pods', [DomesticManifestController::class, 'pods'])->name('pods');
@@ -300,12 +301,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}', [DomesticManifestController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [DomesticManifestController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DomesticManifestController::class, 'update'])->name('update');
-
-        Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('domestic.manifests.pods.upload');
-        Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('domestic.manifests.pods.upload.form');
-
-        Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
-        Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
+        Route::put('/{manifest}/shipments/{manifestShipment}/status', [DomesticManifestController::class, 'updateShipmentStatus'])->name('shipments.update-status');
+        Route::post('/{manifest}/shipments/{manifestShipment}/forward', [DomesticManifestController::class, 'forwardShipment'])->name('shipments.forward');
 
     });
 
@@ -314,7 +311,7 @@ Route::middleware(['auth'])->group(function () {
 // =============================================
 // ADMIN ROUTES (Super Admin & Domestic Admin)
 // =============================================
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,domestic_admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,admin,domestic_admin'])->group(function () {
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -515,7 +512,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
 // =============================================
 // CLIENT ROUTES
 // =============================================
-Route::prefix('client')->name('client.')->middleware(['auth', 'role:client'])->group(function () {
+Route::prefix('client')->name('client.')->middleware(['auth', 'role:client,customer'])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/wallet', function () {
         return view('client.wallet');

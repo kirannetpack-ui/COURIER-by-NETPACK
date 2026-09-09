@@ -49,10 +49,13 @@ class DeliveryZoneController extends Controller
                 ->withInput();
         }
 
-        $zoneCode = Str::upper(Str::random(6));
+        do {
+            $zoneCode = Str::upper(Str::random(6));
+        } while (DeliveryZone::where('zone_code', $zoneCode)->exists());
 
         DeliveryZone::create([
             'partner_id' => $request->partner_id,
+            'admin_id' => $request->user()->id,
             'zone_name' => $request->zone_name,
             'zone_code' => $zoneCode,
             'zone_type' => $request->zone_type,

@@ -24,18 +24,11 @@ class AdminUserController extends Controller
     {
         $query = User::query();
 
-        // If status filter is pending, show ALL pending users regardless of type
-        if ($request->filled('status') && $request->status === 'pending') {
-            $query->where('verification_status', 'pending');
-        } 
-        // Otherwise show only admin and staff for user management
-        else if (!$request->filled('status')) {
-            $query->whereIn('user_type', ['admin', 'staff']);
-        }
-        // If other status filters, show only admin and staff
-        else {
-            $query->whereIn('user_type', ['admin', 'staff'])
-                  ->where('verification_status', $request->status);
+        // This is the application's All Users screen.  The previous query
+        // silently limited normal views to admin/staff, despite the form
+        // allowing customer and client creation.
+        if ($request->filled('status')) {
+            $query->where('verification_status', $request->status);
         }
 
         // Search
@@ -48,8 +41,7 @@ class AdminUserController extends Controller
             });
         }
 
-        // Filter by user type (only for non-pending views)
-        if ($request->filled('user_type') && $request->status !== 'pending') {
+        if ($request->filled('user_type')) {
             $query->where('user_type', $request->user_type);
         }
 
@@ -57,13 +49,13 @@ class AdminUserController extends Controller
         
         // Get stats - including ALL pending users
         $stats = [
-            'total' => User::whereIn('user_type', ['admin', 'staff'])->count(),
+            'total' => User::count(),
             'admin' => User::where('user_type', 'admin')->count(),
             'staff' => User::where('user_type', 'staff')->count(),
-            'approved' => User::whereIn('user_type', ['admin', 'staff'])->where('verification_status', 'approved')->count(),
+            'approved' => User::where('verification_status', 'approved')->count(),
             'pending' => User::where('verification_status', 'pending')->count(), // ALL pending users
-            'rejected' => User::whereIn('user_type', ['admin', 'staff'])->where('verification_status', 'rejected')->count(),
-            'suspended' => User::whereIn('user_type', ['admin', 'staff'])->where('verification_status', 'suspended')->count(),
+            'rejected' => User::where('verification_status', 'rejected')->count(),
+            'suspended' => User::where('verification_status', 'suspended')->count(),
             'active' => User::where('verification_status', 'approved')->count(), // ALL approved users
             'inactive' => User::where('verification_status', '!=', 'approved')->count(),
             'all_pending' => User::where('verification_status', 'pending')->count(), // All pending users
@@ -77,7 +69,7 @@ class AdminUserController extends Controller
      */
     public function create()
     {
-        return view('admin.users.create');
+        return view('admin.users.create', ['manageableUserTypes' => $this->manageableUserTypes()]);
     }
 
     /**
@@ -88,8 +80,8 @@ class AdminUserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'user_type' => 'required|in:admin,staff',
+            'password' => 'required|string|min:12|confirmed',
+            'user_type' => ['required', Rule::in(array_keys($this->manageableUserTypes()))],
             'phone' => 'nullable|string|max:20',
             'verification_status' => 'required|in:pending,approved,rejected,suspended',
             'gender' => 'nullable|in:male,female,other',
@@ -111,6 +103,9 @@ class AdminUserController extends Controller
             'user_type' => $request->user_type,
             'phone' => $request->phone,
             'verification_status' => $request->verification_status,
+            'registration_completed' => $request->verification_status === 'approved',
+            'approved_at' => $request->verification_status === 'approved' ? now() : null,
+            'approved_by' => $request->verification_status === 'approved' ? $request->user()->id : null,
             'gender' => $request->gender,
             'dob' => $request->dob,
             'permanent_address' => $request->permanent_address,
@@ -118,7 +113,7 @@ class AdminUserController extends Controller
         ]);
 
         return redirect()->route('admin.users.index')
-            ->with('success', 'Admin user created successfully!');
+            ->with('success', "{$user->user_type_label} account created successfully.");
     }
 
     /**
@@ -126,11 +121,7 @@ class AdminUserController extends Controller
      */
     public function show(User $user)
     {
-        // Ensure user is admin or staff
-       if (!$user->isSystemAdmin() && $user->verification_status !== 'pending') {
-        abort(404, 'User not found.');
-    }
-        
+        $this->ensureCanManage($user);
         return view('admin.users.show', compact('user'));
     }
 
@@ -139,10 +130,7 @@ class AdminUserController extends Controller
      */
     public function edit(User $user)
     {
-        if (!$user->isSystemAdmin()) {
-            abort(404, 'User not found or not an admin.');
-        }
-        
+        $this->ensureCanManage($user);
         return view('admin.users.edit', compact('user'));
     }
 
@@ -151,21 +139,19 @@ class AdminUserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        if (!$user->isSystemAdmin()) {
-            abort(404, 'User not found or not an admin.');
-        }
+        $this->ensureCanManage($user);
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'user_type' => 'required|in:admin,staff',
+            'user_type' => ['required', Rule::in(array_keys($this->manageableUserTypes()))],
             'phone' => 'nullable|string|max:20',
             'verification_status' => 'required|in:pending,approved,rejected,suspended',
             'gender' => 'nullable|in:male,female,other',
             'dob' => 'nullable|date|before:today',
             'permanent_address' => 'nullable|string',
             'temporary_address' => 'nullable|string',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => 'nullable|string|min:12|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -201,6 +187,7 @@ class AdminUserController extends Controller
      */
     public function destroy(User $user)
     {
+        $this->ensureCanManage($user);
         // Prevent deleting self
         if ($user->id === auth()->id()) {
             return redirect()->route('admin.users.index')
@@ -208,9 +195,9 @@ class AdminUserController extends Controller
         }
 
         // Prevent deleting the last admin
-        if ($user->user_type === 'admin' && User::where('user_type', 'admin')->count() <= 1) {
+        if ($user->user_type === User::TYPE_SUPER_ADMIN && User::where('user_type', User::TYPE_SUPER_ADMIN)->count() <= 1) {
             return redirect()->route('admin.users.index')
-                ->with('error', 'Cannot delete the last Administrator.');
+                ->with('error', 'Cannot delete the last Super Administrator.');
         }
 
         $user->delete();
@@ -224,6 +211,7 @@ class AdminUserController extends Controller
      */
     public function toggleStatus(User $user)
     {
+        $this->ensureCanManage($user);
         if ($user->id === auth()->id()) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'You cannot change your own status.');
@@ -243,6 +231,7 @@ class AdminUserController extends Controller
      */
     public function verify(User $user)
     {
+        $this->ensureCanManage($user);
         // Allow verification for any pending user
         if ($user->verification_status !== 'pending') {
             return redirect()->route('admin.users.index')
@@ -257,6 +246,7 @@ class AdminUserController extends Controller
      */
     public function approve(User $user)
     {
+        $this->ensureCanManage($user);
         $user->update([
             'verification_status' => 'approved',
             'approved_at' => now(),
@@ -279,6 +269,7 @@ class AdminUserController extends Controller
      */
     public function reject(Request $request, User $user)
     {
+        $this->ensureCanManage($user);
         $request->validate([
             'rejection_reason' => 'required|string|min:10'
         ]);
@@ -304,8 +295,9 @@ class AdminUserController extends Controller
      */
     public function resetPassword(Request $request, User $user)
     {
+        $this->ensureCanManage($user);
         $request->validate([
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:12|confirmed'
         ]);
 
         $user->update([
@@ -314,5 +306,51 @@ class AdminUserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Password reset successfully!');
+    }
+
+    /**
+     * Super administrators and legacy administrators may manage every normal
+     * operational role. Domestic administrators are intentionally limited to
+     * customer-facing and domestic delivery roles.
+     */
+    private function manageableUserTypes(): array
+    {
+        $all = [
+            'admin' => 'Administrator',
+            User::TYPE_STAFF => User::USER_TYPES[User::TYPE_STAFF],
+            User::TYPE_DOMESTIC_ADMIN => User::USER_TYPES[User::TYPE_DOMESTIC_ADMIN],
+            User::TYPE_INTERNATIONAL_ADMIN => User::USER_TYPES[User::TYPE_INTERNATIONAL_ADMIN],
+            User::TYPE_SELLER => User::USER_TYPES[User::TYPE_SELLER],
+            User::TYPE_RIDER => User::USER_TYPES[User::TYPE_RIDER],
+            User::TYPE_PARTNER => User::USER_TYPES[User::TYPE_PARTNER],
+            User::TYPE_OVERSEAS => User::USER_TYPES[User::TYPE_OVERSEAS],
+            User::TYPE_CLIENT => User::USER_TYPES[User::TYPE_CLIENT],
+            User::TYPE_CUSTOMER => User::USER_TYPES[User::TYPE_CUSTOMER],
+        ];
+
+        if (in_array(auth()->user()->user_type, [User::TYPE_SUPER_ADMIN, 'admin'], true)) {
+            return $all;
+        }
+
+        return array_intersect_key($all, array_flip([
+            User::TYPE_SELLER,
+            User::TYPE_RIDER,
+            User::TYPE_PARTNER,
+            User::TYPE_CLIENT,
+            User::TYPE_CUSTOMER,
+        ]));
+    }
+
+    private function ensureCanManage(User $user): void
+    {
+        if ($user->is(auth()->user())) {
+            return;
+        }
+
+        if (array_key_exists($user->user_type, $this->manageableUserTypes())) {
+            return;
+        }
+
+        abort(403, 'You are not allowed to manage this account type.');
     }
 }

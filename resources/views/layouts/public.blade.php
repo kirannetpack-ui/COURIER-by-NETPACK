@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Courier by NETPACK')</title>
+    <title>@yield('title', config('app.name'))</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @stack('styles')
@@ -17,7 +17,7 @@
                     <i class="fas fa-box"></i>
                 </span>
                 <span>
-                    <span class="block text-lg font-bold leading-tight">NETPACK</span>
+                    <span class="block text-lg font-bold leading-tight">COURIER with NETPACK</span>
                     <span class="block text-xs text-slate-500">Courier & Logistics</span>
                 </span>
             </a>
@@ -39,7 +39,7 @@
 
     <footer class="mt-12 border-t border-slate-200 bg-white">
         <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-            <p>&copy; {{ now()->year }} Courier by NETPACK</p>
+            <p>&copy; {{ now()->year }} COURIER with NETPACK</p>
             <p>Secure shipment updates without exposing private contact details.</p>
         </div>
     </footer>

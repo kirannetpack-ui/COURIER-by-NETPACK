@@ -153,7 +153,7 @@
                                             @endif
 
                                             <!-- Edit Status Button -->
-                                            @if($pod->status !== 'verified')
+                                            @if(in_array(auth()->user()->user_type, ['super_admin', 'admin', 'domestic_admin'], true) && $pod->status !== 'verified')
                                                 <button onclick="openStatusModal({{ $pod->id }}, '{{ $pod->status }}')" 
                                                         class="text-yellow-600 hover:text-yellow-800" title="Update Status">
                                                     <i class="fas fa-edit"></i>
@@ -223,7 +223,8 @@
         const select = document.getElementById('statusSelect');
         
         // Set form action
-        form.action = "{{ route('domestic.manifests.pods.update-status', '') }}/" + podId;
+        const template = @json(route('domestic.manifests.pods.update-status', ['id' => '__POD_ID__']));
+        form.action = template.replace('__POD_ID__', podId);
         
         // Set current status
         select.value = currentStatus;

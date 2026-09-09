@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COURIER by NETPACK</title>
+    <title>COURIER with NETPACK</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <!-- Tailwind CSS CDN (quick fix) -->
@@ -18,7 +18,7 @@
             <div class="container mx-auto px-6 py-3">
                 <div class="flex justify-between items-center">
                     <div class="text-xl font-bold text-teal-600">
-                        📦 COURIER by NETPACK
+                        📦 COURIER with NETPACK
                     </div>
                     <div class="space-x-4">
                         <a href="/" class="text-gray-600 hover:text-teal-600">Home</a>

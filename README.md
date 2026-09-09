@@ -1,6 +1,6 @@
-# Courier by NETPACK
+# COURIER with NETPACK
 
-Courier by NETPACK is a Laravel courier-management platform for domestic, international, e-commerce, partner, and rider delivery operations in Nepal. The codebase includes shipment creation, service rates, pickup requests, customer and seller portals, partner workflows, rider operations, HAWB/manifest/POD records, tracking, payments, reminders, and administration.
+COURIER with NETPACK is a Laravel courier-management platform for domestic, international, e-commerce, partner, and rider delivery operations in Nepal. The codebase includes shipment creation, service rates, pickup requests, customer and seller portals, partner workflows, rider operations, HAWB/manifest/POD records, tracking, payments, reminders, and administration.
 
 > Project status: active stabilization. The database can be rebuilt and the current automated checks pass, but the product is not yet approved for a public production launch. See **Known gaps** below.
 

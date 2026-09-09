@@ -7,7 +7,7 @@
     <div class="bg-white rounded-xl shadow-sm">
         <div class="px-6 py-4 border-b">
             <h1 class="text-xl font-semibold text-gray-800">Add New User</h1>
-            <p class="text-sm text-gray-500 mt-1">Create a new user account with any role</p>
+            <p class="text-sm text-gray-500 mt-1">Create a permitted account type with a clear approval status.</p>
         </div>
         
         <div class="p-6">
@@ -79,23 +79,17 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium mb-1">User Role *</label>
+                        <label class="block text-sm font-medium mb-1">Account Type *</label>
                         <select name="user_type" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('user_type') border-red-500 @enderror">
-                            <option value="">Select User Role</option>
-                            <option value="admin" {{ old('user_type') === 'admin' ? 'selected' : '' }}>👑 Administrator</option>
-                            <option value="staff" {{ old('user_type') === 'staff' ? 'selected' : '' }}>👔 Staff</option>
-                            <option value="seller" {{ old('user_type') === 'seller' ? 'selected' : '' }}>🛒 Seller</option>
-                            <option value="rider" {{ old('user_type') === 'rider' ? 'selected' : '' }}>🏍️ Rider</option>
-                            <option value="client" {{ old('user_type') === 'client' ? 'selected' : '' }}>💼 Client</option>
-                            <option value="partner" {{ old('user_type') === 'partner' ? 'selected' : '' }}>🤝 Partner</option>
-                            <option value="overseas" {{ old('user_type') === 'overseas' ? 'selected' : '' }}>🌍 Overseas Partner</option>
-                            <option value="domestic" {{ old('user_type') === 'domestic' ? 'selected' : '' }}>🏠 Domestic User</option>
-                            <option value="customer" {{ old('user_type') === 'customer' ? 'selected' : '' }}>👤 Customer</option>
+                            <option value="">Select account type</option>
+                            @foreach($manageableUserTypes as $type => $label)
+                                <option value="{{ $type }}" @selected(old('user_type') === $type)>{{ $label }}</option>
+                            @endforeach
                         </select>
                         @error('user_type')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
-                        <p class="text-xs text-gray-500 mt-1">Select the role that best describes this user's function</p>
+                        <p class="text-xs text-gray-500 mt-1">Only account types your role is allowed to manage are shown.</p>
                     </div>
                     
                     <div>
@@ -123,7 +117,7 @@
                         @error('password')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
-                        <p class="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+                        <p class="text-xs text-gray-500 mt-1">Use at least 12 characters. The user should change it after first login.</p>
                     </div>
                     
                     <div>

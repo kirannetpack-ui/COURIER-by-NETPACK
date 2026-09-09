@@ -404,7 +404,7 @@
             <!-- Footer -->
             <div class="footer">
                 <div>
-                    <span class="company">NETPACK Logistics</span><br>
+                    <span class="company">COURIER with NETPACK</span><br>
                     Kathmandu, Nepal
                 </div>
                 <div class="terms">
@@ -512,7 +512,7 @@
             <!-- Footer -->
             <div class="footer">
                 <div>
-                    <span class="company">NETPACK Logistics</span><br>
+                    <span class="company">COURIER with NETPACK</span><br>
                     Kathmandu, Nepal
                 </div>
                 <div class="terms">

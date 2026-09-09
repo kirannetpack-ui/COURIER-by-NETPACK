@@ -28,6 +28,7 @@ class User extends Authenticatable
 
     const USER_TYPES = [
         self::TYPE_SUPER_ADMIN => 'Super Administrator',
+        'admin' => 'Administrator',
         self::TYPE_STAFF => 'Staff',
         self::TYPE_DOMESTIC_ADMIN => 'Domestic & E-commerce Admin',
         self::TYPE_INTERNATIONAL_ADMIN => 'International Service Admin',
@@ -46,6 +47,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'password_changed',
@@ -88,6 +90,17 @@ class User extends Authenticatable
         'approved_at',
         'last_login_at',
         'metadata',
+        'gender',
+        'dob',
+        'nationality',
+        'district',
+        'province',
+        'postal_code',
+        'emergency_contact',
+        'approved_by',
+        'rejection_reason',
+        'role',
+        'is_active',
     ];
 
     /**
@@ -136,6 +149,21 @@ class User extends Authenticatable
         return $this->hasMany(Shipment::class, 'seller_id');
     }
 
+    /**
+     * Shipments owned by a client/customer. The existing shipment schema uses
+     * customer_id for both account types; seller shipments use the relation
+     * above.
+     */
+    public function clientShipments()
+    {
+        return $this->hasMany(Shipment::class, 'customer_id');
+    }
+
+    public function shipmentsAsCustomer()
+    {
+        return $this->clientShipments();
+    }
+
     public function deliveries()
     {
         return $this->hasMany(Delivery::class, 'rider_id');
@@ -170,7 +198,7 @@ class User extends Authenticatable
      */
     public function isSystemAdmin()
     {
-        return in_array($this->user_type, [self::TYPE_SUPER_ADMIN, self::TYPE_STAFF]);
+        return in_array($this->user_type, [self::TYPE_SUPER_ADMIN, 'admin', self::TYPE_STAFF], true);
     }
 
     /**

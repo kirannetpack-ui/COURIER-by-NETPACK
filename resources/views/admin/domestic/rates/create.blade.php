@@ -50,6 +50,12 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium mb-1">Currency *</label>
+                        <input name="currency" maxlength="3" value="{{ old('currency', 'NPR') }}" required class="w-full border rounded-lg px-3 py-2 uppercase focus:outline-none focus:ring-2 focus:ring-teal-500" aria-describedby="currency-help">
+                        <p id="currency-help" class="mt-1 text-xs text-gray-500">Use a three-letter ISO currency code, for example NPR.</p>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium mb-1">Origin Zone *</label>
                         <select name="origin_zone_id" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                             <option value="">Select Origin Zone</option>

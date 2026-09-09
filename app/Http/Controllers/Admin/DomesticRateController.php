@@ -8,28 +8,20 @@ use App\Models\DeliveryZone;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class DomesticRateController extends Controller
 {
     public function index()
     {
-        try {
-            $rates = DomesticRate::with(['partner', 'originZone', 'destinationZone'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
-                
-            $partners = User::where('user_type', 'partner')->get();
-            $zones = DeliveryZone::where('is_active', true)->get();
-            
-            return view('admin.domestic.rates.index', compact('rates', 'partners', 'zones'));
-        } catch (\Exception $e) {
-            // If tables don't exist yet, show empty state
-            return view('admin.domestic.rates.index', [
-                'rates' => collect([]),
-                'partners' => collect([]),
-                'zones' => collect([])
-            ])->with('warning', 'Please run migrations first: php artisan migrate');
-        }
+        $rates = DomesticRate::with(['partner', 'originZone', 'destinationZone'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        $partners = User::where('user_type', 'partner')->where('verification_status', 'approved')->get();
+        $zones = DeliveryZone::where('is_active', true)->get();
+
+        return view('admin.domestic.rates.index', compact('rates', 'partners', 'zones'));
     }
 
     public function create()
@@ -44,7 +36,7 @@ class DomesticRateController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'partner_id' => 'required|exists:users,id',
+            'partner_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('user_type', 'partner')->where('verification_status', 'approved'))],
             'origin_zone_id' => 'required|exists:delivery_zones,id',
             'destination_zone_id' => 'required|exists:delivery_zones,id',
             'service_type' => 'required|in:flash,same_day,standard,himalayan',
@@ -54,6 +46,8 @@ class DomesticRateController extends Controller
             'minimum_rate' => 'nullable|numeric|min:0',
             'logistical_charge' => 'nullable|numeric|min:0',
             'additional_charge' => 'nullable|numeric|min:0',
+            'additional_charge_reason' => 'nullable|string|max:1000',
+            'currency' => 'required|string|size:3',
             'weight_from' => 'required|numeric|min:0',
             'weight_to' => 'required|numeric|gt:weight_from',
             'estimated_hours' => 'nullable|integer|min:0',
@@ -68,6 +62,8 @@ class DomesticRateController extends Controller
                 ->withInput();
         }
 
+        $this->ensureNoOverlappingRate($request);
+
         $serviceNames = [
             'flash' => 'FLASH',
             'same_day' => 'SAME DAY',
@@ -75,19 +71,30 @@ class DomesticRateController extends Controller
             'himalayan' => 'HIMALAYAN',
         ];
 
+        $originZone = DeliveryZone::findOrFail($request->origin_zone_id);
+        $destinationZone = DeliveryZone::findOrFail($request->destination_zone_id);
+
         DomesticRate::create([
             'partner_id' => $request->partner_id,
             'origin_zone_id' => $request->origin_zone_id,
             'destination_zone_id' => $request->destination_zone_id,
+            // These are required by the original domestic_rates schema and
+            // remain populated for backwards-compatible quote lookups.
+            'origin_city' => $originZone->zone_name,
+            'origin_zone' => $originZone->zone_code,
+            'destination_city' => $destinationZone->zone_name,
+            'destination_zone' => $destinationZone->zone_code,
             'service_type' => $request->service_type,
             'service_name' => $serviceNames[$request->service_type],
             'base_rate' => $request->base_rate,
             'per_kg_rate' => $request->per_kg_rate,
+            'rate_per_kg' => $request->per_kg_rate,
             'per_km_rate' => $request->per_km_rate ?? 0,
             'minimum_rate' => $request->minimum_rate ?? 0,
             'logistical_charge' => $request->logistical_charge ?? 0,
             'additional_charge' => $request->additional_charge ?? 0,
             'additional_charge_reason' => $request->additional_charge_reason,
+            'currency' => strtoupper($request->currency),
             'weight_from' => $request->weight_from,
             'weight_to' => $request->weight_to,
             'estimated_hours' => $request->estimated_hours,
@@ -116,7 +123,7 @@ class DomesticRateController extends Controller
         $rate = DomesticRate::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'partner_id' => 'required|exists:users,id',
+            'partner_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('user_type', 'partner')->where('verification_status', 'approved'))],
             'origin_zone_id' => 'required|exists:delivery_zones,id',
             'destination_zone_id' => 'required|exists:delivery_zones,id',
             'service_type' => 'required|in:flash,same_day,standard,himalayan',
@@ -126,6 +133,8 @@ class DomesticRateController extends Controller
             'minimum_rate' => 'nullable|numeric|min:0',
             'logistical_charge' => 'nullable|numeric|min:0',
             'additional_charge' => 'nullable|numeric|min:0',
+            'additional_charge_reason' => 'nullable|string|max:1000',
+            'currency' => 'required|string|size:3',
             'weight_from' => 'required|numeric|min:0',
             'weight_to' => 'required|numeric|gt:weight_from',
             'estimated_hours' => 'nullable|integer|min:0',
@@ -141,6 +150,8 @@ class DomesticRateController extends Controller
                 ->withInput();
         }
 
+        $this->ensureNoOverlappingRate($request, $rate->id);
+
         $serviceNames = [
             'flash' => 'FLASH',
             'same_day' => 'SAME DAY',
@@ -148,19 +159,28 @@ class DomesticRateController extends Controller
             'himalayan' => 'HIMALAYAN',
         ];
 
+        $originZone = DeliveryZone::findOrFail($request->origin_zone_id);
+        $destinationZone = DeliveryZone::findOrFail($request->destination_zone_id);
+
         $rate->update([
             'partner_id' => $request->partner_id,
             'origin_zone_id' => $request->origin_zone_id,
             'destination_zone_id' => $request->destination_zone_id,
+            'origin_city' => $originZone->zone_name,
+            'origin_zone' => $originZone->zone_code,
+            'destination_city' => $destinationZone->zone_name,
+            'destination_zone' => $destinationZone->zone_code,
             'service_type' => $request->service_type,
             'service_name' => $serviceNames[$request->service_type],
             'base_rate' => $request->base_rate,
             'per_kg_rate' => $request->per_kg_rate,
+            'rate_per_kg' => $request->per_kg_rate,
             'per_km_rate' => $request->per_km_rate ?? 0,
             'minimum_rate' => $request->minimum_rate ?? 0,
             'logistical_charge' => $request->logistical_charge ?? 0,
             'additional_charge' => $request->additional_charge ?? 0,
             'additional_charge_reason' => $request->additional_charge_reason,
+            'currency' => strtoupper($request->currency),
             'weight_from' => $request->weight_from,
             'weight_to' => $request->weight_to,
             'estimated_hours' => $request->estimated_hours,
@@ -181,5 +201,34 @@ class DomesticRateController extends Controller
 
         return redirect()->route('admin.domestic.rates')
             ->with('success', 'Domestic rate deleted successfully!');
+    }
+
+    /** Reject ambiguous weight/date bands before they can affect quoting. */
+    private function ensureNoOverlappingRate(Request $request, ?int $ignoreRateId = null): void
+    {
+        $effectiveTo = $request->input('effective_to') ?: '9999-12-31';
+
+        $query = DomesticRate::query()
+            ->where('partner_id', $request->partner_id)
+            ->where('origin_zone_id', $request->origin_zone_id)
+            ->where('destination_zone_id', $request->destination_zone_id)
+            ->where('service_type', $request->service_type)
+            ->where('weight_from', '<=', $request->weight_to)
+            ->where('weight_to', '>=', $request->weight_from)
+            ->whereDate('effective_from', '<=', $effectiveTo)
+            ->where(function ($query) use ($request) {
+                $query->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $request->effective_from);
+            });
+
+        if ($ignoreRateId) {
+            $query->whereKeyNot($ignoreRateId);
+        }
+
+        if ($query->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'weight_from' => 'This rate overlaps an existing active or scheduled rate for the same partner, route, service, weight band, and effective period.',
+            ]);
+        }
     }
 }

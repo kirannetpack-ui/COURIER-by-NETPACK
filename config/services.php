@@ -54,4 +54,16 @@ return [
         'key' => env('SERPAPI_KEY'),
     ],
 
+    // Enable a carrier only after NETPACK has an approved commercial/API
+    // agreement. Each adapter must use the CarrierRemoteAreaProvider contract;
+    // scraping public carrier pages is intentionally not supported.
+    'carrier_remote_area' => [
+        'ups' => ['enabled' => env('UPS_REMOTE_AREA_ENABLED', false)],
+        'fedex' => ['enabled' => env('FEDEX_REMOTE_AREA_ENABLED', false)],
+        'dhl' => ['enabled' => env('DHL_REMOTE_AREA_ENABLED', false)],
+        'aramex' => ['enabled' => env('ARAMEX_REMOTE_AREA_ENABLED', false)],
+        'dpd' => ['enabled' => env('DPD_REMOTE_AREA_ENABLED', false)],
+        'team_global' => ['enabled' => env('TEAM_GLOBAL_REMOTE_AREA_ENABLED', false)],
+    ],
+
 ];

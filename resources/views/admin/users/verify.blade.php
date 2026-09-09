@@ -57,11 +57,40 @@
                     <p class="text-sm text-gray-500">Nationality</p>
                     <p class="font-medium">{{ $user->nationality ?? 'Not specified' }}</p>
                 </div>
+                <div class="border rounded-lg p-4">
+                    <p class="text-sm text-gray-500">District</p>
+                    <p class="font-medium">{{ $user->district ?? 'Not specified' }}</p>
+                </div>
+                <div class="border rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Province</p>
+                    <p class="font-medium">{{ $user->province ?? 'Not specified' }}</p>
+                </div>
+                <div class="border rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Postal Code</p>
+                    <p class="font-medium">{{ $user->postal_code ?? 'Not specified' }}</p>
+                </div>
+                <div class="border rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Country</p>
+                    <p class="font-medium">{{ $user->country ?? 'Nepal' }}</p>
+                </div>
+                <div class="border rounded-lg p-4">
+                    <p class="text-sm text-gray-500">City / Municipality</p>
+                    <p class="font-medium">{{ $user->city ?? 'Not specified' }}</p>
+                </div>
                 @if($user->address)
                 <div class="md:col-span-2 border rounded-lg p-4">
                     <p class="text-sm text-gray-500">Address</p>
                     <p class="font-medium">{{ $user->address }}</p>
                 </div>
+                @endif
+                @if($user->permanent_address || $user->temporary_address)
+                    <div class="md:col-span-2 border rounded-lg p-4">
+                        <p class="text-sm text-gray-500">Registered Addresses</p>
+                        <dl class="mt-2 grid gap-3 text-sm md:grid-cols-2">
+                            <div><dt class="font-medium text-gray-700">Permanent</dt><dd>{{ $user->permanent_address ?? 'Not specified' }}</dd></div>
+                            <div><dt class="font-medium text-gray-700">Temporary</dt><dd>{{ $user->temporary_address ?? 'Not specified' }}</dd></div>
+                        </dl>
+                    </div>
                 @endif
                 @if($user->business_name)
                 <div class="md:col-span-2 border rounded-lg p-4">

@@ -10,6 +10,8 @@ use App\Models\Shipment;
 use App\Models\ProofOfDelivery;
 use App\Models\User;
 use App\Models\ReminderLog;
+use App\Models\ManifestShipmentEvent;
+use App\Notifications\ManifestAssignedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,11 @@ class ManifestController extends Controller
     {
         $query = Manifest::with(['creator', 'partner']);
 
+        $this->ensureManifestUser($request->user());
+        if ($request->user()->user_type === 'partner') {
+            $query->where('partner_id', $request->user()->id);
+        }
+
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -45,10 +52,10 @@ class ManifestController extends Controller
         $manifests = $query->orderBy('created_at', 'desc')->paginate(20);
 
         $stats = [
-            'total' => Manifest::count(),
-            'pending' => Manifest::where('status', 'pending')->count(),
-            'in_transit' => Manifest::where('status', 'in_transit')->count(),
-            'delivered' => Manifest::where('status', 'delivered')->count(),
+            'total' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'pending')->count(),
+            'in_transit' => (clone $query)->where('status', 'in_transit')->count(),
+            'delivered' => (clone $query)->where('status', 'delivered')->count(),
         ];
 
         return view('domestic.manifests.index', compact('manifests', 'stats'));
@@ -59,13 +66,15 @@ class ManifestController extends Controller
      */
     public function create()
     {
+        $this->ensureOperationsUser(auth()->user());
         $partners = User::where('user_type', 'partner')
             ->where('verification_status', 'approved')
             ->get();
 
         // Get shipments that are not yet manifested
-        $shipments = Shipment::where('shipment_type', 'domestic')
-            ->where('status', 'pending')
+        $shipments = Shipment::where('sender_country', 'Nepal')
+            ->where('receiver_country', 'Nepal')
+            ->whereIn('status', ['pending', 'confirmed'])
             ->whereDoesntHave('manifestShipment')
             ->get();
 
@@ -77,9 +86,108 @@ class ManifestController extends Controller
      */
     public function store(Request $request)
     {
-        // Validation will be added
-        return redirect()->route('domestic.manifests.index')
-            ->with('success', 'Manifest created successfully!');
+        $this->ensureOperationsUser($request->user());
+
+        $data = $request->validate([
+            'load_type' => 'required|in:consolidated,direct,express',
+            'partner_id' => 'nullable|exists:users,id',
+            'origin_city' => 'required|string|max:255',
+            'destination_city' => 'required|string|max:255',
+            'delivery_type' => 'required|in:door_delivery,pickup,warehouse',
+            'payment_status' => 'required|in:pending,paid,cod',
+            'bags' => 'required|array|min:1',
+            'bags.*.bag_type' => 'required|in:consolidated,direct,express',
+            'bags.*.weight' => 'nullable|numeric|min:0',
+            'bags.*.shipments' => 'required|array|min:1',
+            'bags.*.shipments.*' => 'required|integer|exists:shipments,id',
+        ]);
+
+        if ($data['partner_id'] && !User::whereKey($data['partner_id'])->where('user_type', 'partner')->where('verification_status', 'approved')->exists()) {
+            return back()->withErrors(['partner_id' => 'Select an approved domestic delivery partner.'])->withInput();
+        }
+
+        $shipmentIds = collect($data['bags'])->pluck('shipments')->flatten();
+        if ($shipmentIds->duplicates()->isNotEmpty()) {
+            return back()->withErrors(['bags' => 'A shipment can be added to a manifest only once.'])->withInput();
+        }
+
+        $manifest = DB::transaction(function () use ($data, $shipmentIds, $request) {
+            $shipments = Shipment::whereIn('id', $shipmentIds)->lockForUpdate()->get()->keyBy('id');
+            if ($shipments->count() !== $shipmentIds->count() || $shipments->contains(fn (Shipment $shipment) => $shipment->sender_country !== 'Nepal' || $shipment->receiver_country !== 'Nepal')) {
+                abort(422, 'Only available domestic shipments may be manifested.');
+            }
+
+            $alreadyAssigned = ManifestShipment::whereIn('shipment_id', $shipmentIds)
+                ->whereNotIn('status', ['delivered', 'forwarded', 'cancelled'])
+                ->lockForUpdate()
+                ->exists();
+            if ($alreadyAssigned) {
+                abort(422, 'One or more selected shipments are already assigned to an active manifest.');
+            }
+
+            $manifest = Manifest::create([
+                'manifest_number' => Manifest::generateManifestNumber(),
+                'created_by' => $request->user()->id,
+                'partner_id' => $data['partner_id'],
+                'load_type' => $data['load_type'],
+                'status' => 'pending',
+                'origin_city' => $data['origin_city'],
+                'destination_city' => $data['destination_city'],
+                'current_location' => $data['origin_city'],
+            ]);
+
+            $totalWeight = 0;
+            foreach ($data['bags'] as $bagData) {
+                $bagShipmentIds = collect($bagData['shipments']);
+                $weight = (float) ($bagData['weight'] ?? 0);
+                $bag = ManifestBag::create([
+                    'manifest_id' => $manifest->id,
+                    'bag_number' => ManifestBag::generateBagNumber(),
+                    'qr_code' => ManifestBag::generateQRCode(),
+                    'bag_type' => $bagData['bag_type'],
+                    'shipment_count' => $bagShipmentIds->count(),
+                    'weight' => $weight,
+                    'current_location' => $data['origin_city'],
+                ]);
+                $totalWeight += $weight;
+
+                foreach ($bagShipmentIds as $shipmentId) {
+                    $line = ManifestShipment::create([
+                        'manifest_id' => $manifest->id,
+                        'bag_id' => $bag->id,
+                        'shipment_id' => $shipmentId,
+                        'partner_id' => $data['partner_id'],
+                        'delivery_type' => $data['delivery_type'],
+                        'payment_status' => $data['payment_status'],
+                        'status' => 'pending',
+                    ]);
+                    ManifestShipmentEvent::create([
+                        'manifest_shipment_id' => $line->id,
+                        'event_type' => 'manifested',
+                        'to_status' => 'pending',
+                        'to_partner_id' => $data['partner_id'],
+                        'performed_by' => $request->user()->id,
+                    ]);
+                    $manifest->addTrackingLog('manifested', 'Shipment added to the manifest.', $data['origin_city'], $bag->id, $shipmentId);
+                }
+            }
+
+            $manifest->update([
+                'total_bags' => $manifest->bags()->count(),
+                'total_shipments' => $shipmentIds->count(),
+                'total_weight' => $totalWeight,
+            ]);
+            $manifest->addTrackingLog('created', 'Manifest created with assigned shipments.', $data['origin_city']);
+
+            return $manifest;
+        });
+
+        if ($manifest->partner) {
+            $manifest->partner->notify(new ManifestAssignedNotification($manifest));
+        }
+
+        return redirect()->route('domestic.manifests.show', $manifest)
+            ->with('success', 'Manifest created and the assigned partner was notified.');
     }
 
     /**
@@ -87,10 +195,13 @@ class ManifestController extends Controller
      */
     public function show($id)
     {
-        $manifest = Manifest::with(['creator', 'partner', 'bags', 'bags.shipments', 'trackingLogs'])
+        $manifest = Manifest::with(['creator', 'partner', 'bags', 'bags.shipments', 'shipments.shipment', 'shipments.bag', 'shipments.events', 'trackingLogs.performedBy'])
             ->findOrFail($id);
+        $this->ensureCanAccessManifest(request()->user(), $manifest);
+        $forwardPartners = User::whereIn('user_type', ['partner', 'overseas'])
+            ->where('verification_status', 'approved')->orderBy('name')->get();
 
-        return view('domestic.manifests.show', compact('manifest'));
+        return view('domestic.manifests.show', compact('manifest', 'forwardPartners'));
     }
 
     /**
@@ -99,6 +210,7 @@ class ManifestController extends Controller
     public function edit($id)
     {
         $manifest = Manifest::with(['bags', 'bags.shipments'])->findOrFail($id);
+        $this->ensureOperationsUser(auth()->user());
         $partners = User::where('user_type', 'partner')->where('verification_status', 'approved')->get();
 
         return view('domestic.manifests.edit', compact('manifest', 'partners'));
@@ -109,8 +221,19 @@ class ManifestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        return redirect()->route('domestic.manifests.show', $id)
-            ->with('success', 'Manifest updated successfully!');
+        $manifest = Manifest::findOrFail($id);
+        $this->ensureOperationsUser($request->user());
+        $data = $request->validate([
+            'partner_id' => 'nullable|exists:users,id',
+            'origin_city' => 'required|string|max:255',
+            'destination_city' => 'required|string|max:255',
+            'current_location' => 'nullable|string|max:255',
+        ]);
+        $manifest->update($data);
+        $manifest->addTrackingLog('updated', 'Manifest details updated.', $data['current_location'] ?? $manifest->current_location);
+
+        return redirect()->route('domestic.manifests.show', $manifest)
+            ->with('success', 'Manifest details updated successfully.');
     }
 
     /**
@@ -118,18 +241,40 @@ class ManifestController extends Controller
      */
     public function scanBag(Request $request)
     {
+        $data = $request->validate([
+            'qr_code' => 'required|string',
+            'action' => 'required|in:receive,sort,dispatch',
+            'location' => 'nullable|string|max:255',
+        ]);
+        $bag = ManifestBag::with('manifest')->where('qr_code', $data['qr_code'])->firstOrFail();
+        $this->ensureCanAccessManifest($request->user(), $bag->manifest);
+
+        $status = ['receive' => 'scanned', 'sort' => 'sorted', 'dispatch' => 'dispatched'][$data['action']];
+        $timestamps = [
+            'scanned' => ['scanned_at' => now()],
+            'sorted' => ['sorted_at' => now()],
+            'dispatched' => ['dispatched_at' => now()],
+        ][$status];
+        $bag->update(array_merge($timestamps, ['status' => $status, 'current_location' => $data['location'] ?? $bag->current_location]));
+        if ($status === 'dispatched') {
+            $bag->shipments()->whereNotIn('status', ['delivered', 'forwarded'])->update(['status' => 'dispatched', 'dispatched_at' => now()]);
+            $bag->manifest->update(['status' => 'in_transit', 'dispatched_at' => now(), 'current_location' => $data['location'] ?? $bag->current_location]);
+        }
+        $bag->manifest->addTrackingLog($status, "Bag {$bag->bag_number} marked {$status}.", $data['location'] ?? $bag->current_location, $bag->id);
+
         return response()->json([
             'success' => true,
-            'message' => 'Bag scanned successfully!'
+            'message' => "Bag marked {$status} successfully."
         ]);
     }
 
     /**
      * List all PODs with filters
      */
-    public function pods(Request $request)
+public function pods(Request $request)
 {
     $query = ProofOfDelivery::with(['shipment', 'manifest', 'uploadedBy']);
+    $this->applyPodVisibility($query, $request->user());
 
     if ($request->has('search') && $request->search) {
         $search = $request->search;
@@ -154,10 +299,10 @@ class ManifestController extends Controller
     $pods = $query->orderBy('created_at', 'desc')->paginate(20);
 
     $stats = [
-        'total' => ProofOfDelivery::count(),
-        'uploaded' => ProofOfDelivery::where('status', 'uploaded')->count(),
-        'verified' => ProofOfDelivery::where('status', 'verified')->count(),
-        'pending' => ProofOfDelivery::where('status', 'pending')->count(),
+        'total' => (clone $query)->count(),
+        'uploaded' => (clone $query)->where('status', 'uploaded')->count(),
+        'verified' => (clone $query)->where('status', 'verified')->count(),
+        'pending' => (clone $query)->where('status', 'pending')->count(),
     ];
 
     return view('domestic.manifests.pods', compact('pods', 'stats'));
@@ -170,6 +315,7 @@ class ManifestController extends Controller
     {
         $pod = ProofOfDelivery::with(['shipment', 'manifest', 'uploadedBy'])
             ->findOrFail($id);
+        $this->ensureCanAccessManifest(request()->user(), $pod->manifest);
 
         return view('domestic.manifests.pod-details', compact('pod'));
     }
@@ -313,8 +459,9 @@ public function uploadPOD(Request $request)
 
     } catch (\Exception $e) {
         DB::rollBack();
+        report($e);
         return back()
-            ->with('error', '❌ Failed to upload POD: ' . $e->getMessage())
+            ->with('error', 'The proof of delivery could not be saved. Please check the details and try again.')
             ->withInput();
     }
 }
@@ -361,15 +508,161 @@ public function uploadPOD(Request $request)
 public function showUploadForm($shipmentId)
 {
     $shipment = Shipment::findOrFail($shipmentId);
-    $manifestShipment = ManifestShipment::where('shipment_id', $shipmentId)->first();
+    $manifestShipment = ManifestShipment::with('manifest')->where('shipment_id', $shipmentId)->latest()->first();
     
     if (!$manifestShipment) {
         return redirect()->route('domestic.manifests.pods')
             ->with('error', 'No manifest found for this shipment.');
     }
+    $this->ensureCanAccessManifest(request()->user(), $manifestShipment->manifest);
     
     return view('domestic.manifests.pod-upload', compact('shipment', 'manifestShipment'));
 }
+
+    /** Update an individual manifest line without permitting invalid jumps. */
+    public function updateShipmentStatus(Request $request, Manifest $manifest, ManifestShipment $manifestShipment)
+    {
+        abort_unless((int) $manifestShipment->manifest_id === (int) $manifest->id, 404);
+        $this->ensureCanAccessManifest($request->user(), $manifest);
+        $data = $request->validate([
+            'status' => 'required|in:received,processed,dispatched,delivery_attempted,delivered,exception',
+            'notes' => 'nullable|string|max:2000',
+            'location' => 'nullable|string|max:255',
+        ]);
+
+        $allowed = [
+            'pending' => ['received', 'exception'],
+            'received' => ['processed', 'exception'],
+            'processed' => ['dispatched', 'exception'],
+            'dispatched' => ['delivery_attempted', 'delivered', 'exception'],
+            'delivery_attempted' => ['delivered', 'exception'],
+            'exception' => ['received', 'processed'],
+        ];
+        abort_unless(in_array($data['status'], $allowed[$manifestShipment->status] ?? [], true), 422, 'This shipment status transition is not allowed.');
+
+        DB::transaction(function () use ($data, $manifest, $manifestShipment, $request) {
+            $fromStatus = $manifestShipment->status;
+            $attributes = ['status' => $data['status'], 'notes' => $data['notes'] ?? $manifestShipment->notes];
+            if ($data['status'] === 'received') $attributes['received_at'] = now();
+            if ($data['status'] === 'dispatched') $attributes['dispatched_at'] = now();
+            if ($data['status'] === 'delivered') $attributes['delivered_at'] = now();
+            $manifestShipment->update($attributes);
+            ManifestShipmentEvent::create([
+                'manifest_shipment_id' => $manifestShipment->id,
+                'event_type' => 'status_changed',
+                'from_status' => $fromStatus,
+                'to_status' => $data['status'],
+                'performed_by' => $request->user()->id,
+                'notes' => $data['notes'] ?? null,
+            ]);
+            $manifest->addTrackingLog($data['status'], "Shipment status changed from {$fromStatus} to {$data['status']}.", $data['location'] ?? $manifest->current_location, $manifestShipment->bag_id, $manifestShipment->shipment_id);
+        });
+
+        return back()->with('success', 'Shipment status updated and recorded in the manifest history.');
+    }
+
+    /** Forward an undelivered line through a new auditable manifest. */
+    public function forwardShipment(Request $request, Manifest $manifest, ManifestShipment $manifestShipment)
+    {
+        abort_unless((int) $manifestShipment->manifest_id === (int) $manifest->id, 404);
+        $this->ensureCanAccessManifest($request->user(), $manifest);
+        abort_if(in_array($manifestShipment->status, ['delivered', 'forwarded', 'cancelled'], true), 422, 'This shipment cannot be forwarded.');
+        $data = $request->validate([
+            'partner_id' => ['required', \Illuminate\Validation\Rule::exists('users', 'id')->where(fn ($query) => $query->whereIn('user_type', ['partner', 'overseas'])->where('verification_status', 'approved'))],
+            'notes' => 'required|string|max:2000',
+        ]);
+
+        $forwardManifest = DB::transaction(function () use ($data, $manifest, $manifestShipment, $request) {
+            $lockedLine = ManifestShipment::lockForUpdate()->findOrFail($manifestShipment->id);
+            abort_if(in_array($lockedLine->status, ['delivered', 'forwarded', 'cancelled'], true), 422, 'This shipment was already forwarded or completed.');
+            $forwardManifest = Manifest::create([
+                'manifest_number' => Manifest::generateManifestNumber(),
+                'created_by' => $request->user()->id,
+                'partner_id' => $data['partner_id'],
+                'load_type' => 'forwarded',
+                'status' => 'pending',
+                'origin_city' => $manifest->current_location ?: $manifest->origin_city,
+                'destination_city' => $manifest->destination_city,
+                'current_location' => $manifest->current_location,
+                'total_bags' => 1,
+                'total_shipments' => 1,
+            ]);
+            $bag = ManifestBag::create([
+                'manifest_id' => $forwardManifest->id,
+                'bag_number' => ManifestBag::generateBagNumber(),
+                'qr_code' => ManifestBag::generateQRCode(),
+                'bag_type' => 'forwarded',
+                'shipment_count' => 1,
+                'weight' => 0,
+                'current_location' => $forwardManifest->current_location,
+            ]);
+            $forwardLine = ManifestShipment::create([
+                'manifest_id' => $forwardManifest->id,
+                'bag_id' => $bag->id,
+                'shipment_id' => $lockedLine->shipment_id,
+                'partner_id' => $data['partner_id'],
+                'status' => 'pending',
+                'delivery_type' => $lockedLine->delivery_type,
+                'payment_status' => $lockedLine->payment_status,
+                'notes' => $data['notes'],
+            ]);
+            $previousStatus = $lockedLine->status;
+            $lockedLine->update(['status' => 'forwarded', 'notes' => $data['notes']]);
+            ManifestShipmentEvent::create([
+                'manifest_shipment_id' => $lockedLine->id,
+                'event_type' => 'forwarded',
+                'from_status' => $previousStatus,
+                'to_status' => 'forwarded',
+                'from_partner_id' => $lockedLine->partner_id,
+                'to_partner_id' => $data['partner_id'],
+                'performed_by' => $request->user()->id,
+                'notes' => $data['notes'],
+                'metadata' => ['forward_manifest_id' => $forwardManifest->id, 'forward_manifest_shipment_id' => $forwardLine->id],
+            ]);
+            ManifestShipmentEvent::create([
+                'manifest_shipment_id' => $forwardLine->id,
+                'event_type' => 're_manifested',
+                'to_status' => 'pending',
+                'from_partner_id' => $lockedLine->partner_id,
+                'to_partner_id' => $data['partner_id'],
+                'performed_by' => $request->user()->id,
+                'notes' => $data['notes'],
+                'metadata' => ['source_manifest_id' => $manifest->id, 'source_manifest_shipment_id' => $lockedLine->id],
+            ]);
+            $manifest->addTrackingLog('forwarded', "Shipment forwarded to a new partner manifest {$forwardManifest->manifest_number}.", $manifest->current_location, $lockedLine->bag_id, $lockedLine->shipment_id);
+            $forwardManifest->addTrackingLog('created', "Forward manifest created from {$manifest->manifest_number}.", $forwardManifest->current_location, $bag->id, $lockedLine->shipment_id);
+            return $forwardManifest;
+        });
+
+        $forwardManifest->partner?->notify(new ManifestAssignedNotification($forwardManifest));
+        return redirect()->route('domestic.manifests.show', $forwardManifest)->with('success', 'Shipment forwarded and the new partner was notified.');
+    }
+
+    private function ensureManifestUser(User $user): void
+    {
+        abort_unless(in_array($user->user_type, ['super_admin', 'admin', 'domestic_admin', 'staff', 'partner'], true), 403);
+    }
+
+    private function ensureOperationsUser(User $user): void
+    {
+        abort_unless(in_array($user->user_type, ['super_admin', 'admin', 'domestic_admin', 'staff'], true), 403);
+    }
+
+    private function ensureCanAccessManifest(User $user, ?Manifest $manifest): void
+    {
+        $this->ensureManifestUser($user);
+        if ($user->user_type === 'partner') {
+            abort_unless($manifest && (int) $manifest->partner_id === (int) $user->id, 403);
+        }
+    }
+
+    private function applyPodVisibility($query, User $user): void
+    {
+        $this->ensureManifestUser($user);
+        if ($user->user_type === 'partner') {
+            $query->whereHas('manifest', fn ($manifestQuery) => $manifestQuery->where('partner_id', $user->id));
+        }
+    }
 
 
 }

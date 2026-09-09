@@ -197,7 +197,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="company-name">COURIER by NETPACK</div>
+            <div class="company-name">COURIER with NETPACK</div>
             <div class="company-tagline">International Logistics & Grocery Express</div>
             <div class="hawb-title">HOUSE AIR WAYBILL (HAWB)</div>
         </div>
