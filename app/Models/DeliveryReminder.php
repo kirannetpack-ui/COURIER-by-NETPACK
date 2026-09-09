@@ -16,13 +16,15 @@ class DeliveryReminder extends Model
         'scheduled_at',
         'sent_at',
         'is_sent',
-        'message'
+        'message',
+        'metadata'
     ];
     
     protected $casts = [
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
-        'is_sent' => 'boolean'
+        'is_sent' => 'boolean',
+        'metadata' => 'array'
     ];
     
     /**

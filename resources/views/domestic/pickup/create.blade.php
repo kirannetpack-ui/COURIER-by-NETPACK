@@ -18,30 +18,28 @@
         <form method="POST" action="{{ route('domestic.pickup.store') }}" class="p-6">
             @csrf
             
-            <!-- Service Tier Selection -->
+            <!-- Service Tier Selection (Dynamic) -->
             <div class="mb-6">
                 <label class="block text-sm font-medium mb-3">Select Service Tier</label>
+                @php
+                    $availableServices = \App\Models\LogisticsService::where('is_active', true)
+                        ->whereIn('category', ['domestic', 'ecommerce'])
+                        ->orderBy('sort_order', 'asc')
+                        ->get();
+                @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 transition">
-                        <input type="radio" name="service_tier" value="flash" required>
-                        <i class="fas fa-bolt text-yellow-500"></i>
-                        <span class="font-medium text-sm ml-1">Flash (2-4 hours)</span>
-                    </label>
-                    <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 transition">
-                        <input type="radio" name="service_tier" value="same_day">
-                        <i class="fas fa-sun text-orange-500"></i>
-                        <span class="font-medium text-sm ml-1">Same Day (By 8 PM)</span>
-                    </label>
-                    <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 transition">
-                        <input type="radio" name="service_tier" value="standard">
-                        <i class="fas fa-truck text-teal-600"></i>
-                        <span class="font-medium text-sm ml-1">Standard (1-3 days)</span>
-                    </label>
-                    <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 transition">
-                        <input type="radio" name="service_tier" value="himalayan">
-                        <i class="fas fa-mountain text-blue-600"></i>
-                        <span class="font-medium text-sm ml-1">Himalayan (3-7 days)</span>
-                    </label>
+                    @forelse($availableServices as $svc)
+                        <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 dark:hover:bg-slate-800 transition block">
+                            <input type="radio" name="service_tier" value="{{ $svc->code }}" {{ $loop->first ? 'checked' : '' }} required>
+                            <span class="font-medium text-sm ml-1">{{ $svc->name }}</span>
+                            <span class="block text-[11px] text-teal-600 dark:text-teal-400 font-mono mt-1">⏱️ {{ $svc->transit_display }}</span>
+                        </label>
+                    @empty
+                        <label class="border rounded-xl p-3 cursor-pointer hover:bg-teal-50 transition">
+                            <input type="radio" name="service_tier" value="standard" checked required>
+                            <span class="font-medium text-sm ml-1">Standard (1-3 days)</span>
+                        </label>
+                    @endforelse
                 </div>
             </div>
             

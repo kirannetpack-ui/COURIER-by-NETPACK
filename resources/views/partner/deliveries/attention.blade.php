@@ -164,10 +164,57 @@
                     </table>
                 </div>
             @else
-                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
                     <i class="fas fa-check-circle mr-2"></i> No deliveries approaching deadline. All good! 👍
                 </div>
             @endif
+
+            <!-- Transit Reminders Timeline -->
+            <div class="mt-8 pt-6 border-t">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-bell text-teal-600"></i> Partner SLA & Transit Reminders
+                    </h3>
+                    <span class="text-xs text-gray-500">Automated milestone notifications based on package transit time</span>
+                </div>
+
+                @if(isset($recentReminders) && $recentReminders->count() > 0)
+                    <div class="space-y-3">
+                        @foreach($recentReminders as $log)
+                            <div class="p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:border-teal-300 transition flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $log->status === 'sent' ? 'bg-teal-100 text-teal-800' : 'bg-gray-200 text-gray-700' }}">
+                                            {{ $log->channel ?? 'Email' }} &bull; {{ ucfirst($log->status) }}
+                                        </span>
+                                        @if(isset($log->metadata['reminder_number']))
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                                                Interval #{{ $log->metadata['reminder_number'] }}
+                                            </span>
+                                        @endif
+                                        <span class="text-xs text-gray-500">
+                                            {{ $log->sent_at ? \Carbon\Carbon::parse($log->sent_at)->format('M d, H:i') : $log->created_at->format('M d, H:i') }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-800 font-medium whitespace-pre-line">{{ $log->message }}</p>
+                                </div>
+                                @if($log->pickup_request_id)
+                                    <a href="{{ route('partner.deliveries.show', $log->pickup_request_id) }}" 
+                                       class="text-xs font-semibold text-teal-600 hover:text-teal-800 whitespace-nowrap flex items-center gap-1">
+                                        <span>View Order #{{ $log->pickup_request_id }}</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="p-6 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <i class="fas fa-bell-slash text-2xl mb-2 text-gray-300"></i>
+                        <p class="text-xs">No active transit reminders logged for your assigned packages yet.</p>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </div>

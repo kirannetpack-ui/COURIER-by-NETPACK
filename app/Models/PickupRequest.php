@@ -122,7 +122,16 @@ public function hasPendingReminders()
 
 public function getServiceTimeframeAttribute()
 {
-    $timeframes = [
+    $service = \App\Models\LogisticsService::where('code', $this->service_tier)->first();
+    if ($service) {
+        return [
+            'hours' => (float) $service->transit_time_hours,
+            'label' => $service->name,
+            'service' => $service,
+        ];
+    }
+
+    $fallbackTimeframes = [
         'ecommerce' => ['hours' => 1, 'label' => '1 hour'],
         'flash' => ['hours' => 4, 'label' => '2-4 hours'],
         'same_day' => ['hours' => 12, 'label' => 'Today by 8 PM'],
@@ -130,19 +139,20 @@ public function getServiceTimeframeAttribute()
         'himalayan' => ['hours' => 168, 'label' => '3-7 days'],
     ];
     
-    return $timeframes[$this->service_tier] ?? ['hours' => 48, 'label' => 'Standard'];
+    return $fallbackTimeframes[$this->service_tier] ?? ['hours' => 48, 'label' => 'Standard'];
 }
 
 public function getDeadlineAttribute()
 {
     $timeframe = $this->service_timeframe;
-    return $this->created_at->copy()->addHours($timeframe['hours']);
+    $baseTime = $this->scheduled_pickup_time ? \Carbon\Carbon::parse($this->scheduled_pickup_time) : ($this->created_at ? $this->created_at->copy() : now());
+    return $baseTime->copy()->addMinutes(round($timeframe['hours'] * 60));
 }
 
 public function getHoursRemainingAttribute()
 {
     $deadline = $this->deadline;
-    return now()->diffInHours($deadline, false);
+    return round(now()->diffInMinutes($deadline, false) / 60, 1);
 }
 
 public function getIsApproachingDeadlineAttribute()

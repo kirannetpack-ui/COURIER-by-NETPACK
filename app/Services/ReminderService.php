@@ -10,10 +10,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
+use App\Models\LogisticsService;
+
 class ReminderService
 {
     /**
-     * Service timeframes in hours
+     * Fallback service timeframes in hours (when database service not found)
      */
     protected $serviceTimeframes = [
         'ecommerce' => 1,
@@ -24,7 +26,7 @@ class ReminderService
     ];
 
     /**
-     * Service labels
+     * Fallback service labels
      */
     protected $serviceLabels = [
         'ecommerce' => 'E-commerce (1 hour)',
@@ -35,39 +37,71 @@ class ReminderService
     ];
 
     /**
-     * Schedule reminders for a pickup request
+     * Schedule reminders for a pickup request dynamically based on service transit time
      */
     public function scheduleReminders(PickupRequest $pickup)
     {
-        // Clear existing reminders for this pickup
-        DeliveryReminder::where('pickup_request_id', $pickup->id)->delete();
+        // Clear unsent reminders for this pickup
+        DeliveryReminder::where('pickup_request_id', $pickup->id)
+            ->where('is_sent', false)
+            ->delete();
         
         $serviceTier = $pickup->service_tier ?? 'standard';
-        
-        switch ($serviceTier) {
-            case 'ecommerce':
-                $this->scheduleEcommerceReminders($pickup);
-                break;
-            case 'flash':
-                $this->scheduleFlashReminders($pickup);
-                break;
-            case 'same_day':
-                $this->scheduleSameDayReminders($pickup);
-                break;
-            case 'standard':
-                $this->scheduleStandardReminders($pickup);
-                break;
-            case 'himalayan':
-                $this->scheduleHimalayanReminders($pickup);
-                break;
-            default:
-                $this->scheduleStandardReminders($pickup);
-                break;
+        $service = LogisticsService::where('code', $serviceTier)->first();
+        $startTime = Carbon::parse($pickup->scheduled_pickup_time ?? $pickup->created_at);
+
+        if ($service) {
+            $checkpoints = $service->getReminderCheckpoints($startTime);
+            $serviceName = $service->name;
+            $transitHours = (float) $service->transit_time_hours;
+        } else {
+            $transitHours = (float) ($this->serviceTimeframes[$serviceTier] ?? 72);
+            $serviceName = $this->serviceLabels[$serviceTier] ?? ucfirst(str_replace('_', ' ', $serviceTier));
+            $checkpoints = [
+                [
+                    'reminder_number' => 1,
+                    'milestone_percent' => 50,
+                    'scheduled_at' => $startTime->copy()->addMinutes(round($transitHours * 30)),
+                    'remaining_hours' => round($transitHours * 0.5, 1),
+                    'is_urgent' => false,
+                ],
+                [
+                    'reminder_number' => 2,
+                    'milestone_percent' => 75,
+                    'scheduled_at' => $startTime->copy()->addMinutes(round($transitHours * 45)),
+                    'remaining_hours' => round($transitHours * 0.25, 1),
+                    'is_urgent' => true,
+                ],
+            ];
+        }
+
+        $scheduledCount = 0;
+        foreach ($checkpoints as $cp) {
+            $scheduledAt = $cp['scheduled_at'];
+            if ($scheduledAt->isPast()) {
+                continue;
+            }
+
+            $num = $cp['reminder_number'];
+            $pct = $cp['milestone_percent'] ?? null;
+            $rem = $cp['remaining_hours'] ?? null;
+            $urgent = $cp['is_urgent'] ?? false;
+
+            // Schedule for partner
+            $this->createDynamicReminder($pickup->id, $serviceTier, 'partner', $num, $scheduledAt, $serviceName, $transitHours, $pct, $rem, $urgent);
+
+            // Schedule for admin
+            $this->createDynamicReminder($pickup->id, $serviceTier, 'admin', $num, $scheduledAt, $serviceName, $transitHours, $pct, $rem, $urgent);
+
+            $scheduledCount++;
         }
         
-        Log::info('Reminders scheduled for pickup', [
+        Log::info('Reminders dynamically scheduled for pickup', [
             'pickup_id' => $pickup->id,
             'service_tier' => $serviceTier,
+            'service_name' => $serviceName,
+            'transit_hours' => $transitHours,
+            'checkpoints_count' => $scheduledCount,
             'tracking_number' => $pickup->tracking_number
         ]);
     }
@@ -173,7 +207,54 @@ class ReminderService
     }
 
     /**
-     * Create a reminder record
+     * Create dynamic reminder record with SLA details and checkpoint metadata
+     */
+    public function createDynamicReminder($pickupId, $serviceTier, $reminderType, $number, $scheduledAt, $serviceName, $transitHours, $percent = null, $remainingHours = null, $isUrgent = false)
+    {
+        if ($scheduledAt->isPast()) {
+            return;
+        }
+
+        $message = $this->getDynamicReminderMessage($serviceTier, $reminderType, $number, $serviceName, $transitHours, $percent, $remainingHours, $isUrgent);
+
+        DeliveryReminder::create([
+            'pickup_request_id' => $pickupId,
+            'service_tier' => $serviceTier,
+            'reminder_type' => $reminderType,
+            'reminder_number' => $number,
+            'scheduled_at' => $scheduledAt,
+            'is_sent' => false,
+            'message' => $message,
+            'metadata' => [
+                'service_name' => $serviceName,
+                'transit_hours' => $transitHours,
+                'milestone_percent' => $percent,
+                'remaining_hours' => $remainingHours,
+                'is_urgent' => $isUrgent,
+            ],
+        ]);
+    }
+
+    /**
+     * Build rich dynamic reminder message
+     */
+    public function getDynamicReminderMessage($serviceTier, $reminderType, $number, $serviceName, $transitHours, $percent = null, $remainingHours = null, $isUrgent = false)
+    {
+        $urgencyPrefix = $isUrgent ? '⚠️ URGENT: ' : '⏱️ ';
+        $pctText = $percent ? " ({$percent}% SLA elapsed)" : "";
+        $remText = ($remainingHours !== null && $remainingHours > 0) ? " Approx {$remainingHours}h remaining before deadline." : "";
+
+        if ($reminderType === 'partner') {
+            return "{$urgencyPrefix}REMINDER #{$number}{$pctText}: Your {$serviceName} delivery deadline is approaching (Transit SLA: {$transitHours}h).{$remText} Please ensure timely dispatch and update telemetry.";
+        } elseif ($reminderType === 'admin') {
+            return "{$urgencyPrefix}ALERT #{$number}{$pctText}: {$serviceName} consignment deadline is approaching (Transit SLA: {$transitHours}h).{$remText} Please follow up with the delivery partner.";
+        } else {
+            return "{$urgencyPrefix}REMINDER #{$number}: Your {$serviceName} delivery is approaching the scheduled arrival time.";
+        }
+    }
+
+    /**
+     * Create a reminder record (Legacy fallback)
      */
     private function createReminder($pickupId, $serviceTier, $reminderType, $number, $scheduledAt)
     {
@@ -269,24 +350,26 @@ class ReminderService
     private function notifyPartner($pickup, $reminder)
     {
         $partner = $pickup->partner;
-        if (!$partner) return;
+        $sentTo = $partner ? ($partner->email ?? 'partner@netpack.local') : 'operations@netpack.local';
         
         $phone = $pickup->customer_phone ?? 'N/A';
-        $message = $reminder->message . "\n\n📦 Order ID: #{$pickup->id}\n👤 Customer: {$pickup->customer_name}\n📍 Delivery Address: {$pickup->delivery_address}\n📱 Phone: {$phone}";
+        $message = $reminder->message . "\n\n📦 Order ID: #{$pickup->id}\nTracking: " . ($pickup->tracking_number ?? 'Pending') . "\n👤 Client: {$pickup->customer_name}\n📍 Delivery Address: {$pickup->delivery_address}\n📱 Phone: {$phone}";
         
         ReminderLog::create([
             'pickup_request_id' => $pickup->id,
             'reminder_id' => $reminder->id,
             'reminder_type' => 'partner',
-            'sent_to' => $partner->email,
+            'sent_to' => $sentTo,
             'message' => $message,
             'channel' => 'email',
             'status' => 'sent',
             'sent_at' => now(),
-            'metadata' => [
+            'metadata' => array_merge($reminder->metadata ?? [], [
                 'reminder_number' => $reminder->reminder_number,
                 'service_tier' => $reminder->service_tier,
-            ]
+                'partner_name' => $partner ? $partner->name : 'Unassigned',
+                'tracking_number' => $pickup->tracking_number,
+            ])
         ]);
         
         if ($reminder->reminder_number === 1 && !$pickup->customer_notified) {

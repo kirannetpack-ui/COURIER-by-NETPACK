@@ -220,8 +220,14 @@
         <!-- COMMUNICATIONS & REMINDERS (NEW) -->
         <!-- ============================================== -->
         <div class="pt-3">
-            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Communications</p>
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Operations & SLAs</p>
             
+            <a href="{{ route('admin.services.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.services*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-sliders w-4 text-center text-teal-400"></i>
+                <span>Services & Transit SLA</span>
+                <span class="ml-auto bg-teal-500/20 text-teal-300 text-[10px] font-mono px-1.5 py-0.5 rounded">{{ \App\Models\LogisticsService::count() }}</span>
+            </a>
+
             <a href="{{ route('admin.communications') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.communications*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-triangle-exclamation w-4 text-center text-amber-400"></i>
                 <span>Alerts & Delay Hub</span>

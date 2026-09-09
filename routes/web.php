@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DomesticPickupController as AdminDomesticPickupCo
 // =============================================
 use App\Http\Controllers\Admin\DomesticRateController;
 use App\Http\Controllers\Admin\DomesticShipmentController;
+use App\Http\Controllers\Admin\LogisticsServiceController;
 use App\Http\Controllers\Admin\OverseasPartnerController;
 use App\Http\Controllers\Admin\PartnerChargeController;
 use App\Http\Controllers\Admin\PartnerController;
@@ -448,6 +449,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
     Route::get('/communications', [\App\Http\Controllers\Admin\CommunicationController::class, 'index'])->name('communications');
     Route::post('/communications/send-delay', [\App\Http\Controllers\Admin\CommunicationController::class, 'sendDelayAlert'])->name('communications.send-delay');
     Route::post('/communications/resend/{id}', [\App\Http\Controllers\Admin\CommunicationController::class, 'resendReminder'])->name('communications.resend');
+
+    // Dynamic Logistics Services & Transit Time SLA Config
+    Route::get('/services', [LogisticsServiceController::class, 'index'])->name('services.index');
+    Route::post('/services', [LogisticsServiceController::class, 'store'])->name('services.store');
+    Route::put('/services/{id}', [LogisticsServiceController::class, 'update'])->name('services.update');
+    Route::delete('/services/{id}', [LogisticsServiceController::class, 'destroy'])->name('services.destroy');
+    Route::post('/services/{id}/toggle', [LogisticsServiceController::class, 'toggle'])->name('services.toggle');
 });
 
 // =============================================

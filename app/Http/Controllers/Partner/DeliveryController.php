@@ -33,7 +33,8 @@ class DeliveryController extends Controller
         $user = Auth::user();
         
         if ($user->user_type === 'partner') {
-            return $user->id;
+            $dp = \App\Models\DomesticPartner::where('email', $user->email)->first();
+            return $dp ? $dp->id : $user->id;
         }
         
         if ($user->user_type === 'partner_staff' && $user->partner_id) {
@@ -392,19 +393,7 @@ class DeliveryController extends Controller
             ->where('is_delayed', false)
             ->get()
             ->filter(function ($pickup) {
-                $serviceTier = $pickup->service_tier ?? 'standard';
-                $timeframeHours = [
-                    'ecommerce' => 1,
-                    'flash' => 4,
-                    'same_day' => 12,
-                    'standard' => 72,
-                    'himalayan' => 168,
-                ][$serviceTier] ?? 48;
-                
-                $deadline = $pickup->created_at->copy()->addHours($timeframeHours);
-                $hoursRemaining = Carbon::now()->diffInHours($deadline, false);
-                
-                return $hoursRemaining <= 6 || $hoursRemaining < 0;
+                return $pickup->is_approaching_deadline || $pickup->hours_remaining <= 6;
             });
         
         // Get recent reminder logs for this partner
