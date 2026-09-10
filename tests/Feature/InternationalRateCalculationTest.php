@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\InternationalRate;
 use App\Models\InternationalZone;
 use App\Models\OverseasHub;
+use App\Models\PackagingMaterial;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Services\InternationalRateService;
@@ -428,8 +429,97 @@ class InternationalRateCalculationTest extends TestCase
         $this->assertNotNull($nzQuote);
         $this->assertEquals(3000, $nzQuote['itemized']['base_freight']);
         $this->assertEquals(450, $nzQuote['itemized']['customs_clearance']);
-        $this->assertEquals(250, $nzQuote['itemized']['godown_charge']);
-        $this->assertEquals(3700, $nzQuote['itemized']['total_cost']);
+        $this->assertEquals(375, $nzQuote['itemized']['godown_charge']); // 1.5 KG * Rs. 250/kg = Rs. 375
+        $this->assertEquals(3825, $nzQuote['itemized']['total_cost']);
+    }
+
+    /**
+     * Test Godown / Terminal Handling is calculated strictly per kilo.
+     */
+    public function test_godown_terminal_handling_is_calculated_strictly_per_kilo(): void
+    {
+        $service = new InternationalRateService();
+
+        // United States matrix in seeder has godown_charge = 200 NPR / kg
+        // 0.5kg shipment: 0.5 * 200 = 100
+        $quoteHalf = $service->quote('United States', 0.5);
+        $this->assertEquals(100.00, $quoteHalf['quotes'][0]['itemized']['godown_charge']);
+        $this->assertEquals(200.00, $quoteHalf['quotes'][0]['itemized']['godown_rate_per_kg']);
+
+        // 2.0kg shipment: 2.0 * 200 = 400
+        $quoteTwo = $service->quote('United States', 2.0);
+        $this->assertEquals(400.00, $quoteTwo['quotes'][0]['itemized']['godown_charge']);
+
+        // 5.5kg shipment: 5.5 * 200 = 1100
+        $quoteFiveHalf = $service->quote('United States', 5.5);
+        $this->assertEquals(1100.00, $quoteFiveHalf['quotes'][0]['itemized']['godown_charge']);
+
+        // 12.0kg shipment: 12.0 * 200 = 2400
+        $quoteTwelve = $service->quote('United States', 12.0);
+        $this->assertEquals(2400.00, $quoteTwelve['quotes'][0]['itemized']['godown_charge']);
+
+        // United Kingdom rate in seeder has godown_charge = 300 NPR / kg
+        $quoteUK = $service->quote('United Kingdom', 3.0);
+        $this->assertEquals(900.00, $quoteUK['quotes'][0]['itemized']['godown_charge']); // 3.0 * 300 = 900
+        $this->assertEquals(300.00, $quoteUK['quotes'][0]['itemized']['godown_rate_per_kg']);
+
+        // Test fallback to Super Admin baseline when rate has null godown charge
+        $hub = OverseasHub::first();
+        InternationalRate::create([
+            'rate_type' => 'country',
+            'country' => 'Switzerland',
+            'country_code' => 'CH',
+            'hub_id' => $hub->id,
+            'service_type' => 'economy',
+            'weight_tiers' => ['0.5' => 3200, '1.0' => 3800],
+            'per_kg_tiers' => [['min_weight' => 10.1, 'max_weight' => 20.0, 'rate_per_kg' => 950]],
+            'customs_clearance_charge' => 500,
+            'godown_charge' => 0, // 0 or null triggers fallback to Super Admin baseline feed
+            'transit_days_min' => 4,
+            'transit_days_max' => 7,
+            'is_active' => true,
+        ]);
+
+        $quoteSwiss = $service->quote('Switzerland', 2.5);
+        $this->assertEquals(750.00, $quoteSwiss['quotes'][0]['itemized']['godown_charge']); // 2.5 * 300 (default) = 750
+        $this->assertEquals(300.00, $quoteSwiss['quotes'][0]['itemized']['godown_rate_per_kg']);
+    }
+
+    /**
+     * Test settings view renders Per KG badge and packaging material editing works.
+     */
+    public function test_settings_view_and_packaging_editing(): void
+    {
+        $superAdmin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'password_changed' => true,
+        ]);
+
+        // 1. Visit settings page
+        $res = $this->actingAs($superAdmin)->get(route('admin.international-rates.settings'));
+        $res->assertOk();
+        $res->assertSee('Per KG');
+        $res->assertSee('tariffSettingsPage()');
+
+        // 2. Update packaging material
+        $pack = PackagingMaterial::where('code', 'bubble_flyer')->first();
+        $this->assertNotNull($pack);
+
+        $updateRes = $this->actingAs($superAdmin)->put(route('admin.international-rates.settings.packaging.update', $pack->id), [
+            'name' => 'Premium Metallic Bubble Flyer Bag',
+            'price' => 280.00,
+            'description' => 'Heavy duty waterproof metallic bubble flyer.',
+            'icon' => 'shield-check',
+            'sort_order' => 5,
+            'is_active' => 1,
+        ]);
+
+        $updateRes->assertRedirect(route('admin.international-rates.settings'));
+        $this->assertDatabaseHas('packaging_materials', [
+            'id' => $pack->id,
+            'name' => 'Premium Metallic Bubble Flyer Bag',
+            'price' => 280.00,
+        ]);
     }
 }
 

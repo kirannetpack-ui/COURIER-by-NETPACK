@@ -255,9 +255,12 @@ class InternationalRateService
                 ? (float) $rate->customs_clearance_charge
                 : $defaultCustoms;
 
-            $godownCharge = ($rate->godown_charge !== null && (float)$rate->godown_charge > 0)
+            // Godown / terminal handling is priced per kilo multiplied by chargeable weight
+            $godownRatePerKg = ($rate->godown_charge !== null && (float)$rate->godown_charge > 0)
                 ? (float) $rate->godown_charge
                 : $defaultGodown;
+
+            $godownCharge = round($chargeableWeight * $godownRatePerKg, 2);
 
             $fuelPercent = (float) $rate->fuel_surcharge_percent;
             $fuelSurcharge = $fuelPercent > 0 ? round(($baseFreight * $fuelPercent) / 100, 2) : 0.0;
@@ -283,6 +286,7 @@ class InternationalRateService
                     'base_freight' => $baseFreight,
                     'customs_clearance' => $customsClearance,
                     'customs_notice' => $customsNotice,
+                    'godown_rate_per_kg' => $godownRatePerKg,
                     'godown_charge' => $godownCharge,
                     'godown_notice' => $godownNotice,
                     'packaging_fee' => $packagingFee,
@@ -309,6 +313,8 @@ class InternationalRateService
                 'customs_clearance' => $defaultCustoms,
                 'customs_notice' => $customsNotice,
                 'godown_charge' => $defaultGodown,
+                'godown_rate_per_kg' => $defaultGodown,
+                'godown_charge_unit' => 'per_kg',
                 'godown_notice' => $godownNotice,
             ],
             'quotes_count' => count($quotes),

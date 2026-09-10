@@ -4,34 +4,53 @@
 @section('page-title', 'Tariff & Packaging Dynamic Controls')
 
 @section('content')
-<div class="space-y-6" x-data="{
-    showAddModal: false,
-    showEditModal: false,
-    editItem: { id: '', code: '', name: '', price: 0, description: '', icon: 'box', sort_order: 0, is_active: true },
+<script>
+function tariffSettingsPage() {
+    return {
+        showAddModal: false,
+        showEditModal: false,
+        editItem: { id: '', code: '', name: '', price: 0, description: '', icon: 'box', sort_order: 0, is_active: true },
+        packages: @json($packagingMaterials->keyBy('id')),
 
-    openEdit(item) {
-        this.editItem = { ...item };
-        this.showEditModal = true;
-    },
-
-    async toggleStatus(id) {
-        try {
-            const res = await fetch('{{ url('admin/international-rates/settings/packaging') }}/' + id + '/toggle', {
-                method: 'PATCH',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                }
-            });
-            const data = await res.json();
-            if (data.success) {
-                window.location.reload();
+        openEdit(id) {
+            const item = this.packages[id];
+            if (item) {
+                this.editItem = {
+                    id: item.id,
+                    code: item.code || '',
+                    name: item.name || '',
+                    price: parseFloat(item.price) || 0,
+                    description: item.description || '',
+                    icon: item.icon || 'box',
+                    sort_order: parseInt(item.sort_order) || 0,
+                    is_active: Boolean(item.is_active)
+                };
+                this.showEditModal = true;
             }
-        } catch (e) {
-            console.error(e);
+        },
+
+        async toggleStatus(id) {
+            try {
+                const res = await fetch('{{ url('admin/international-rates/settings/packaging') }}/' + id + '/toggle', {
+                    method: 'PATCH',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.error(e);
+            }
         }
-    }
-}">
+    };
+}
+</script>
+
+<div class="space-y-6" x-data="tariffSettingsPage()">
     <!-- Header Banner -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 text-white shadow-sm border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -138,9 +157,9 @@
                 <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
                     <div class="flex items-center justify-between">
                         <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                            <i class="fas fa-warehouse text-teal-600 mr-1"></i> Default Airport Godown / Terminal Charge (NPR) <span class="text-red-500">*</span>
+                            <i class="fas fa-warehouse text-teal-600 mr-1"></i> Default Airport Godown / Terminal Charge (NPR / KG) <span class="text-red-500">*</span>
                         </label>
-                        <span class="text-[10px] bg-teal-50 text-teal-700 font-bold px-2 py-0.5 rounded border border-teal-200">Per Consignment</span>
+                        <span class="text-[10px] bg-teal-50 text-teal-700 font-bold px-2 py-0.5 rounded border border-teal-200">Per KG</span>
                     </div>
                     <div class="relative">
                         <span class="absolute left-3.5 top-2.5 text-xs text-slate-400 font-bold">Rs.</span>
@@ -246,7 +265,7 @@
                             </td>
                             <td class="py-3 px-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <button type="button" @click="openEdit(@json($pack))" 
+                                    <button type="button" @click="openEdit({{ $pack->id }})" 
                                             class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition"
                                             title="Edit Packaging Details & Price">
                                         <i class="fas fa-pencil text-[11px]"></i>

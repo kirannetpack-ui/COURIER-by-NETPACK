@@ -209,7 +209,7 @@
 
                             <td class="px-4 py-3 text-[11px] text-slate-600">
                                 <div>Customs: <span class="font-mono font-bold text-slate-800">Rs. {{ number_format($r->customs_clearance_charge) }}</span></div>
-                                <div>Godown: <span class="font-mono font-bold text-slate-800">Rs. {{ number_format($r->godown_charge) }}</span></div>
+                                <div>Godown: <span class="font-mono font-bold text-slate-800">Rs. {{ number_format($r->godown_charge) }} / kg</span></div>
                             </td>
 
                             <td class="px-4 py-3">

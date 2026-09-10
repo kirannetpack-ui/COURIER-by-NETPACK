@@ -495,7 +495,7 @@ function rateInquiryDesk() {
                             <span>Airport Godown</span>
                         </div>
                         <div class="text-xs sm:text-sm font-black font-mono text-teal-800 mt-0.5">
-                            Rs. <span x-text="quoteData?.global_tariff_inclusions?.godown_charge?.toLocaleString() || '{{ number_format($defaultGodownCharge) }}'"></span>
+                            Rs. <span x-text="quoteData?.global_tariff_inclusions?.godown_charge ? quoteData.global_tariff_inclusions.godown_charge.toLocaleString() + ' / kg' : '{{ number_format($defaultGodownCharge) }} / kg'"></span>
                         </div>
                         <span class="text-[9px] text-emerald-600 font-bold block">Included</span>
                     </div>
@@ -577,6 +577,7 @@ function rateInquiryDesk() {
                                         <span class="flex items-center gap-1.5">
                                             <i class="fas fa-warehouse text-teal-600 text-xs"></i>
                                             <span class="font-medium">Airport Godown / Terminal:</span>
+                                            <span class="text-[10px] text-slate-400 font-mono" x-show="q.itemized.godown_rate_per_kg" x-text="'(Rs. ' + q.itemized.godown_rate_per_kg + ' / kg)'"></span>
                                         </span>
                                         <div class="flex items-center gap-1.5">
                                             <span class="text-[9px] uppercase font-bold bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded">Included</span>

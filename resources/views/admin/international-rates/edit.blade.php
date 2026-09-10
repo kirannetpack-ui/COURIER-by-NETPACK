@@ -4,8 +4,9 @@
 @section('page-title', 'Edit International Rate Matrix')
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-6" 
-     x-data="{
+<script>
+function rateMatrixEditForm() {
+    return {
         rateType: '{{ $rate->rate_type }}',
         serviceType: '{{ $rate->service_type }}',
         selectedHubId: '{{ old("hub_id", $rate->hub_id ?? "") }}',
@@ -29,10 +30,10 @@
         },
         baseHalfKg: {{ $rate->weight_tiers['0.5'] ?? 2500 }},
         incrementHalfKg: 400,
-        ranges: @json($rate->per_kg_tiers ?? [
-            ['min_weight' => 10.1, 'max_weight' => 20.0, 'rate_per_kg' => 1050],
-            ['min_weight' => 20.1, 'max_weight' => 45.0, 'rate_per_kg' => 950]
-        ]),
+        ranges: (@json(old('per_kg_tiers', $rate->per_kg_tiers))) || [
+            { min_weight: 10.1, max_weight: 20.0, rate_per_kg: 1050 },
+            { min_weight: 20.1, max_weight: 45.0, rate_per_kg: 950 }
+        ],
         
         autoFillSlabs() {
             const base = parseFloat(this.baseHalfKg) || 0;
@@ -49,10 +50,10 @@
 
         addRange() {
             const lastRange = this.ranges[this.ranges.length - 1];
-            const nextMin = lastRange ? (parseFloat(lastRange.max_weight) + 0.1) : 10.1;
+            const nextMin = lastRange ? Math.round((parseFloat(lastRange.max_weight) + 0.1) * 10) / 10 : 10.1;
             this.ranges.push({
                 min_weight: nextMin,
-                max_weight: nextMin + 15,
+                max_weight: Math.round((nextMin + 15) * 10) / 10,
                 rate_per_kg: 800
             });
         },
@@ -60,7 +61,11 @@
         removeRange(idx) {
             this.ranges.splice(idx, 1);
         }
-     }">
+    };
+}
+</script>
+
+<div class="max-w-5xl mx-auto space-y-6" x-data="rateMatrixEditForm()">
 
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -320,6 +325,11 @@
                                 </td>
                             </tr>
                         </template>
+                        <tr x-show="!ranges || ranges.length === 0">
+                            <td colspan="4" class="px-3 py-4 text-center text-slate-400 italic">
+                                No per-kilo weight ranges configured. Click "+ Add Weight Range" to configure tiers above 10kg.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -340,9 +350,10 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Godown / Terminal Handling (NPR) *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Godown / Terminal Handling (NPR / KG) *</label>
                     <input type="number" step="10" name="godown_charge" value="{{ old('godown_charge', $rate->godown_charge) }}" required
                            class="w-full text-xs font-mono font-bold px-3 py-2 border border-slate-200 rounded-lg outline-none">
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">Per-kilo warehouse & terminal handling fee</span>
                 </div>
 
                 <div>
