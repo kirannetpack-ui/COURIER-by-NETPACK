@@ -20,6 +20,7 @@ function rateInquiryDesk() {
         packaging: @json($initialPackaging),
         packagingCatalog: @json($packagingCatalog),
         serviceType: 'all',
+        manualGodownRate: '',
         loading: false,
         quoteData: @json($initialQuote),
         errorMessage: '',
@@ -115,7 +116,8 @@ function rateInquiryDesk() {
                         width: this.useDimensions ? (parseFloat(this.width) || null) : null,
                         height: this.useDimensions ? (parseFloat(this.height) || null) : null,
                         packaging: this.packaging,
-                        service_type: this.serviceType === 'all' ? null : this.serviceType
+                        service_type: this.serviceType === 'all' ? null : this.serviceType,
+                        godown_rate_per_kg: (this.manualGodownRate !== '' && this.manualGodownRate !== null && !isNaN(this.manualGodownRate)) ? parseFloat(this.manualGodownRate) : null
                     })
                 });
 
@@ -396,6 +398,27 @@ function rateInquiryDesk() {
                             <span class="font-mono font-bold text-teal-700 text-xs" x-text="currentPackaging.price > 0 ? '+ Rs. ' + currentPackaging.price.toLocaleString() : 'FREE'"></span>
                         </div>
                     </template>
+                </div>
+
+                <!-- 5. Manual Godown / Terminal Handling Rate (NPR / KG) -->
+                <div class="pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            <i class="fas fa-warehouse text-teal-600 mr-1"></i> Godown / Terminal Handling (NPR / KG)
+                        </label>
+                        <span class="text-[10px] text-teal-600 font-semibold uppercase">Manual Entry</span>
+                    </div>
+
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 text-xs text-slate-400 font-bold">Rs.</span>
+                        <input type="number" step="any" min="0" 
+                               x-model="manualGodownRate" 
+                               @input.debounce.300ms="fetchRates()"
+                               placeholder="Auto (or enter custom rate per kg, e.g. 50)"
+                               class="w-full text-xs sm:text-sm pl-10 pr-14 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white outline-none font-bold text-slate-900 transition">
+                        <span class="absolute right-3.5 top-2.5 text-[11px] text-slate-400 font-bold uppercase pointer-events-none">/ KG</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Calculated as Chargeable Weight &times; Rate per KG. Leave blank for hub default.</p>
                 </div>
             </div>
 

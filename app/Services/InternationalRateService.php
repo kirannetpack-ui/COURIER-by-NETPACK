@@ -192,7 +192,8 @@ class InternationalRateService
         ?float $width = null,
         ?float $height = null,
         string $packaging = 'none',
-        ?string $serviceType = null
+        ?string $serviceType = null,
+        ?float $manualGodownRatePerKg = null
     ): array {
         $weightInfo = $this->calculateWeight($grossWeight, $length, $width, $height);
         $chargeableWeight = $weightInfo['chargeable_weight'];
@@ -256,9 +257,14 @@ class InternationalRateService
                 : $defaultCustoms;
 
             // Godown / terminal handling is priced per kilo multiplied by chargeable weight
-            $godownRatePerKg = ($rate->godown_charge !== null && (float)$rate->godown_charge > 0)
-                ? (float) $rate->godown_charge
-                : $defaultGodown;
+            // Manually entered rate (from calculator or rate matrix) takes strict precedence
+            if ($manualGodownRatePerKg !== null && $manualGodownRatePerKg >= 0) {
+                $godownRatePerKg = (float) $manualGodownRatePerKg;
+            } elseif ($rate->godown_charge !== null) {
+                $godownRatePerKg = (float) $rate->godown_charge;
+            } else {
+                $godownRatePerKg = $defaultGodown;
+            }
 
             $godownCharge = round($chargeableWeight * $godownRatePerKg, 2);
 
@@ -312,8 +318,8 @@ class InternationalRateService
             'global_tariff_inclusions' => [
                 'customs_clearance' => $defaultCustoms,
                 'customs_notice' => $customsNotice,
-                'godown_charge' => $defaultGodown,
-                'godown_rate_per_kg' => $defaultGodown,
+                'godown_charge' => ($manualGodownRatePerKg !== null && $manualGodownRatePerKg >= 0) ? (float)$manualGodownRatePerKg : $defaultGodown,
+                'godown_rate_per_kg' => ($manualGodownRatePerKg !== null && $manualGodownRatePerKg >= 0) ? (float)$manualGodownRatePerKg : $defaultGodown,
                 'godown_charge_unit' => 'per_kg',
                 'godown_notice' => $godownNotice,
             ],

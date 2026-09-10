@@ -463,7 +463,7 @@ class InternationalRateCalculationTest extends TestCase
         $this->assertEquals(900.00, $quoteUK['quotes'][0]['itemized']['godown_charge']); // 3.0 * 300 = 900
         $this->assertEquals(300.00, $quoteUK['quotes'][0]['itemized']['godown_rate_per_kg']);
 
-        // Test fallback to Super Admin baseline when rate has null godown charge
+        // Test manual zero entry (e.g. promotional free godown handling)
         $hub = OverseasHub::first();
         InternationalRate::create([
             'rate_type' => 'country',
@@ -474,15 +474,15 @@ class InternationalRateCalculationTest extends TestCase
             'weight_tiers' => ['0.5' => 3200, '1.0' => 3800],
             'per_kg_tiers' => [['min_weight' => 10.1, 'max_weight' => 20.0, 'rate_per_kg' => 950]],
             'customs_clearance_charge' => 500,
-            'godown_charge' => 0, // 0 or null triggers fallback to Super Admin baseline feed
+            'godown_charge' => 0.0, // Manually entered as 0 (free terminal handling)
             'transit_days_min' => 4,
             'transit_days_max' => 7,
             'is_active' => true,
         ]);
 
         $quoteSwiss = $service->quote('Switzerland', 2.5);
-        $this->assertEquals(750.00, $quoteSwiss['quotes'][0]['itemized']['godown_charge']); // 2.5 * 300 (default) = 750
-        $this->assertEquals(300.00, $quoteSwiss['quotes'][0]['itemized']['godown_rate_per_kg']);
+        $this->assertEquals(0.00, $quoteSwiss['quotes'][0]['itemized']['godown_charge']);
+        $this->assertEquals(0.00, $quoteSwiss['quotes'][0]['itemized']['godown_rate_per_kg']);
     }
 
     /**
@@ -520,6 +520,59 @@ class InternationalRateCalculationTest extends TestCase
             'name' => 'Premium Metallic Bubble Flyer Bag',
             'price' => 280.00,
         ]);
+    }
+
+    /**
+     * Test Godown / Terminal Handling is manually entered and can be custom provided in live calculation.
+     */
+    public function test_manual_godown_terminal_handling_entry(): void
+    {
+        $superAdmin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'password_changed' => true,
+        ]);
+
+        // 1. Visit create rate matrix page: verify Godown input is ready for manual entry
+        $createPage = $this->actingAs($superAdmin)->get(route('admin.international-rates.create'));
+        $createPage->assertOk();
+        $createPage->assertSee('Godown / Terminal Handling (NPR / KG) *', false);
+        $createPage->assertSee('placeholder="Enter rate per kg (e.g. 50)"', false);
+        $createPage->assertSee('Manually entered per-kilo handling fee', false);
+
+        // 2. Live calculate endpoint with manual godown_rate_per_kg = 50
+        $resManual = $this->postJson(route('rates.calculate'), [
+            'country' => 'United States',
+            'weight' => 2.0,
+            'godown_rate_per_kg' => 50.0,
+        ]);
+        $resManual->assertOk();
+        $quote = $resManual->json('data.quotes.0');
+        $this->assertEquals(50.0, $quote['itemized']['godown_rate_per_kg']);
+        $this->assertEquals(100.0, $quote['itemized']['godown_charge']); // 2.0 KG * Rs. 50/kg = Rs. 100
+
+        // 3. Create rate matrix with manually entered godown_charge = 85.00
+        $hub = OverseasHub::first();
+        $storeRes = $this->actingAs($superAdmin)->post(route('admin.international-rates.store'), [
+            'rate_type' => 'country',
+            'country' => 'Norway',
+            'country_code' => 'NO',
+            'hub_id' => $hub->id,
+            'service_type' => 'express',
+            'weight_tiers' => ['0.5' => 3500, '1.0' => 4200],
+            'per_kg_tiers' => [['min_weight' => 10.1, 'max_weight' => 20.0, 'rate_per_kg' => 950]],
+            'customs_clearance_charge' => 500,
+            'godown_charge' => 85.00, // Manually entered by user
+            'transit_days_min' => 3,
+            'transit_days_max' => 5,
+            'is_active' => 1,
+        ]);
+        $storeRes->assertRedirect(route('admin.international-rates.index'));
+
+        // Query rate for Norway: verify it uses manually entered 85 NPR/kg
+        $service = new InternationalRateService();
+        $quoteNorway = $service->quote('Norway', 1.0);
+        $this->assertEquals(85.0, $quoteNorway['quotes'][0]['itemized']['godown_rate_per_kg']);
+        $this->assertEquals(85.0, $quoteNorway['quotes'][0]['itemized']['godown_charge']);
     }
 }
 

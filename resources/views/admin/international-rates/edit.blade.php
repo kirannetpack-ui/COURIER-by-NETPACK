@@ -351,9 +351,9 @@ function rateMatrixEditForm() {
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Godown / Terminal Handling (NPR / KG) *</label>
-                    <input type="number" step="10" name="godown_charge" value="{{ old('godown_charge', $rate->godown_charge) }}" required
-                           class="w-full text-xs font-mono font-bold px-3 py-2 border border-slate-200 rounded-lg outline-none">
-                    <span class="text-[10px] text-slate-400 mt-0.5 block">Per-kilo warehouse & terminal handling fee</span>
+                    <input type="number" step="any" min="0" name="godown_charge" value="{{ old('godown_charge', $rate->godown_charge) }}" placeholder="Enter rate per kg" required
+                           class="w-full text-xs font-mono font-bold px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500">
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">Manually entered per-kilo handling fee</span>
                 </div>
 
                 <div>

@@ -75,7 +75,12 @@ class RateInquiryController extends Controller
             'height' => 'nullable|numeric|min:0',
             'packaging' => 'nullable|string',
             'service_type' => 'nullable|string|in:express,economy',
+            'godown_rate_per_kg' => 'nullable|numeric|min:0',
         ]);
+
+        $manualGodown = (isset($validated['godown_rate_per_kg']) && is_numeric($validated['godown_rate_per_kg']))
+            ? (float) $validated['godown_rate_per_kg']
+            : null;
 
         $quote = $this->rateService->quote(
             $validated['country'],
@@ -84,7 +89,8 @@ class RateInquiryController extends Controller
             isset($validated['width']) ? (float)$validated['width'] : null,
             isset($validated['height']) ? (float)$validated['height'] : null,
             $validated['packaging'] ?? 'none',
-            $validated['service_type'] ?? null
+            $validated['service_type'] ?? null,
+            $manualGodown
         );
 
         return response()->json([
