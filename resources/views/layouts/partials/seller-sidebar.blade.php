@@ -89,6 +89,12 @@
                 <span>Book Courier Parcel</span>
             </a>
 
+            <!-- Rate Inquiry & Tariff Desk -->
+            <a href="{{ route('rates.inquiry') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-calculator w-4 text-center text-amber-400"></i>
+                <span>Rate Inquiry Desk</span>
+            </a>
+
             <!-- My Shipments -->
             <a href="{{ route('seller.shipments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.shipments') && !request()->routeIs('seller.shipments.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-truck-fast w-4 text-center text-indigo-400"></i>

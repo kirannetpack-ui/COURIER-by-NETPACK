@@ -261,12 +261,27 @@ class ShipmentController extends Controller
             $shipment->delivery_points = $deliveryPoints;
         }
 
-        // Package details
-        $shipment->actual_weight = $request->weight;
-        $shipment->chargeable_weight = $request->weight;
-        $shipment->length = $request->length;
-        $shipment->width = $request->width;
-        $shipment->height = $request->height;
+        // Package details & precision air cargo weight calculation
+        $grossWeight = max(0.1, (float) $request->weight);
+        $length = $request->filled('length') ? (float)$request->length : null;
+        $width = $request->filled('width') ? (float)$request->width : null;
+        $height = $request->filled('height') ? (float)$request->height : null;
+
+        if ($request->shipment_type === 'international') {
+            $weightInfo = app(\App\Services\InternationalRateService::class)->calculateWeight(
+                $grossWeight, $length, $width, $height
+            );
+            $shipment->actual_weight = $weightInfo['gross_weight'];
+            $shipment->volumetric_weight = $weightInfo['volumetric_weight'];
+            $shipment->chargeable_weight = $weightInfo['chargeable_weight'];
+        } else {
+            $shipment->actual_weight = $grossWeight;
+            $shipment->chargeable_weight = $grossWeight;
+        }
+
+        $shipment->length = $length;
+        $shipment->width = $width;
+        $shipment->height = $height;
         $shipment->description = $request->description;
         $shipment->package_type = $request->package_type ?? 'parcel';
 
@@ -300,14 +315,14 @@ class ShipmentController extends Controller
         if ($request->shipment_type === 'international') {
             if ($request->service_type === 'express') {
                 $shipment->estimated_delivery = now()->addDays(4);
-                $shipment->express_partner = $request->express_carrier ?? 'DHL';
+                $shipment->last_mile_carrier_name = $request->express_carrier ?? 'DHL';
             } else {
                 $shipment->estimated_delivery = now()->addDays(15);
+                $shipment->last_mile_carrier_name = $request->last_mile_carrier_name ?: null;
             }
-            $shipment->hub_id = $request->hub_id ?: null;
+            $shipment->current_hub_id = $request->hub_id ?: null;
             $shipment->current_agency_id = $request->agency_id ?: null;
             $shipment->customs_mode = $request->customs_mode ?: 'DDP';
-            $shipment->last_mile_carrier_name = $request->last_mile_carrier_name ?: null;
             $shipment->agency_milestone = 'booking_completed';
         } else {
             $shipment->estimated_delivery = now()->addDays(3);
@@ -511,6 +526,23 @@ class ShipmentController extends Controller
                     return 75 + ($weight * 20);
             }
         } elseif ($type === 'international') {
+            try {
+                $quote = app(\App\Services\InternationalRateService::class)->quote(
+                    $request->receiver_country ?? 'United States',
+                    (float) $weight,
+                    $request->length ? (float)$request->length : null,
+                    $request->width ? (float)$request->width : null,
+                    $request->height ? (float)$request->height : null,
+                    'none',
+                    $service
+                );
+                if (!empty($quote['quotes'][0]['itemized']['total_cost'])) {
+                    return (float) $quote['quotes'][0]['itemized']['total_cost'];
+                }
+            } catch (\Throwable $e) {
+                // Fallback to basic formula if matrix lookup fails
+            }
+
             switch($service) {
                 case 'express':
                     return 800 + ($weight * 150);

@@ -234,9 +234,24 @@
                 <span>Agency Inbound Desk</span>
             </a>
 
-            <a href="{{ route('admin.rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <a href="{{ route('rates.inquiry') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-calculator w-4 text-center text-amber-400"></i>
+                <span>Rate Inquiry Desk</span>
+            </a>
+
+            <a href="{{ route('admin.international-rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.international-rates.index') || request()->routeIs('admin.international-rates.create') || request()->routeIs('admin.international-rates.edit') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-table-cells w-4 text-center text-teal-300"></i>
+                <span>Tariff Matrices (0.5kg Slabs)</span>
+            </a>
+
+            <a href="{{ route('admin.international-rates.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.international-rates.settings*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-sliders w-4 text-center text-amber-300"></i>
+                <span>Dynamic Tariff & Packaging</span>
+            </a>
+
+            <a href="{{ route('admin.rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates*') && !request()->routeIs('admin.international-rates*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
-                <span>International Rates</span>
+                <span>Legacy Rate Sheets</span>
             </a>
 
             <a href="{{ route('admin.rates.surcharges') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates.surcharges*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">

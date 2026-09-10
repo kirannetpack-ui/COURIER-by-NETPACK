@@ -68,6 +68,35 @@
                 </div>
             @endif
 
+            @if(request('quoted_rate'))
+                <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-teal-900 via-slate-900 to-slate-950 text-white border border-teal-500/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center text-teal-300 text-lg flex-shrink-0">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/30 font-mono">
+                                    Verified Rate Applied
+                                </span>
+                                <span class="text-xs text-slate-300 font-semibold">{{ request('receiver_country') }}</span>
+                            </div>
+                            <p class="text-sm font-bold text-white">
+                                Quoted Tariff: <span class="text-teal-300 font-mono text-base">Rs. {{ number_format((float)request('quoted_rate')) }}</span>
+                                <span class="text-xs font-normal text-slate-300 ml-1">
+                                    &bull; Chargeable: {{ request('chargeable_weight', request('weight')) }} KG
+                                    &bull; {{ ucfirst(request('service_type', 'express')) }} Mode
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ route('rates.inquiry') }}" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold transition border border-white/10 self-end sm:self-center flex items-center gap-1.5">
+                        <i class="fas fa-arrow-left text-[10px]"></i>
+                        <span>Change Quote</span>
+                    </a>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('shipments.store') }}" id="shipmentForm">
                 @csrf
 
@@ -419,6 +448,11 @@
                                             <option value="United Kingdom">🇬🇧 United Kingdom</option>
                                             <option value="Australia">🇦🇺 Australia</option>
                                             <option value="Canada">🇨🇦 Canada</option>
+                                            <option value="United Arab Emirates">🇦🇪 United Arab Emirates</option>
+                                            <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+                                            <option value="Qatar">🇶🇦 Qatar</option>
+                                            <option value="Kuwait">🇰🇼 Kuwait</option>
+                                            <option value="New Zealand">🇳🇿 New Zealand</option>
                                             <option value="Germany">🇩🇪 Germany</option>
                                             <option value="France">🇫🇷 France</option>
                                             <option value="Japan">🇯🇵 Japan</option>
@@ -895,7 +929,7 @@
     }
 
     // =============================================
-    // INITIALIZE
+    // INITIALIZE & PREFILL FROM RATE INQUIRY
     // =============================================
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize pickup map
@@ -906,6 +940,65 @@
         
         // Initialize international map
         setTimeout(initInternationalMap, 300);
+
+        // Auto-Prefill from Rate Inquiry Desk
+        const prefillShipmentType = '{{ request('shipment_type') }}';
+        if (prefillShipmentType) {
+            switchTab(prefillShipmentType);
+        }
+
+        const prefillServiceType = '{{ request('service_type') }}';
+        if (prefillServiceType) {
+            const intlSelect = document.getElementById('intl_service_type');
+            if (intlSelect) {
+                intlSelect.value = prefillServiceType;
+                toggleIntlServiceFields();
+            }
+        }
+
+        const prefillCountry = '{{ request('receiver_country') }}';
+        if (prefillCountry) {
+            const countrySelect = document.getElementById('receiver_country');
+            if (countrySelect) {
+                let found = false;
+                for (let i = 0; i < countrySelect.options.length; i++) {
+                    if (countrySelect.options[i].value.toLowerCase() === prefillCountry.toLowerCase()) {
+                        countrySelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const newOpt = new Option('🌐 ' + prefillCountry, prefillCountry, true, true);
+                    countrySelect.add(newOpt);
+                }
+            }
+        }
+
+        const prefillHubId = '{{ request('hub_id') }}';
+        if (prefillHubId) {
+            const hubSelect = document.getElementById('booking_hub_id');
+            if (hubSelect) {
+                hubSelect.value = prefillHubId;
+                filterBookingAgencies();
+            }
+        }
+
+        const prefillWeight = '{{ request('weight') }}';
+        if (prefillWeight) {
+            const weightInput = document.querySelector('input[name="weight"]');
+            if (weightInput) weightInput.value = prefillWeight;
+        }
+
+        const prefillPackaging = '{{ request('packaging') }}';
+        if (prefillPackaging) {
+            const pkgSelect = document.querySelector('#tab-international select[name="package_type"]');
+            if (pkgSelect) {
+                if (prefillPackaging.includes('envelope')) pkgSelect.value = 'envelope';
+                else if (prefillPackaging.includes('box') || prefillPackaging.includes('crate')) pkgSelect.value = 'box';
+                else if (prefillPackaging.includes('flyer')) pkgSelect.value = 'parcel';
+            }
+        }
     });
 </script>
 @endpush

@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\PickupController as AdminPickupController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RateSheetController;
+use App\Http\Controllers\Admin\InternationalRateController;
+use App\Http\Controllers\RateInquiryController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RiderMonitoringController;
 use App\Http\Controllers\Admin\ShipmentController as AdminShipmentController;
@@ -176,6 +178,12 @@ Route::get('/track/search', function (Request $request) {
 
 Route::get('/track/{trackingNumber}', [TrackingController::class, 'show'])->name('tracking.show');
 Route::get('/tracking/{tracking_number}', [TrackingController::class, 'show'])->name('tracking.public');
+
+// =============================================
+// RATE INQUIRY & TARIFF CALCULATOR (Public & Clients)
+// =============================================
+Route::get('/rates/inquiry', [RateInquiryController::class, 'index'])->name('rates.inquiry');
+Route::post('/rates/calculate', [RateInquiryController::class, 'calculate'])->name('rates.calculate');
 
 // =============================================
 // AUTH PROTECTED ROUTES
@@ -806,6 +814,28 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
     Route::get('/staff/create', [\App\Http\Controllers\International\StaffController::class, 'create'])->name('staff.create');
     Route::post('/staff', [\App\Http\Controllers\International\StaffController::class, 'store'])->name('staff.store');
     Route::delete('/staff/{id}', [\App\Http\Controllers\International\StaffController::class, 'destroy'])->name('staff.destroy');
+
+    // Sector Rate Matrices (0.5kg Slabs & Dynamic Per-KG Tiers)
+    Route::get('/rates-matrix', [InternationalRateController::class, 'index'])->name('rates-matrix.index');
+});
+
+// =============================================
+// ADMIN INTERNATIONAL RATE MATRICES (0.5kg Slabs & Dynamic Per-KG Tiers)
+// =============================================
+Route::prefix('admin/international-rates')->name('admin.international-rates.')->middleware(['auth', 'role:super_admin,admin,international_admin,staff'])->group(function () {
+    Route::get('/', [InternationalRateController::class, 'index'])->name('index');
+    Route::get('/create', [InternationalRateController::class, 'create'])->name('create');
+    Route::post('/', [InternationalRateController::class, 'store'])->name('store');
+    Route::get('/settings', [InternationalRateController::class, 'settings'])->name('settings');
+    Route::post('/settings/tariff', [InternationalRateController::class, 'updateTariffSettings'])->name('settings.tariff');
+    Route::post('/settings/packaging', [InternationalRateController::class, 'storePackaging'])->name('settings.packaging.store');
+    Route::put('/settings/packaging/{id}', [InternationalRateController::class, 'updatePackaging'])->name('settings.packaging.update');
+    Route::patch('/settings/packaging/{id}/toggle', [InternationalRateController::class, 'togglePackaging'])->name('settings.packaging.toggle');
+    Route::delete('/settings/packaging/{id}', [InternationalRateController::class, 'destroyPackaging'])->name('settings.packaging.destroy');
+    Route::get('/{id}/edit', [InternationalRateController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [InternationalRateController::class, 'update'])->name('update');
+    Route::patch('/{id}/toggle', [InternationalRateController::class, 'toggle'])->name('toggle');
+    Route::delete('/{id}', [InternationalRateController::class, 'destroy'])->name('destroy');
 });
 
 // =============================================

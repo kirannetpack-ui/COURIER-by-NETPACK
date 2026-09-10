@@ -80,6 +80,12 @@
                     <i class="fas fa-truck-pickup w-4 text-center text-teal-400"></i>
                     <span>Book Domestic Pickup</span>
                 </a>
+                <!-- Rate Inquiry & Tariff Calculator -->
+                <a href="{{ route('rates.inquiry') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fas fa-calculator w-4 text-center text-amber-400"></i>
+                    <span>Rate Inquiry Desk</span>
+                </a>
                 <!-- New Air Cargo Consignment -->
                 <a href="{{ route('shipments.create') }}" 
                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('shipments.create*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">

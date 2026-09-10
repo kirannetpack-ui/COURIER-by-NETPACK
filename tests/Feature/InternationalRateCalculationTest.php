@@ -1,0 +1,335 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\InternationalRate;
+use App\Models\InternationalZone;
+use App\Models\OverseasHub;
+use App\Models\Shipment;
+use App\Models\User;
+use App\Services\InternationalRateService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class InternationalRateCalculationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Seed standard overseas hubs and international rate matrices
+        $this->seed(\Database\Seeders\InternationalHubsAndAgenciesSeeder::class);
+        $this->seed(\Database\Seeders\InternationalRatesSeeder::class);
+    }
+
+    /**
+     * Test precision air cargo weight calculations and rounding brackets.
+     */
+    public function test_weight_calculation_and_rounding_rules(): void
+    {
+        $service = new InternationalRateService();
+
+        // Under 10kg: exact integer
+        $w1 = $service->calculateWeight(1.0);
+        $this->assertEquals(1.0, $w1['chargeable_weight']);
+
+        // Under 10kg: 0.01 to 0.50 fraction rounds to next 0.5kg slab
+        $w2 = $service->calculateWeight(1.2);
+        $this->assertEquals(1.5, $w2['chargeable_weight']);
+
+        // Under 10kg: >0.50 fraction rounds to next whole integer
+        $w3 = $service->calculateWeight(1.7);
+        $this->assertEquals(2.0, $w3['chargeable_weight']);
+
+        // Above 10kg: any fraction rounds up to the next integer kg ceiling
+        $w4 = $service->calculateWeight(10.2);
+        $this->assertEquals(11.0, $w4['chargeable_weight']);
+
+        $w5 = $service->calculateWeight(14.8);
+        $this->assertEquals(15.0, $w5['chargeable_weight']);
+
+        // Volumetric weight: (50 x 40 x 30 cm) / 5000 = 12.0 kg vs 4.0 kg gross
+        $w6 = $service->calculateWeight(4.0, 50, 40, 30);
+        $this->assertTrue($w6['is_volumetric']);
+        $this->assertEquals(12.0, $w6['volumetric_weight']);
+        $this->assertEquals(12.0, $w6['chargeable_weight']);
+    }
+
+    /**
+     * Test rate quotation engine with itemized breakdown and packaging fees.
+     */
+    public function test_international_quote_generation(): void
+    {
+        $service = new InternationalRateService();
+
+        $quote = $service->quote('United States', 2.5, null, null, null, 'small_box');
+
+        $this->assertEquals('United States', $quote['country']);
+        $this->assertEquals(2.5, $quote['weight_info']['chargeable_weight']);
+        $this->assertEquals('small_box', $quote['packaging']['id']);
+        $this->assertGreaterThan(0, $quote['packaging']['price']);
+        $this->assertNotEmpty($quote['quotes']);
+
+        $firstQuote = $quote['quotes'][0];
+        $this->assertArrayHasKey('service_type', $firstQuote);
+        $this->assertArrayHasKey('itemized', $firstQuote);
+        $this->assertGreaterThan(0, $firstQuote['itemized']['base_freight']);
+        $this->assertGreaterThan(0, $firstQuote['itemized']['total_cost']);
+        $this->assertEquals($quote['packaging']['price'], $firstQuote['itemized']['packaging_fee']);
+    }
+
+    /**
+     * Test public / client Rate Inquiry Desk page loads with quotes.
+     */
+    public function test_rate_inquiry_page_loads_successfully(): void
+    {
+        $response = $this->get(route('rates.inquiry'));
+        $response->assertOk();
+        $response->assertSee('International Air Cargo', false);
+        $response->assertSee('Rate Inquiry', false);
+        $response->assertSee('Shipment Specifications', false);
+        $response->assertSee('United States', false);
+    }
+
+    /**
+     * Test live AJAX rate calculation endpoint.
+     */
+    public function test_live_rate_calculate_endpoint(): void
+    {
+        $response = $this->postJson(route('rates.calculate'), [
+            'country' => 'United States',
+            'weight' => 3.5,
+            'length' => 20,
+            'width' => 20,
+            'height' => 20,
+            'packaging' => 'small_box',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'success',
+            'data' => [
+                'country',
+                'weight_info' => [
+                    'gross_weight',
+                    'volumetric_weight',
+                    'chargeable_weight',
+                    'explanation',
+                ],
+                'packaging',
+                'quotes_count',
+                'quotes',
+            ]
+        ]);
+        $response->assertJson([
+            'success' => true,
+            'data' => [
+                'country' => 'United States',
+            ]
+        ]);
+    }
+
+    /**
+     * Test admin tariff matrices management: index, create, and toggle.
+     */
+    public function test_admin_can_manage_international_rate_matrices(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'password_changed' => true,
+        ]);
+
+        // Index page
+        $response = $this->actingAs($admin)->get(route('admin.international-rates.index'));
+        $response->assertOk();
+        $response->assertSee('International Sector Rate Management');
+        $response->assertSee('United States');
+
+        // Create page
+        $createResponse = $this->actingAs($admin)->get(route('admin.international-rates.create'));
+        $createResponse->assertOk();
+        $createResponse->assertSee('Add International Rate Matrix');
+
+        // Toggle active status
+        $firstRate = InternationalRate::first();
+        $this->assertNotNull($firstRate);
+        $toggleResponse = $this->actingAs($admin)->patchJson(route('admin.international-rates.toggle', $firstRate->id));
+        $toggleResponse->assertOk();
+        $this->assertFalse((bool) $firstRate->fresh()->is_active);
+    }
+
+    /**
+     * Test flow from Rate Inquiry Desk booking to consignment creation.
+     */
+    public function test_rate_inquiry_booking_flow_prefills_shipment_form_and_computes_chargeable_weight(): void
+    {
+        $client = User::factory()->create([
+            'user_type' => 'client',
+            'password_changed' => true,
+        ]);
+
+        // 1. Visit shipment creation with prefilled rate inquiry parameters
+        $params = [
+            'shipment_type' => 'international',
+            'receiver_country' => 'United States',
+            'weight' => 2.5,
+            'chargeable_weight' => 2.5,
+            'service_type' => 'express',
+            'packaging' => 'small_box',
+            'quoted_rate' => 6176,
+        ];
+
+        $viewResponse = $this->actingAs($client)->get(route('shipments.create', $params));
+        $viewResponse->assertOk();
+        $viewResponse->assertSee('Verified Rate Applied');
+        $viewResponse->assertSee('6,176');
+
+        // 2. Submit shipment creation for international sector
+        $this->withoutExceptionHandling();
+        $storeResponse = $this->actingAs($client)->post(route('shipments.store'), [
+            'shipment_type' => 'international',
+            'service_type' => 'express',
+            'express_carrier' => 'DHL',
+            'package_type' => 'box',
+            'weight' => 2.5,
+            'length' => 25,
+            'width' => 20,
+            'height' => 15, // Volumetric = 25*20*15/5000 = 1.5kg < 2.5kg gross -> Chargeable = 2.5kg
+            'pickup_name' => ['Sender Contact'],
+            'pickup_phone' => ['9800000000'],
+            'pickup_address' => ['Kathmandu Cargo Terminal'],
+            'receiver_name' => 'John Doe',
+            'receiver_phone' => '+1-555-0199',
+            'receiver_street' => '123 Market St',
+            'receiver_city' => 'New York',
+            'receiver_state' => 'NY',
+            'receiver_postal_code' => '10001',
+            'receiver_country' => 'United States',
+        ]);
+
+        $storeResponse->assertSessionHasNoErrors();
+
+        $shipment = Shipment::where('receiver_country', 'United States')->latest('id')->first();
+        $this->assertNotNull($shipment);
+        $this->assertEquals(2.5, (float)$shipment->actual_weight);
+        $this->assertEquals(2.5, (float)$shipment->chargeable_weight);
+        $this->assertGreaterThan(0, (float)$shipment->shipping_cost);
+        $storeResponse->assertRedirect(route('tracking.show', $shipment->tracking_number));
+    }
+
+    /**
+     * Test dynamic packaging materials catalog and dynamic pricing updates.
+     */
+    public function test_dynamic_packaging_materials_catalog_and_pricing_updates(): void
+    {
+        $service = new InternationalRateService();
+
+        // 1. Verify dynamic catalog loaded from database
+        $catalog = $service->getPackagingCatalog();
+        $this->assertArrayHasKey('small_box', $catalog);
+        $this->assertArrayHasKey('wooden_crate', $catalog);
+        $this->assertEquals(350.0, $catalog['small_box']['price']);
+
+        // 2. Dynamically update price in database
+        $box = \App\Models\PackagingMaterial::where('code', 'small_box')->first();
+        $this->assertNotNull($box);
+        $box->update(['price' => 475.00]);
+
+        // 3. New quote should immediately reflect dynamic database price
+        $newQuote = $service->quote('United States', 2.0, null, null, null, 'small_box');
+        $this->assertEquals(475.00, $newQuote['packaging']['price']);
+        $this->assertEquals(475.00, $newQuote['quotes'][0]['itemized']['packaging_fee']);
+    }
+
+    /**
+     * Test Super Admin dynamic Customs Clearance and Godown Charges feed.
+     */
+    public function test_super_admin_dynamic_customs_clearance_and_godown_charges_feed(): void
+    {
+        $superAdmin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'password_changed' => true,
+        ]);
+
+        $service = new InternationalRateService();
+
+        // Initial baseline quote
+        $initialQuote = $service->quote('United States', 1.0);
+        $this->assertArrayHasKey('global_tariff_inclusions', $initialQuote);
+        $this->assertEquals(500.00, $initialQuote['global_tariff_inclusions']['customs_clearance']);
+        $this->assertEquals(300.00, $initialQuote['global_tariff_inclusions']['godown_charge']);
+
+        // Super admin updates dynamic tariff settings with bulk sync
+        $postResponse = $this->actingAs($superAdmin)->post(route('admin.international-rates.settings.tariff'), [
+            'default_customs_clearance_charge' => 750.00,
+            'default_godown_charge' => 450.00,
+            'customs_charge_notice' => 'Updated TIA customs clearance export fee.',
+            'godown_charge_notice' => 'Updated TIA terminal godown fee.',
+            'sync_all_matrices' => 1,
+        ]);
+
+        $postResponse->assertSessionHasNoErrors();
+        $postResponse->assertRedirect(route('admin.international-rates.settings'));
+
+        // Verify quote immediately reflects new Super Admin dynamic charges
+        $updatedQuote = $service->quote('United States', 1.0);
+        $this->assertEquals(750.00, $updatedQuote['global_tariff_inclusions']['customs_clearance']);
+        $this->assertEquals(450.00, $updatedQuote['global_tariff_inclusions']['godown_charge']);
+        $this->assertEquals(750.00, $updatedQuote['quotes'][0]['itemized']['customs_clearance']);
+        $this->assertEquals(450.00, $updatedQuote['quotes'][0]['itemized']['godown_charge']);
+
+        // Verify all existing rate matrices were updated
+        $this->assertEquals(0, InternationalRate::where('customs_clearance_charge', '!=', 750.00)->count());
+    }
+
+    /**
+     * Test dynamic destination country typing and admin settings management.
+     */
+    public function test_dynamic_country_typing_and_admin_settings_management(): void
+    {
+        $superAdmin = User::factory()->create([
+            'user_type' => 'super_admin',
+            'password_changed' => true,
+        ]);
+
+        // 1. Test admin settings page loads
+        $settingsView = $this->actingAs($superAdmin)->get(route('admin.international-rates.settings'));
+        $settingsView->assertOk();
+        $settingsView->assertSee('Dynamic Tariff Settings & Packaging Catalog', false);
+        $settingsView->assertSee('Global Customs Clearance', false);
+        $settingsView->assertSee('Reinforced Document Envelope', false);
+
+        // 2. Admin adds a new packaging type dynamically
+        $addPkgResponse = $this->actingAs($superAdmin)->post(route('admin.international-rates.settings.packaging.store'), [
+            'code' => 'thermocol_insulated_box',
+            'name' => 'Thermocol Insulated Cold Cargo Box',
+            'price' => 850.00,
+            'description' => 'Insulated temperature-safe packaging for perishable exports.',
+            'icon' => 'snowflake',
+            'sort_order' => 8,
+            'is_active' => 1,
+        ]);
+
+        $addPkgResponse->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('packaging_materials', [
+            'code' => 'thermocol_insulated_box',
+            'price' => 850.00,
+        ]);
+
+        // 3. Test dynamic country typing in rate inquiry calculate endpoint
+        // Client types 'Australia' dynamically
+        $calcResponse = $this->postJson(route('rates.calculate'), [
+            'country' => 'Australia',
+            'weight' => 2.0,
+            'packaging' => 'thermocol_insulated_box',
+        ]);
+
+        $calcResponse->assertOk();
+        $calcResponse->assertJsonPath('data.country', 'Australia');
+        $calcResponse->assertJsonPath('data.packaging.code', 'thermocol_insulated_box');
+        $calcResponse->assertJsonPath('data.packaging.price', 850);
+        $this->assertNotEmpty($calcResponse->json('data.quotes'));
+    }
+}
+

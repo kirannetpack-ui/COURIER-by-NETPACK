@@ -10,7 +10,7 @@
     @stack('styles')
 </head>
 <body>
-    <div x-data="{ sidebarOpen: true }" class="flex min-h-screen bg-gray-100">
+<div x-data="{ sidebarOpen: {{ auth()->check() ? 'true' : 'false' }} }" class="flex min-h-screen bg-gray-100">
         <!-- Sidebar -->
         @auth
             @php

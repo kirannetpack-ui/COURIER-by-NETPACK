@@ -156,10 +156,28 @@
                 </span>
             </a>
 
+            <!-- Rate Inquiry Calculator Desk -->
+            <a href="{{ route('rates.inquiry') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-calculator w-4 text-center text-amber-400"></i>
+                <span>Rate Inquiry Desk</span>
+            </a>
+
+            <!-- International Sector Tariff Matrices (0.5kg Slabs & Tiers) -->
+            <a href="{{ route('admin.international-rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ (request()->routeIs('admin.international-rates*') && !request()->routeIs('admin.international-rates.settings*')) || request()->routeIs('international.rates-matrix*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-table-cells w-4 text-center text-sky-300"></i>
+                <span>Tariff Matrices (0.5kg Slabs)</span>
+            </a>
+
+            <!-- Dynamic Tariff Settings & Packaging -->
+            <a href="{{ route('admin.international-rates.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.international-rates.settings*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-sliders w-4 text-center text-amber-300"></i>
+                <span>Dynamic Tariff & Packaging</span>
+            </a>
+
             <!-- International Rates -->
-            <a href="{{ route('international.rates') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.rates*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <a href="{{ route('international.rates') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.rates*') && !request()->routeIs('international.rates-matrix*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-money-bill-wave w-4 text-center text-emerald-400"></i>
-                <span>International Rates</span>
+                <span>Legacy Sector Rates</span>
             </a>
 
             <!-- Remote Surcharges -->
