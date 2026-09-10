@@ -18,13 +18,12 @@ class TransitPointController extends Controller
 
     public function index(Request $request)
     {
-        $query = OverseasTransitPoint::with('partner');
-
-        if ($this->canManageAllPartners() && $request->filled('partner_id')) {
-            $query->where('partner_id', $request->partner_id);
-        } elseif (!$this->canManageAllPartners()) {
-            $query->where('partner_id', auth()->id());
+        if ($this->canManageAllPartners()) {
+            return redirect()->route('international.hubs.index');
         }
+
+        $query = OverseasTransitPoint::with('partner');
+        $query->where('partner_id', auth()->id());
 
         $transitPoints = $query->orderBy('created_at', 'desc')->paginate(20);
         $partners = $this->availablePartners();
@@ -35,6 +34,10 @@ class TransitPointController extends Controller
 
     public function create()
     {
+        if ($this->canManageAllPartners()) {
+            return redirect()->route('international.hubs.create');
+        }
+
         $types = OverseasTransitPoint::TYPES;
         $partners = $this->availablePartners();
         $routePrefix = $this->routePrefix();
@@ -44,6 +47,10 @@ class TransitPointController extends Controller
 
     public function store(Request $request)
     {
+        if ($this->canManageAllPartners()) {
+            return redirect()->route('international.hubs.index');
+        }
+
         $validator = Validator::make($request->all(), [
             'partner_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
@@ -64,21 +71,27 @@ class TransitPointController extends Controller
             $existingHub = OverseasTransitPoint::where('partner_id', $request->partner_id)
                 ->where('type', 'hub')
                 ->first();
-            
+
             if ($existingHub) {
                 return redirect()->back()
-                    ->with('error', 'This partner already has a Hub. Only one Hub is allowed per partner.')
+                    ->withErrors(['type' => 'This partner already has a main hub assigned. Only one hub is allowed per partner.'])
                     ->withInput();
             }
         }
 
+        // If this is set as mandatory, ensure no other is mandatory for this partner
+        if ($request->boolean('is_mandatory')) {
+            OverseasTransitPoint::where('partner_id', $request->partner_id)
+                ->update(['is_mandatory' => false]);
+        }
+
         OverseasTransitPoint::create([
-            'partner_id' => $this->canManageAllPartners() ? $request->integer('partner_id') : auth()->id(),
+            'partner_id' => $request->partner_id,
             'name' => $request->name,
             'type' => $request->type,
             'location' => $request->location,
             'country' => $request->country,
-            'is_mandatory' => $request->has('is_mandatory'),
+            'is_mandatory' => $request->boolean('is_mandatory'),
             'is_active' => true,
         ]);
 
@@ -88,6 +101,10 @@ class TransitPointController extends Controller
 
     public function edit($id)
     {
+        if ($this->canManageAllPartners()) {
+            return redirect()->route('international.hubs.index');
+        }
+
         $transitPoint = $this->findManagedTransitPoint($id)->load('partner');
         $types = OverseasTransitPoint::TYPES;
         $partners = $this->availablePartners();

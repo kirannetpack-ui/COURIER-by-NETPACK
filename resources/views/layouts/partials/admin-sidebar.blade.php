@@ -130,19 +130,7 @@
             <a href="{{ route('overseas.dashboard') }}" 
                class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('overseas.*') ? 'bg-slate-800 text-teal-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-earth-asia w-4 text-center text-cyan-400"></i>
-                <span>🌐 Overseas Hub</span>
-            </a>
-
-            <a href="{{ route('international.hubs.index') }}" 
-               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.hubs*') ? 'bg-slate-800 text-indigo-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-network-wired w-4 text-center text-indigo-400"></i>
-                <span>✈️ International Hubs</span>
-            </a>
-
-            <a href="{{ route('international.agencies.index') }}" 
-               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.agencies*') ? 'bg-slate-800 text-amber-300 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-building w-4 text-center text-amber-400"></i>
-                <span>🏢 Partner Agencies</span>
+                <span>🌐 Overseas Portal</span>
             </a>
 
             <a href="{{ route('international.manifests.index') }}" 
@@ -253,9 +241,9 @@
                 <span>Remote & Surcharges</span>
             </a>
 
-            <a href="{{ route('international.transit-points.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.transit-points*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-hubspot w-4 text-center"></i>
-                <span>Transit Hubs & Points</span>
+            <a href="{{ route('international.hubs.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.hubs*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-network-wired w-4 text-center text-indigo-400"></i>
+                <span>International Hubs</span>
             </a>
         </div>
 

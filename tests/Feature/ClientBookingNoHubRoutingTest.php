@@ -142,7 +142,7 @@ class ClientBookingNoHubRoutingTest extends TestCase
         $adminView = $this->actingAs($admin)->get(route('international.shipments.show', $shipment->id));
         $adminView->assertOk();
         $adminView->assertSee('International Gateway Routing', false);
-        $adminView->assertSee('Designated Transit Hub');
+        $adminView->assertSee('Designated International Hub');
         $adminView->assertSee('DXB - Dubai Gateway Hub');
 
         // 3. Admin defines the routing and confirms the booking

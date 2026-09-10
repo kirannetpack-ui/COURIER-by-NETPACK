@@ -86,8 +86,27 @@ class HubController extends Controller
             'coverage_countries' => $coverageCountries,
             'service_routes' => $serviceRoutes,
             'is_active' => $request->boolean('is_active', true),
+            'is_mandatory' => $request->boolean('is_mandatory', false),
             'sort_order' => $validated['sort_order'] ?? (OverseasHub::max('sort_order') + 1),
         ]);
+
+        // Merge Partner Agency function: create attached agency if details provided
+        if ($request->filled('handling_agency_name')) {
+            $agency = \App\Models\Agency::create([
+                'hub_id' => $hub->id,
+                'name' => $request->input('handling_agency_name'),
+                'code' => strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $request->input('handling_agency_name')), 0, 4)) . '-' . $hub->code,
+                'country' => $hub->country,
+                'city' => $hub->city ?? $hub->location,
+                'address' => $request->input('agency_address') ?? $hub->address,
+                'phone' => $request->input('agency_phone') ?? '+000-0000',
+                'primary_contact' => $request->input('agency_contact_person') ?? 'Hub Operations Desk',
+                'email' => $request->input('agency_email') ?? ('ops.' . strtolower($hub->code) . '@netpack.com'),
+                'password' => bcrypt('Netpack@123'),
+                'is_active' => true,
+            ]);
+            $hub->agencies()->syncWithoutDetaching([$agency->id]);
+        }
 
         return redirect()->route('international.hubs.index')
             ->with('success', "International Hub '{$hub->hub_name}' created successfully.");
@@ -95,13 +114,14 @@ class HubController extends Controller
 
     public function edit($id)
     {
-        $hub = OverseasHub::findOrFail($id);
-        return view('international.hubs.edit', compact('hub'));
+        $hub = OverseasHub::with('agencies')->findOrFail($id);
+        $agency = $hub->agencies->first();
+        return view('international.hubs.edit', compact('hub', 'agency'));
     }
 
     public function update(Request $request, $id)
     {
-        $hub = OverseasHub::findOrFail($id);
+        $hub = OverseasHub::with('agencies')->findOrFail($id);
 
         $input = $request->all();
         if (empty($input['hub_code']) && !empty($input['code'])) {
@@ -148,10 +168,53 @@ class HubController extends Controller
             'service_routes' => $serviceRoutes,
             'sort_order' => $validated['sort_order'] ?? $hub->sort_order,
             'is_active' => $request->boolean('is_active', true),
+            'is_mandatory' => $request->boolean('is_mandatory', false),
         ]);
+
+        // Merge Partner Agency function: update or create attached agency
+        if ($request->filled('handling_agency_name')) {
+            $agency = $hub->agencies->first();
+            if ($agency) {
+                $agency->update([
+                    'name' => $request->input('handling_agency_name'),
+                    'country' => $hub->country,
+                    'city' => $hub->city ?? $hub->location,
+                    'address' => $request->input('agency_address') ?? $hub->address,
+                    'phone' => $request->input('agency_phone') ?? $agency->phone,
+                    'primary_contact' => $request->input('agency_contact_person') ?? $agency->primary_contact,
+                    'email' => $request->input('agency_email') ?? $agency->email,
+                ]);
+            } else {
+                $agency = \App\Models\Agency::create([
+                    'hub_id' => $hub->id,
+                    'name' => $request->input('handling_agency_name'),
+                    'code' => strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $request->input('handling_agency_name')), 0, 4)) . '-' . $hub->code,
+                    'country' => $hub->country,
+                    'city' => $hub->city ?? $hub->location,
+                    'address' => $request->input('agency_address') ?? $hub->address,
+                    'phone' => $request->input('agency_phone') ?? '+000-0000',
+                    'primary_contact' => $request->input('agency_contact_person') ?? 'Hub Operations Desk',
+                    'email' => $request->input('agency_email') ?? ('ops.' . strtolower($hub->code) . '@netpack.com'),
+                    'password' => bcrypt('Netpack@123'),
+                    'is_active' => true,
+                ]);
+                $hub->agencies()->syncWithoutDetaching([$agency->id]);
+            }
+        }
 
         return redirect()->route('international.hubs.index')
             ->with('success', "International Hub '{$hub->hub_name}' updated successfully.");
+    }
+
+    public function toggle($id)
+    {
+        $hub = OverseasHub::findOrFail($id);
+        $hub->is_active = !$hub->is_active;
+        $hub->save();
+
+        $status = $hub->is_active ? 'activated' : 'deactivated';
+        return redirect()->route('international.hubs.index')
+            ->with('success', "International Hub '{$hub->hub_name}' {$status} successfully.");
     }
 
     /**

@@ -252,16 +252,65 @@ class HubAgencyConsolidationTest extends TestCase
         $response->assertSee('Dubai Gateway Hub');
     }
 
-    public function test_legacy_overseas_partner_routes_redirect_to_agencies()
+    public function test_legacy_overseas_partner_and_transit_points_routes_redirect_to_international_hubs()
     {
         $admin = User::factory()->create(['user_type' => 'super_admin']);
 
-        // /admin/overseas-partners redirects to /international/agencies
+        // /admin/overseas-partners redirects to /international/hubs
         $response = $this->actingAs($admin)->get(route('admin.overseas-partners.index'));
-        $response->assertRedirect(route('international.agencies.index'));
+        $response->assertRedirect(route('international.hubs.index'));
 
-        // /international/partners redirects to /international/agencies
+        // /international/partners redirects to /international/hubs
         $response = $this->actingAs($admin)->get(route('international.partners'));
-        $response->assertRedirect(route('international.agencies.index'));
+        $response->assertRedirect(route('international.hubs.index'));
+
+        // /international/transit-points redirects to /international/hubs
+        $response = $this->actingAs($admin)->get(route('international.transit-points.index'));
+        $response->assertRedirect(route('international.hubs.index'));
+
+        // /international/transit-points/create redirects to /international/hubs/create
+        $response = $this->actingAs($admin)->get(route('international.transit-points.create'));
+        $response->assertRedirect(route('international.hubs.create'));
+    }
+
+    public function test_international_hub_stores_merged_agency_and_transit_point_functions()
+    {
+        $admin = User::factory()->create(['user_type' => 'super_admin']);
+
+        $hubData = [
+            'code' => 'JFK',
+            'name' => 'New York JFK International Hub',
+            'country' => 'United States',
+            'city' => 'New York',
+            'airport_name' => 'John F. Kennedy Cargo Terminal 4',
+            'hub_type' => 'transit_point',
+            'mode_type' => 'DDU',
+            'is_mandatory' => 1,
+            'is_active' => 1,
+            'coverage_countries' => 'US, CA, MX',
+            'service_routes' => 'Transatlantic Corridor, US Domestic Feeder',
+            'handling_agency_name' => 'Atlantic Hub Operations LLC',
+            'agency_contact_person' => 'Michael Scott',
+            'agency_phone' => '+1-212-555-0199',
+            'agency_email' => 'ops.jfk@atlantic-cargo.com',
+            'agency_address' => 'Building 14, JFK International Airport',
+        ];
+
+        $response = $this->actingAs($admin)->post(route('international.hubs.store'), $hubData);
+        $response->assertRedirect(route('international.hubs.index'));
+
+        $hub = OverseasHub::where('hub_code', 'JFK')->first();
+        $this->assertNotNull($hub);
+        $this->assertEquals('transit_point', $hub->hub_type);
+        $this->assertTrue($hub->is_mandatory);
+        $this->assertEquals('DDU', $hub->mode_type);
+
+        // Verify Handling Agency was automatically created and linked
+        $this->assertCount(1, $hub->agencies);
+        $agency = $hub->agencies->first();
+        $this->assertEquals('Atlantic Hub Operations LLC', $agency->name);
+        $this->assertEquals('Michael Scott', $agency->primary_contact);
+        $this->assertEquals('+1-212-555-0199', $agency->phone);
+        $this->assertEquals('ops.jfk@atlantic-cargo.com', $agency->email);
     }
 }

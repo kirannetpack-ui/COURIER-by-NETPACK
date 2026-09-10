@@ -102,14 +102,14 @@
             </div>
 
             <select name="hub_id" onchange="this.form.submit()" class="py-2 px-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
-                <option value="">-- All Gateway Hubs --</option>
+                <option value="">-- All International Hubs --</option>
                 @foreach($hubs as $hub)
                     <option value="{{ $hub->id }}" {{ request('hub_id') == $hub->id ? 'selected' : '' }}>{{ $hub->code }} - {{ $hub->name }}</option>
                 @endforeach
             </select>
 
             <select name="agency_id" onchange="this.form.submit()" class="py-2 px-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
-                <option value="">-- All Partner Agencies --</option>
+                <option value="">-- All Handling Agencies --</option>
                 @foreach($agencies as $ag)
                     <option value="{{ $ag->id }}" {{ request('agency_id') == $ag->id ? 'selected' : '' }}>{{ $ag->name }}</option>
                 @endforeach

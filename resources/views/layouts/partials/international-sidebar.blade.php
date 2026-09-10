@@ -45,23 +45,14 @@
         <!-- AIR CARGO & GATEWAY HUBS -->
         <!-- ============================================== -->
         <div class="pt-2">
-            <p class="text-[10px] text-sky-400 font-extrabold uppercase tracking-widest px-3 mb-1">Gateway Hubs & Agencies</p>
+            <p class="text-[10px] text-sky-400 font-extrabold uppercase tracking-widest px-3 mb-1">International Hubs & Delivery</p>
             
-            <!-- Gateway Hubs -->
+            <!-- International Hubs -->
             <a href="{{ route('international.hubs.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.hubs*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-network-wired w-4 text-center text-indigo-400"></i>
-                <span>4 Gateway Hubs</span>
+                <span>International Hubs</span>
                 <span class="ml-auto bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
                     {{ \App\Models\OverseasHub::count() }}
-                </span>
-            </a>
-
-            <!-- Partner Agencies -->
-            <a href="{{ route('international.agencies.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.agencies*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-building w-4 text-center text-amber-400"></i>
-                <span>Partner Agencies</span>
-                <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                    {{ \App\Models\Agency::count() }}
                 </span>
             </a>
 
@@ -177,11 +168,7 @@
                 <span>Remote Surcharges</span>
             </a>
 
-            <!-- Transit Points -->
-            <a href="{{ route('international.transit-points.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.transit-points*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-route w-4 text-center text-purple-400"></i>
-                <span>Transit Hubs & Points</span>
-            </a>
+
 
             <!-- Operations Staff -->
             <a href="{{ route('international.staff.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.staff*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">

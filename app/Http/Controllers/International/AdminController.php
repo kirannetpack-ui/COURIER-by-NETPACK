@@ -117,7 +117,7 @@ class AdminController extends Controller
      */
     public function partners()
     {
-        return redirect()->route('international.agencies.index');
+        return redirect()->route('international.hubs.index');
     }
 
     /**
@@ -148,7 +148,7 @@ class AdminController extends Controller
      */
     public function createPartner()
     {
-        return view('international.admin.partner-create');
+        return redirect()->route('international.hubs.create');
     }
 
     /**

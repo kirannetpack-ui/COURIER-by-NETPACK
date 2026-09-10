@@ -27,11 +27,13 @@ class OverseasHub extends Model
         'latitude',
         'longitude',
         'is_active',
+        'is_mandatory',
         'sort_order',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_mandatory' => 'boolean',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'sort_order' => 'integer',

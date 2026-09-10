@@ -794,6 +794,7 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
     // -------------------------------------------------------------
     // INTERNATIONAL AIR-CARGO, HUBS, AGENCIES, MAWBs & MANIFESTS
     // -------------------------------------------------------------
+    Route::patch('hubs/{id}/toggle', [InternationalHubController::class, 'toggle'])->name('hubs.toggle');
     Route::resource('hubs', InternationalHubController::class)->except(['show']);
 
     Route::get('agencies/{agency}/format-settings', [InternationalAgencyController::class, 'formatSettings'])->name('agencies.format-settings');

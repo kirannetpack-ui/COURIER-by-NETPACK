@@ -209,7 +209,7 @@
                                 <h4 class="text-base sm:text-lg font-bold text-white leading-snug">
                                     {{ $shipment->receiver_city ?: 'Destination' }}, {{ $shipment->receiver_country }}
                                 </h4>
-                                <span class="text-[11px] font-mono text-slate-400">Air Cargo Transit Hub</span>
+                                <span class="text-[11px] font-mono text-slate-400">Air Cargo International Hub</span>
                             </div>
                             <span class="text-3xl sm:text-4xl shrink-0">{{ $destFlag }}</span>
                         </div>

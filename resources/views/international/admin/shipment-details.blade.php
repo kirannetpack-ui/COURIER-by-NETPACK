@@ -237,16 +237,16 @@
                 <div class="p-4 rounded-xl border border-indigo-200 bg-indigo-50/30 space-y-4">
                     <div class="flex items-center justify-between border-b border-indigo-100 pb-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
-                            <i class="fas fa-network-wired text-indigo-600"></i> Economy Gateway Hub, Agency & Last-Mile Allocation
+                            <i class="fas fa-network-wired text-indigo-600"></i> International Hub, Agency & Last-Mile Allocation
                         </span>
                         <span class="text-[11px] text-indigo-700">Client chosen service: Economy Air Cargo</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Designated Transit Hub</label>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Designated International Hub</label>
                             <select name="current_hub_id" id="admin_routing_hub_id" onchange="filterAdminAgencies()" class="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm bg-white font-semibold focus:ring-2 focus:ring-indigo-500">
-                                <option value="">-- Direct Flight / No Transit Hub --</option>
+                                <option value="">-- Direct Flight / No International Hub --</option>
                                 @if(!empty($hubs))
                                     @foreach($hubs as $h)
                                         <option value="{{ $h->id }}" data-mode="{{ $h->mode_type }}" data-code="{{ $h->code }}" {{ (int)$shipment->current_hub_id === (int)$h->id ? 'selected' : '' }}>

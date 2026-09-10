@@ -51,7 +51,7 @@
         ['icon' => 'fa-users', 'label' => 'Users', 'route' => 'admin.users.index', 'color' => 'text-purple-400'],
         ['icon' => 'fa-user-tie', 'label' => 'Staff', 'route' => 'admin.staff.index', 'color' => 'text-indigo-400'],
         ['icon' => 'fa-handshake', 'label' => 'Domestic Partners', 'route' => 'admin.partners.index', 'color' => 'text-yellow-400'],
-        ['icon' => 'fa-globe-asia', 'label' => 'Overseas Partners', 'route' => 'admin.overseas-partners.index', 'color' => 'text-pink-400'],
+        ['icon' => 'fa-network-wired', 'label' => 'International Hubs', 'route' => 'international.hubs.index', 'color' => 'text-pink-400'],
         ['icon' => 'fa-clipboard-list', 'label' => 'Pickups', 'route' => 'admin.pickups', 'color' => 'text-orange-400'],
         ['icon' => 'fa-chart-line', 'label' => 'Analytics', 'route' => 'admin.analytics', 'color' => 'text-red-400'],
         ['icon' => 'fa-wallet', 'label' => 'Settlements', 'route' => 'admin.settlements', 'color' => 'text-emerald-400'],

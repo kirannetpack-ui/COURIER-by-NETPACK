@@ -67,7 +67,7 @@
                 <input type="text" name="destination_airport" value="{{ old('destination_airport') }}" placeholder="e.g. DXB, LHR, SYD, AKL" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
             </div>
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Designated Transit Hub</label>
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Designated International Hub</label>
                 <select name="hub_id" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                     <option value="">-- Flexible / Unassigned Hub --</option>
                     @foreach($hubs as $hub)

@@ -120,12 +120,12 @@
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
-                    <i class="fas fa-network-wired text-sky-600"></i> International Gateway Hubs (Economy Architecture)
+                    <i class="fas fa-network-wired text-sky-600"></i> International Hubs (Global Gateways)
                 </h3>
                 <p class="text-xs text-slate-500">Global linehaul routes, destination customs clearance, and last-mile carrier handovers</p>
             </div>
             <a href="{{ route('international.hubs.index') }}" class="text-xs font-bold text-sky-600 hover:underline">
-                Manage Hubs & Agencies &rarr;
+                Manage International Hubs &rarr;
             </a>
         </div>
 
@@ -199,7 +199,7 @@
                 <i class="fas fa-network-wired"></i>
             </div>
             <div>
-                <p class="font-bold text-slate-800 text-sm">Gateway Hubs</p>
+                <p class="font-bold text-slate-800 text-sm">International Hubs</p>
                 <p class="text-xs text-slate-400">Add, edit & routes</p>
             </div>
         </a>
