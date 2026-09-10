@@ -19,7 +19,9 @@ class Shipment extends Model
     'rider_id',
     'overseas_partner_id',
     'current_agency_id',
+    'agency_id',
     'current_hub_id',
+    'hub_id',
     'current_transit_point_id',
     
     // Sender Information
@@ -108,6 +110,15 @@ class Shipment extends Model
     'insurance_amount',
     'is_cod',
     'cod_amount',
+
+    // International Logistics & MAWB Integration
+    'mawb_id',
+    'mawb_number',
+    'last_mile_carrier_id',
+    'last_mile_carrier_name',
+    'last_mile_tracking_number',
+    'customs_mode',
+    'agency_milestone',
 ];
 
     protected $casts = [
@@ -159,6 +170,36 @@ public function currentAgency()
 public function currentHub()
 {
     return $this->belongsTo(OverseasHub::class, 'current_hub_id');
+}
+
+public function mawb()
+{
+    return $this->belongsTo(MAWB::class, 'mawb_id');
+}
+
+public function lastMileCarrier()
+{
+    return $this->belongsTo(LastMileCarrier::class, 'last_mile_carrier_id');
+}
+
+public function setHubIdAttribute($value)
+{
+    $this->attributes['current_hub_id'] = $value;
+}
+
+public function getHubIdAttribute()
+{
+    return $this->attributes['current_hub_id'] ?? null;
+}
+
+public function setAgencyIdAttribute($value)
+{
+    $this->attributes['current_agency_id'] = $value;
+}
+
+public function getAgencyIdAttribute()
+{
+    return $this->attributes['current_agency_id'] ?? null;
 }
 
 
@@ -481,6 +522,45 @@ protected static function booted()
                 ? app(\App\Services\TrackingNumberService::class)->internationalHawb($shipment->receiver_country)
                 : null;
         }
+
+        // Sender defaults if missing
+        if (empty($shipment->sender_name)) {
+            $shipment->sender_name = 'Netpack Customer';
+        }
+        if (empty($shipment->sender_phone)) {
+            $shipment->sender_phone = '+977-9800000000';
+        }
+        if (empty($shipment->sender_address)) {
+            $shipment->sender_address = 'Kathmandu, Nepal';
+        }
+
+        // Receiver defaults if missing
+        if (empty($shipment->receiver_name)) {
+            $shipment->receiver_name = 'Destination Consignee';
+        }
+        if (empty($shipment->receiver_phone)) {
+            $shipment->receiver_phone = '+1-555-0199';
+        }
+        if (empty($shipment->receiver_address)) {
+            $shipment->receiver_address = 'Destination Delivery Address';
+        }
+        if (empty($shipment->receiver_city)) {
+            $shipment->receiver_city = $shipment->receiver_country ?? 'Dubai';
+        }
+
+        // Weight and pricing defaults
+        if (!isset($shipment->actual_weight)) {
+            $shipment->actual_weight = 1.0;
+        }
+        if (!isset($shipment->chargeable_weight)) {
+            $shipment->chargeable_weight = $shipment->actual_weight;
+        }
+        if (!isset($shipment->shipping_cost)) {
+            $shipment->shipping_cost = 0;
+        }
+        if (!isset($shipment->total_amount)) {
+            $shipment->total_amount = $shipment->shipping_cost;
+        }
     });
 }
 
@@ -506,6 +586,16 @@ public function manifestShipment()
 public function scopeNotManifested($query)
 {
     return $query->whereDoesntHave('manifestShipment');
+}
+
+public function hub()
+{
+    return $this->belongsTo(OverseasHub::class, 'current_hub_id');
+}
+
+public function agency()
+{
+    return $this->belongsTo(Agency::class, 'current_agency_id');
 }
 
 /**

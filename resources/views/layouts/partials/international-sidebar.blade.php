@@ -38,6 +38,48 @@
             </a>
         </div>
 
+        <!-- International Air Cargo & Gateway Hubs -->
+        <div class="pt-4">
+            <p class="text-xs text-sky-400 uppercase tracking-wider px-4 mb-2 font-bold flex items-center gap-1.5">
+                <i class="fas fa-plane-departure text-sky-500"></i> Air Cargo Logistics
+            </p>
+            
+            <a href="{{ route('international.hubs.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('international.hubs*') ? 'bg-gray-800 text-sky-400' : 'text-gray-300' }}">
+                <i class="fas fa-globe-americas w-5 text-indigo-400"></i>
+                <span>Gateway Hubs</span>
+                <span class="ml-auto bg-indigo-600 text-xs px-2 py-0.5 rounded-full">{{ \App\Models\OverseasHub::count() }}</span>
+            </a>
+
+            <a href="{{ route('international.agencies.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('international.agencies*') ? 'bg-gray-800 text-amber-400' : 'text-gray-300' }}">
+                <i class="fas fa-building w-5 text-amber-400"></i>
+                <span>Partner Agencies</span>
+                <span class="ml-auto bg-amber-600 text-xs px-2 py-0.5 rounded-full">{{ \App\Models\Agency::count() }}</span>
+            </a>
+
+            <a href="{{ route('international.last-mile.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('international.last-mile*') ? 'bg-gray-800 text-emerald-400' : 'text-gray-300' }}">
+                <i class="fas fa-truck-moving w-5 text-emerald-400"></i>
+                <span>Last Mile Couriers</span>
+                <span class="ml-auto bg-emerald-600 text-xs px-2 py-0.5 rounded-full">{{ \App\Models\LastMileCarrier::count() }}</span>
+            </a>
+
+            <a href="{{ route('international.mawbs.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('international.mawbs*') ? 'bg-gray-800 text-sky-400' : 'text-gray-300' }}">
+                <i class="fas fa-barcode w-5 text-sky-400"></i>
+                <span>MAWB Pool</span>
+                <span class="ml-auto bg-sky-600 text-xs px-2 py-0.5 rounded-full">{{ \App\Models\MAWB::unused()->count() }} Unused</span>
+            </a>
+
+            <a href="{{ route('international.manifests.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('international.manifests*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
+                <i class="fas fa-file-invoice-dollar w-5 text-teal-400"></i>
+                <span>Flight Manifests</span>
+                <span class="ml-auto bg-teal-600 text-xs px-2 py-0.5 rounded-full">{{ \App\Models\Manifest::international()->count() }}</span>
+            </a>
+
+            <a href="{{ route('agency.manifests.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('agency*') ? 'bg-gray-800 text-emerald-400' : 'text-gray-300' }}">
+                <i class="fas fa-inbox w-5 text-emerald-400"></i>
+                <span>Agency Inbound Desk</span>
+            </a>
+        </div>
+
         <!-- Partner Management -->
         <div class="pt-4">
             <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Partner Management</p>

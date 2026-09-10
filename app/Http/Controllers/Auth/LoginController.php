@@ -35,33 +35,38 @@ class LoginController extends Controller
             return redirect()->route('password.change');
         }
 
-        // Redirect based on user type
-        switch ($user->user_type) {
-            case 'super_admin':
-                return redirect()->intended('/admin/dashboard');
-                
-            case 'domestic_admin':
-                return redirect()->intended('/domestic/dashboard');
-                
-            case 'international_admin':
-                return redirect()->intended('/international/dashboard');
-                
-            case 'partner':
-                return redirect()->intended('/partner/dashboard');
-                
-            case 'seller':
-                return redirect()->intended('/seller/dashboard');
-                
-            case 'rider':
-                return redirect()->intended('/rider/dashboard');
-                
-            case 'customer':
-            case 'client':
-                return redirect()->intended('/client/dashboard');
-                
-            default:
-                return redirect()->intended('/dashboard');
+        $targetUrl = $user->dashboardUrl();
+
+        // Safety check for session intended URL:
+        // Clear any cross-portal mismatch stored in url.intended
+        $intended = $request->session()->get('url.intended');
+        if ($intended) {
+            $isAuthorizedForIntended = true;
+
+            if (str_contains($intended, '/client') && !in_array($user->user_type, ['client', 'customer', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/admin') && !in_array($user->user_type, ['super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/seller') && !in_array($user->user_type, ['seller', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/rider') && !in_array($user->user_type, ['rider', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/partner') && !in_array($user->user_type, ['partner', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/overseas') && !in_array($user->user_type, ['overseas', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/domestic') && !in_array($user->user_type, ['domestic_admin', 'staff', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/international') && !in_array($user->user_type, ['international_admin', 'staff', 'super_admin', 'admin'], true)) {
+                $isAuthorizedForIntended = false;
+            }
+
+            if (!$isAuthorizedForIntended) {
+                $request->session()->forget('url.intended');
+            }
         }
+
+        return redirect()->intended($targetUrl);
     }
 
     return back()->withErrors([

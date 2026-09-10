@@ -108,14 +108,38 @@
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <!-- Tracking & HAWB Identifiers -->
                 <div class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                            <span class="h-2 w-2 rounded-full bg-teal-400 animate-ping"></span>
-                            {{ strtoupper($shipment->service_type ?? 'EXPRESS') }} AIR CARGO
-                        </span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if(($shipment->service_type ?? '') === 'express')
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <span class="h-2 w-2 rounded-full bg-amber-400 animate-ping"></span>
+                                ⚡ EXPRESS PRIORITY (3-4 Working Days &bull; Nepal Origin)
+                            </span>
+                            @if($shipment->express_partner)
+                                <span class="rounded-xl bg-white/10 px-3 py-1 text-xs font-bold tracking-wider text-amber-200 border border-white/10">
+                                    Carrier: {{ $shipment->express_partner }}
+                                </span>
+                            @endif
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                                <span class="h-2 w-2 rounded-full bg-teal-400 animate-ping"></span>
+                                🌍 ECONOMY AIR-CARGO
+                            </span>
+                            @if($shipment->hub)
+                                <span class="rounded-xl bg-indigo-500/20 px-3 py-1 text-xs font-bold text-indigo-300 border border-indigo-500/30">
+                                    Gateway: {{ $shipment->hub->code }} ({{ $shipment->customs_mode ?? 'DDP' }})
+                                </span>
+                            @endif
+                        @endif
+
                         @if(!empty($shipment->hawb_number))
                             <span class="rounded-xl bg-white/10 px-3.5 py-1 text-xs font-mono font-bold tracking-widest text-teal-200 border border-white/10">
                                 HAWB: {{ $shipment->hawb_number }}
+                            </span>
+                        @endif
+
+                        @if(!empty($shipment->mawb_number) || $shipment->mawb)
+                            <span class="rounded-xl bg-sky-500/20 px-3.5 py-1 text-xs font-mono font-bold tracking-widest text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                                <i class="fas fa-barcode text-[10px]"></i> MAWB: {{ $shipment->mawb_number ?? $shipment->mawb->mawb_number }}
                             </span>
                         @endif
                     </div>
@@ -341,6 +365,57 @@
 
         <!-- Sidebar Summary Vault -->
         <aside class="space-y-6">
+            <!-- Last Mile Delivery Handover Card -->
+            @if(!empty($shipment->last_mile_carrier_name) || !empty($shipment->last_mile_carrier_id))
+                <section class="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-6 text-white border border-emerald-800/80 shadow-md space-y-3">
+                    <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fas fa-truck-moving"></i> Last Mile Delivery Handover
+                        </span>
+                        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
+                            Local Delivery
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between py-1 border-b border-white/5">
+                            <span class="text-slate-400">Delivery Partner:</span>
+                            <span class="font-bold text-white">{{ $shipment->last_mile_carrier_name ?? ($shipment->lastMileCarrier->name ?? 'Local Courier') }}</span>
+                        </div>
+                        @if(!empty($shipment->last_mile_tracking_number))
+                            <div class="flex justify-between py-1 border-b border-white/5 font-mono">
+                                <span class="text-slate-400">Carrier Waybill #:</span>
+                                <span class="font-bold text-emerald-300">{{ $shipment->last_mile_tracking_number }}</span>
+                            </div>
+                        @endif
+                        <div class="flex justify-between py-1 border-b border-white/5">
+                            <span class="text-slate-400">Clearance Mode:</span>
+                            <span class="font-bold text-amber-300">{{ $shipment->customs_mode ?? 'DDP' }}</span>
+                        </div>
+                        @if(!empty($shipment->agency_milestone))
+                            <div class="flex justify-between py-1">
+                                <span class="text-slate-400">Milestone:</span>
+                                <span class="font-semibold text-emerald-300">{{ ucwords(str_replace('_', ' ', $shipment->agency_milestone)) }}</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    @php
+                        $carrierUrl = null;
+                        if ($shipment->lastMileCarrier && !empty($shipment->last_mile_tracking_number)) {
+                            $carrierUrl = $shipment->lastMileCarrier->getTrackingUrl($shipment->last_mile_tracking_number);
+                        }
+                    @endphp
+
+                    @if($carrierUrl)
+                        <a href="{{ $carrierUrl }}" target="_blank" class="w-full mt-3 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition">
+                            <span>Track on {{ $shipment->last_mile_carrier_name }} Portal</span>
+                            <i class="fas fa-external-link-alt text-[10px]"></i>
+                        </a>
+                    @endif
+                </section>
+            @endif
+
             <!-- Shipment Summary Card -->
             <section class="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs">
                 <h3 class="text-base font-bold text-slate-900 pb-3 border-b border-slate-100">

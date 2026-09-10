@@ -9,8 +9,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-
 use App\Models\LogisticsService;
+use App\Models\Manifest;
 
 class ReminderService
 {
@@ -104,6 +104,113 @@ class ReminderService
             'checkpoints_count' => $scheduledCount,
             'tracking_number' => $pickup->tracking_number
         ]);
+    }
+
+    /**
+     * Schedule reminders for a domestic manifest dispatched to a partner
+     */
+    public function scheduleManifestReminders(Manifest $manifest): int
+    {
+        if (!$manifest->partner_id) {
+            return 0;
+        }
+
+        // Clear existing unsent reminders for this manifest
+        DeliveryReminder::where('manifest_id', $manifest->id)
+            ->where('is_sent', false)
+            ->delete();
+
+        $dest = strtolower($manifest->destination_city ?? '');
+        $transitHours = match(true) {
+            str_contains($dest, 'kathmandu') || str_contains($dest, 'lalitpur') || str_contains($dest, 'bhaktapur') => 6.0,
+            str_contains($dest, 'pokhara') || str_contains($dest, 'narayangarh') || str_contains($dest, 'chitwan') || str_contains($dest, 'butwal') || str_contains($dest, 'birgunj') => 24.0,
+            str_contains($dest, 'biratnagar') || str_contains($dest, 'nepalgunj') || str_contains($dest, 'itahari') || str_contains($dest, 'dharan') => 36.0,
+            str_contains($dest, 'dhangadhi') || str_contains($dest, 'surkhet') || str_contains($dest, 'mahendranagar') => 48.0,
+            default => 24.0,
+        };
+
+        $startTime = Carbon::parse($manifest->dispatched_at ?? $manifest->created_at ?? now());
+        $manifestNumber = $manifest->manifest_number;
+        $destCity = $manifest->destination_city ?? 'Destination Hub';
+        $totalShipments = $manifest->total_shipments ?? 1;
+
+        $checkpoints = [
+            [
+                'reminder_number' => 1,
+                'milestone_percent' => 50,
+                'scheduled_at' => $startTime->copy()->addMinutes(round($transitHours * 30)),
+                'remaining_hours' => round($transitHours * 0.5, 1),
+                'is_urgent' => false,
+            ],
+            [
+                'reminder_number' => 2,
+                'milestone_percent' => 75,
+                'scheduled_at' => $startTime->copy()->addMinutes(round($transitHours * 45)),
+                'remaining_hours' => round($transitHours * 0.25, 1),
+                'is_urgent' => true,
+            ],
+        ];
+
+        $scheduled = 0;
+        foreach ($checkpoints as $cp) {
+            $scheduledAt = $cp['scheduled_at'];
+            if ($scheduledAt->isPast()) {
+                continue;
+            }
+
+            $num = $cp['reminder_number'];
+            $pct = $cp['milestone_percent'];
+            $rem = $cp['remaining_hours'];
+            $urgent = $cp['is_urgent'];
+
+            $prefix = $urgent ? '⚠️ URGENT: ' : '⏱️ ';
+            $partnerMsg = "{$prefix}REMINDER #{$num} ({$pct}% SLA elapsed): Domestic Manifest {$manifestNumber} ({$totalShipments} packages destined for {$destCity}) delivery deadline is approaching. Approx {$rem}h remaining. Please ensure timely runsheet delivery.";
+            $adminMsg = "{$prefix}ALERT #{$num} ({$pct}% SLA elapsed): Domestic Manifest {$manifestNumber} to {$destCity} is at {$pct}% of transit SLA ({$rem}h remaining). Assigned to partner {$manifest->partner?->name}.";
+
+            DeliveryReminder::create([
+                'manifest_id' => $manifest->id,
+                'service_tier' => 'domestic_manifest',
+                'reminder_type' => 'partner',
+                'reminder_number' => $num,
+                'scheduled_at' => $scheduledAt,
+                'is_sent' => false,
+                'message' => $partnerMsg,
+                'metadata' => [
+                    'manifest_id' => $manifest->id,
+                    'manifest_number' => $manifestNumber,
+                    'destination_city' => $destCity,
+                    'total_shipments' => $totalShipments,
+                    'transit_hours' => $transitHours,
+                    'milestone_percent' => $pct,
+                    'remaining_hours' => $rem,
+                    'is_urgent' => $urgent,
+                ],
+            ]);
+
+            DeliveryReminder::create([
+                'manifest_id' => $manifest->id,
+                'service_tier' => 'domestic_manifest',
+                'reminder_type' => 'admin',
+                'reminder_number' => $num,
+                'scheduled_at' => $scheduledAt,
+                'is_sent' => false,
+                'message' => $adminMsg,
+                'metadata' => [
+                    'manifest_id' => $manifest->id,
+                    'manifest_number' => $manifestNumber,
+                    'destination_city' => $destCity,
+                    'total_shipments' => $totalShipments,
+                    'transit_hours' => $transitHours,
+                    'milestone_percent' => $pct,
+                    'remaining_hours' => $rem,
+                    'is_urgent' => $urgent,
+                ],
+            ]);
+
+            $scheduled++;
+        }
+
+        return $scheduled;
     }
 
     /**
@@ -304,6 +411,23 @@ class ReminderService
         $processed = 0;
         
         foreach ($reminders as $reminder) {
+            // Check if this is a domestic manifest reminder
+            if ($reminder->manifest_id) {
+                $manifest = Manifest::with('partner')->find($reminder->manifest_id);
+                if (!$manifest || in_array($manifest->status, ['delivered', 'cancelled'], true)) {
+                    $reminder->delete();
+                    continue;
+                }
+
+                $this->sendManifestReminder($reminder, $manifest);
+                $reminder->update([
+                    'is_sent' => true,
+                    'sent_at' => now(),
+                ]);
+                $processed++;
+                continue;
+            }
+
             $pickup = PickupRequest::find($reminder->pickup_request_id);
             
             if (!$pickup || in_array($pickup->status, ['delivered', 'cancelled'])) {
@@ -328,6 +452,69 @@ class ReminderService
         
         Log::info('Processed pending reminders', ['count' => $processed]);
         return $processed;
+    }
+
+    /**
+     * Send reminder notification for a domestic manifest
+     */
+    private function sendManifestReminder($reminder, Manifest $manifest)
+    {
+        $partner = $manifest->partner;
+        $sentTo = $partner ? ($partner->email ?? 'partner@netpack.local') : 'operations@netpack.local';
+        $message = $reminder->message . "\n\n📦 Manifest: {$manifest->manifest_number}\n📍 Route: {$manifest->origin_city} ➔ {$manifest->destination_city}\n📊 Total Packets: {$manifest->total_shipments} PKG\n⚖️ Total Weight: {$manifest->total_weight} kg";
+
+        ReminderLog::create([
+            'reminder_id' => $reminder->id,
+            'reminder_type' => $reminder->reminder_type,
+            'sent_to' => $sentTo,
+            'message' => $message,
+            'channel' => 'database',
+            'status' => 'sent',
+            'sent_at' => now(),
+            'metadata' => array_merge($reminder->metadata ?? [], [
+                'manifest_id' => $manifest->id,
+                'manifest_number' => $manifest->manifest_number,
+                'partner_id' => $manifest->partner_id,
+                'partner_name' => $partner ? $partner->name : 'Unassigned',
+                'reminder_number' => $reminder->reminder_number,
+            ]),
+        ]);
+
+        if ($reminder->reminder_type === 'partner' && $partner) {
+            $partner->notify(new \App\Notifications\ManifestAssignedNotification($manifest));
+        }
+    }
+
+    /**
+     * Send immediate manual reminder to partner for a domestic manifest
+     */
+    public function sendManualManifestReminder(Manifest $manifest, ?string $customNote = null): ReminderLog
+    {
+        $partner = $manifest->partner;
+        $sentTo = $partner ? ($partner->email ?? 'partner@netpack.local') : 'operations@netpack.local';
+        $note = $customNote ?: "Operational SLA reminder for Manifest {$manifest->manifest_number}.";
+        $message = "⏱️ OPERATIONAL REMINDER: {$note}\n\n📦 Manifest: {$manifest->manifest_number}\n📍 Destination: {$manifest->destination_city}\n📊 Packets: {$manifest->total_shipments} PKG\nStatus: " . ucfirst($manifest->status);
+
+        $log = ReminderLog::create([
+            'reminder_type' => 'partner',
+            'sent_to' => $sentTo,
+            'message' => $message,
+            'channel' => 'database',
+            'status' => 'sent',
+            'sent_at' => now(),
+            'metadata' => [
+                'manifest_id' => $manifest->id,
+                'manifest_number' => $manifest->manifest_number,
+                'partner_id' => $manifest->partner_id,
+                'is_manual' => true,
+            ],
+        ]);
+
+        if ($partner) {
+            $partner->notify(new \App\Notifications\ManifestAssignedNotification($manifest));
+        }
+
+        return $log;
     }
 
     /**

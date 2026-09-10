@@ -70,9 +70,19 @@ return [
         'provider' => 'riders',
     ],
 
-'seller' => [
+    'seller' => [
         'driver' => 'session',
         'provider' => 'users',
+    ],
+
+    'agency' => [
+        'driver' => 'session',
+        'provider' => 'agencies',
+    ],
+
+    'agency_staff' => [
+        'driver' => 'session',
+        'provider' => 'agency_staff',
     ],
 ],
 
@@ -116,6 +126,16 @@ return [
     'riders' => [
         'driver' => 'eloquent',
         'model' => App\Models\User::class,
+    ],
+
+    'agencies' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\Agency::class,
+    ],
+
+    'agency_staff' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\AgencyStaff::class,
     ],
 ],
 

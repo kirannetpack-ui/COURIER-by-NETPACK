@@ -11,6 +11,14 @@ class Manifest extends Model
         'manifest_number',
         'created_by',
         'partner_id',
+        'mawb_id',
+        'mawb_number',
+        'hub_id',
+        'agency_id',
+        'service_type', // express, economy
+        'manifest_type', // international, domestic
+        'flight_number',
+        'flight_date',
         'load_type',
         'status',
         'origin_city',
@@ -22,22 +30,39 @@ class Manifest extends Model
         'dispatched_at',
         'received_at',
         'delivered_at',
+        'agency_emails_sent_at',
+        'agency_emails_sent_to',
         'metadata',
- 'pod_uploaded_at',
-    'pod_uploaded_by',
-    'pod_file',
-    'pod_notes',
+        'pod_uploaded_at',
+        'pod_uploaded_by',
+        'pod_file',
+        'pod_notes',
     ];
 
     protected $casts = [
+        'flight_date' => 'date',
         'dispatched_at' => 'datetime',
         'received_at' => 'datetime',
         'delivered_at' => 'datetime',
+        'agency_emails_sent_at' => 'datetime',
+        'agency_emails_sent_to' => 'array',
         'metadata' => 'array',
         'total_weight' => 'decimal:2',
-    'pod_uploaded_at' => 'datetime',
-
+        'pod_uploaded_at' => 'datetime',
     ];
+
+    public function getAgencyEmailsSentToAttribute($value)
+    {
+        if (is_null($value)) return [];
+        if (is_array($value)) return $value;
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $value)));
+    }
+
+    public function setAgencyEmailsSentToAttribute($value)
+    {
+        $this->attributes['agency_emails_sent_to'] = is_array($value) ? json_encode($value) : $value;
+    }
 
     public function creator()
     {
@@ -47,6 +72,21 @@ class Manifest extends Model
     public function partner()
     {
         return $this->belongsTo(User::class, 'partner_id');
+    }
+
+    public function mawb()
+    {
+        return $this->belongsTo(MAWB::class, 'mawb_id');
+    }
+
+    public function hub()
+    {
+        return $this->belongsTo(OverseasHub::class, 'hub_id');
+    }
+
+    public function agency()
+    {
+        return $this->belongsTo(Agency::class, 'agency_id');
     }
 
     public function bags()
@@ -64,9 +104,19 @@ class Manifest extends Model
         return $this->hasMany(ManifestTrackingLog::class);
     }
 
-    public static function generateManifestNumber()
+    public function scopeInternational($query)
     {
-        $prefix = 'MF';
+        return $query->where('manifest_type', 'international');
+    }
+
+    public function scopeDomestic($query)
+    {
+        return $query->where('manifest_type', 'domestic');
+    }
+
+    public static function generateManifestNumber(string $type = 'MF')
+    {
+        $prefix = $type === 'international' ? 'IMNF' : 'MF';
         $date = date('Ymd');
         $random = Str::upper(Str::random(6));
         $manifestNumber = $prefix . '-' . $date . '-' . $random;
@@ -100,7 +150,7 @@ class Manifest extends Model
             'dispatched' => 'Dispatched',
             'delivered' => 'Delivered',
         ];
-        return $labels[$this->status] ?? $this->status;
+        return $labels[$this->status] ?? ucfirst($this->status);
     }
 
     public function addTrackingLog($eventType, $description = null, $location = null, $bagId = null, $shipmentId = null)
@@ -116,9 +166,8 @@ class Manifest extends Model
         ]);
     }
 
-public function podUploadedBy()
-{
-    return $this->belongsTo(User::class, 'pod_uploaded_by');
-}
-
+    public function podUploadedBy()
+    {
+        return $this->belongsTo(User::class, 'pod_uploaded_by');
+    }
 }

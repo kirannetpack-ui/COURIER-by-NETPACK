@@ -15,10 +15,10 @@ return new class extends Migration
             $table->string('code')->unique(); // e.g., USA01, UK01, AUS01
             $table->string('country');
             $table->string('city');
-            $table->string('address');
-            $table->string('phone');
+            $table->string('address')->nullable();
+            $table->string('phone')->nullable();
             $table->string('email')->unique();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

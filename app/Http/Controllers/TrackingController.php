@@ -187,40 +187,80 @@ class TrackingController extends Controller
     }
 
     /**
-     * Update shipment status (Rider/Staff)
+    /**
+     * Update shipment status (Manual Entry with Date, Time, Location & Telemetry)
      */
-public function updateStatus(Request $request, $shipmentId)
-{
-    // 1. Validate input
-    $request->validate([
-        'status' => 'required|string|in:pending,confirmed,processing,picked_up,in_transit,customs_clearance,out_for_delivery,delivered,failed_delivery,returned,cancelled',
-        'description' => 'nullable|string',
-        'location' => 'nullable|string',
-    ]);
+    public function updateStatus(Request $request, $shipmentId)
+    {
+        $request->validate([
+            'status' => 'nullable|string',
+            'event_code' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
+            'location' => 'nullable|string|max:255',
+            'event_date' => 'nullable|date',
+            'event_time' => 'nullable|string',
+            'custom_timestamp' => 'nullable|string',
+            'mawb_number' => 'nullable|string|max:50',
+            'last_mile_carrier_name' => 'nullable|string|max:100',
+            'last_mile_tracking_number' => 'nullable|string|max:100',
+            'notify_client' => 'nullable|boolean',
+        ]);
 
-    // 2. Find the shipment
-    $shipment = Shipment::findOrFail($shipmentId);
-    
-    // 3. Get current user who is updating
-    $user = auth()->user();
-    
-    // 4. Check if user has permission based on role and shipment type
-    $this->authorizeStatusUpdate($user, $shipment, $request->status);
-    
-    $eventCode = $this->scanService->eventCodeForStatus($request->status);
-    abort_unless($eventCode, 422, 'No operational scan event is configured for this status.');
+        $shipment = Shipment::findOrFail($shipmentId);
+        $user = auth()->user();
 
-    $this->scanService->record(
-        $shipment,
-        $eventCode,
-        $request->location,
-        $request->description,
-        $user,
-        'admin_status_update',
-    );
-    
-    return response()->json(['success' => true]);
-}
+        // Determine the operational event code
+        $eventCode = $request->event_code;
+        if (empty($eventCode) && !empty($request->status)) {
+            $eventCode = $this->scanService->eventCodeForStatus($request->status);
+        }
+
+        if (empty($eventCode)) {
+            $eventCode = 'in_transit';
+        }
+
+        // Check permissions
+        $statusToCheck = $request->status ?? 'in_transit';
+        $this->authorizeStatusUpdate($user, $shipment, $statusToCheck);
+
+        // Build exact timestamp if custom date/time provided
+        $customTimestamp = null;
+        if (!empty($request->event_date)) {
+            $timePart = !empty($request->event_time) ? $request->event_time : date('H:i:s');
+            $customTimestamp = $request->event_date . ' ' . $timePart;
+        } elseif (!empty($request->custom_timestamp)) {
+            $customTimestamp = $request->custom_timestamp;
+        }
+
+        $extraMeta = [
+            'mawb_number' => $request->mawb_number,
+            'last_mile_carrier_name' => $request->last_mile_carrier_name,
+            'last_mile_tracking_number' => $request->last_mile_tracking_number,
+            'notify_client' => $request->has('notify_client') ? (bool)$request->notify_client : true,
+        ];
+
+        $updated = $this->scanService->record(
+            $shipment,
+            $eventCode,
+            $request->location ?: 'Transit Hub',
+            $request->description,
+            $user,
+            'manual_admin_entry',
+            $customTimestamp,
+            $extraMeta
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Shipment status and telemetry updated successfully!',
+                'shipment' => $updated,
+            ]);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Shipment status and telemetry updated successfully with exact timestamp and location.');
+    }
 
 
     /**

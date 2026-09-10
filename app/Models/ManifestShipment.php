@@ -12,6 +12,12 @@ class ManifestShipment extends Model
         'shipment_id',
         'partner_id',
         'status',
+        'arrival_status', // pending, arrived, non_arrival
+        'arrived_at',
+        'arrived_location',
+        'non_arrival_remarks',
+        'scanned_by_staff_id',
+        'staff_name',
         'delivery_type',
         'is_collected',
         'collected_at',
@@ -30,6 +36,7 @@ class ManifestShipment extends Model
         'received_at' => 'datetime',
         'delivered_at' => 'datetime',
         'dispatched_at' => 'datetime',
+        'arrived_at' => 'datetime',
         'delivery_fee' => 'decimal:2',
         'metadata' => 'array',
     ];
@@ -54,6 +61,11 @@ class ManifestShipment extends Model
         return $this->belongsTo(User::class, 'partner_id');
     }
 
+    public function scannedByStaff()
+    {
+        return $this->belongsTo(AgencyStaff::class, 'scanned_by_staff_id');
+    }
+
     public function events()
     {
         return $this->hasMany(ManifestShipmentEvent::class);
@@ -68,6 +80,15 @@ class ManifestShipment extends Model
             'dispatched' => 'bg-purple-100 text-purple-800',
         ];
         return $badges[$this->status] ?? 'bg-gray-100 text-gray-800';
+    }
+
+    public function getArrivalStatusBadgeAttribute()
+    {
+        return match ($this->arrival_status) {
+            'arrived' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            'non_arrival', 'not_arrived' => 'bg-rose-100 text-rose-800 border-rose-200',
+            default => 'bg-amber-100 text-amber-800 border-amber-200',
+        };
     }
 
     public function getDeliveryTypeLabelAttribute()

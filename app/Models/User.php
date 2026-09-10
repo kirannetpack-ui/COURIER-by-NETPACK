@@ -271,6 +271,33 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the default dashboard route name for this user type.
+     */
+    public function dashboardRoute(): string
+    {
+        return match ($this->user_type) {
+            self::TYPE_SUPER_ADMIN, 'admin' => 'admin.dashboard',
+            self::TYPE_DOMESTIC_ADMIN => 'domestic.dashboard',
+            self::TYPE_INTERNATIONAL_ADMIN => 'international.dashboard',
+            self::TYPE_STAFF => 'domestic.dashboard',
+            self::TYPE_PARTNER => 'partner.dashboard',
+            self::TYPE_OVERSEAS => 'overseas.dashboard',
+            self::TYPE_SELLER => 'seller.dashboard',
+            self::TYPE_RIDER => 'rider.dashboard',
+            self::TYPE_CLIENT, self::TYPE_CUSTOMER => 'client.dashboard',
+            default => 'client.dashboard',
+        };
+    }
+
+    /**
+     * Get the default dashboard URL for this user type.
+     */
+    public function dashboardUrl(): string
+    {
+        return route($this->dashboardRoute());
+    }
+
+    /**
      * Get user type label
      */
     public function getUserTypeLabelAttribute()

@@ -16,14 +16,21 @@ class CheckRole
 
         $user = Auth::user();
 
-        // Super Admin has access to everything
-        if ($user->user_type === 'super_admin') {
+        // Super Admin and Admin have access to everything
+        if (in_array($user->user_type, ['super_admin', 'admin'], true) || in_array($user->role, ['super_admin', 'admin'], true)) {
             return $next($request);
         }
 
+        $userType = strtolower(trim($user->user_type ?? ''));
+        $userRole = strtolower(trim($user->role ?? ''));
+
         // Check if user has required role
         foreach ($roles as $role) {
-            if ($user->user_type === $role) {
+            $r = strtolower(trim($role));
+            if ($userType === $r || $userRole === $r) {
+                return $next($request);
+            }
+            if (in_array($r, ['client', 'customer'], true) && in_array($userType, ['client', 'customer'], true)) {
                 return $next($request);
             }
         }

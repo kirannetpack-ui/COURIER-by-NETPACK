@@ -84,11 +84,15 @@ class AdminController extends Controller
             ->limit(5)
             ->get();
 
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $yearExpr = $isSqlite ? "strftime('%Y', created_at)" : 'YEAR(created_at)';
+        $monthExpr = $isSqlite ? "strftime('%m', created_at)" : 'MONTH(created_at)';
+
         $monthlyRevenue = Shipment::whereNotNull('overseas_partner_id')
             ->where('status', 'delivered')
             ->select(
-                DB::raw('YEAR(created_at) as year'),
-                DB::raw('MONTH(created_at) as month'),
+                DB::raw("{$yearExpr} as year"),
+                DB::raw("{$monthExpr} as month"),
                 DB::raw('SUM(total_amount) as total')
             )
             ->groupBy('year', 'month')

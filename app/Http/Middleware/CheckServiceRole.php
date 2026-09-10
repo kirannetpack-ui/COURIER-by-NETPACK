@@ -17,14 +17,24 @@ class CheckServiceRole
         $user = Auth::user();
         
         // Super Admin and Admin have access to everything
-        if ($user->user_type === 'super_admin' || $user->user_type === 'admin') {
+        if (in_array($user->user_type, ['super_admin', 'admin'], true) || in_array($user->role, ['super_admin', 'admin'], true)) {
             return $next($request);
         }
+
+        // Normalize user type and role
+        $userType = strtolower(trim($user->user_type ?? ''));
+        $userRole = strtolower(trim($user->role ?? ''));
 
         // Check if user has any of the required roles
         $hasRole = false;
         foreach ($roles as $role) {
-            if ($user->user_type === $role) {
+            $r = strtolower(trim($role));
+            if ($userType === $r || $userRole === $r) {
+                $hasRole = true;
+                break;
+            }
+            // Client and Customer are treated as unified client entities
+            if (in_array($r, ['client', 'customer'], true) && in_array($userType, ['client', 'customer'], true)) {
                 $hasRole = true;
                 break;
             }

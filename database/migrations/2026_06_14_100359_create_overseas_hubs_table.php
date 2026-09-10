@@ -11,12 +11,12 @@ return new class extends Migration
     {
         Schema::create('overseas_hubs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('partner_id')->constrained('overseas_partners')->onDelete('cascade');
+            $table->foreignId('partner_id')->nullable()->constrained('overseas_partners')->onDelete('cascade');
             $table->string('hub_name');
             $table->string('hub_code')->unique();
-            $table->string('location');
-            $table->enum('hub_type', ['main_hub', 'transit_point', 'sorting_center', 'delivery_hub']);
-            $table->string('address');
+            $table->string('location')->default('Transit Hub');
+            $table->enum('hub_type', ['main_hub', 'transit_point', 'sorting_center', 'delivery_hub'])->default('main_hub');
+            $table->string('address')->default('Airport Cargo Terminal');
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->boolean('is_active')->default(true);

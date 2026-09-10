@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Agency;
+use App\Models\LastMileCarrier;
+use App\Models\OverseasHub;
 use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -96,7 +99,11 @@ class ShipmentController extends Controller
      */
     public function create()
     {
-        return view('shipments.create');
+        $hubs = OverseasHub::active()->with('agencies')->orderBy('sort_order')->get();
+        $agencies = Agency::where('is_active', true)->get();
+        $carriers = LastMileCarrier::active()->orderBy('sort_order')->get();
+
+        return view('shipments.create', compact('hubs', 'agencies', 'carriers'));
     }
 
     /**
@@ -293,9 +300,15 @@ class ShipmentController extends Controller
         if ($request->shipment_type === 'international') {
             if ($request->service_type === 'express') {
                 $shipment->estimated_delivery = now()->addDays(4);
+                $shipment->express_partner = $request->express_carrier ?? 'DHL';
             } else {
                 $shipment->estimated_delivery = now()->addDays(15);
             }
+            $shipment->hub_id = $request->hub_id ?: null;
+            $shipment->current_agency_id = $request->agency_id ?: null;
+            $shipment->customs_mode = $request->customs_mode ?: 'DDP';
+            $shipment->last_mile_carrier_name = $request->last_mile_carrier_name ?: null;
+            $shipment->agency_milestone = 'booking_completed';
         } else {
             $shipment->estimated_delivery = now()->addDays(3);
         }

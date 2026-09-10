@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/HomeController.php
 
 namespace App\Http\Controllers;
 
@@ -16,16 +15,6 @@ class HomeController extends Controller
             return view('welcome');
         }
         
-        // Redirect based on user type
-        switch ($user->user_type) {
-            case 'admin':
-                return redirect()->route('admin.dashboard');
-            case 'seller':
-                return redirect()->route('seller.dashboard');
-            case 'rider':
-                return redirect()->route('rider.dashboard');
-            default:
-                return redirect()->route('client.dashboard');
-        }
+        return redirect()->route($user->dashboardRoute());
     }
 }

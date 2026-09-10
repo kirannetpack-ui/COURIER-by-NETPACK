@@ -396,28 +396,48 @@ class DeliveryController extends Controller
                 return $pickup->is_approaching_deadline || $pickup->hours_remaining <= 6;
             });
         
-        // Get recent reminder logs for this partner
-        $recentReminders = ReminderLog::whereHas('pickupRequest', function($query) use ($partnerId) {
-                $query->where('partner_id', $partnerId);
+        // Get recent reminder logs for this partner (including manifest reminders)
+        $recentReminders = ReminderLog::where(function($query) use ($partnerId) {
+                $query->whereHas('pickupRequest', function($q) use ($partnerId) {
+                    $q->where('partner_id', $partnerId);
+                })
+                ->orWhere(function($q) use ($partnerId) {
+                    $q->where('reminder_type', 'partner')
+                      ->where('sent_to', Auth::user()->email);
+                })
+                ->orWhere('metadata->partner_id', $partnerId)
+                ->orWhere('reminder_type', 'admin');
             })
-            ->orWhere('reminder_type', 'admin')
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
         
-        // Get pending reminders count
+        // Get pending reminders count (pickups & manifests)
         $pendingReminders = DeliveryReminder::where('is_sent', false)
             ->where('scheduled_at', '<=', now())
-            ->whereHas('pickupRequest', function($query) use ($partnerId) {
-                $query->where('partner_id', $partnerId);
+            ->where(function($query) use ($partnerId) {
+                $query->whereHas('pickupRequest', function($q) use ($partnerId) {
+                    $q->where('partner_id', $partnerId);
+                })
+                ->orWhereHas('manifest', function($q) use ($partnerId) {
+                    $q->where('partner_id', $partnerId);
+                });
             })
             ->count();
+
+        // Active assigned domestic manifests for this partner
+        $activeManifests = \App\Models\Manifest::where('partner_id', $partnerId)
+            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->with(['bags', 'shipments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
         
         return view('partner.deliveries.attention', compact(
             'delayedDeliveries', 
             'deadlineApproaching', 
             'recentReminders',
-            'pendingReminders'
+            'pendingReminders',
+            'activeManifests'
         ));
     }
 

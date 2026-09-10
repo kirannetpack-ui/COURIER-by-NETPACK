@@ -30,6 +30,17 @@ class ManifestBag extends Model
         'metadata' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($bag) {
+            if (empty($bag->bag_type)) {
+                $bag->bag_type = 'consolidated';
+            }
+        });
+    }
+
     public function manifest()
     {
         return $this->belongsTo(Manifest::class);

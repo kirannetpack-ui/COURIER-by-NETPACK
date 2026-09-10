@@ -40,7 +40,7 @@ class PasswordChangeController extends Controller
         // Login the user
         Auth::login($user);
 
-        return redirect()->route('dashboard')
+        return redirect()->route($user->dashboardRoute())
             ->with('success', 'Password changed successfully!');
     }
 }

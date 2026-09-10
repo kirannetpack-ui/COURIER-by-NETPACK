@@ -10,6 +10,7 @@ class DeliveryReminder extends Model
     
     protected $fillable = [
         'pickup_request_id',
+        'manifest_id',
         'service_tier',
         'reminder_type',
         'reminder_number',
@@ -33,6 +34,14 @@ class DeliveryReminder extends Model
     public function pickupRequest()
     {
         return $this->belongsTo(PickupRequest::class, 'pickup_request_id');
+    }
+
+    /**
+     * Get the manifest that owns this reminder
+     */
+    public function manifest()
+    {
+        return $this->belongsTo(Manifest::class, 'manifest_id');
     }
     
     /**

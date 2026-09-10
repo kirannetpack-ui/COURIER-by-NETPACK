@@ -184,6 +184,7 @@ class ManifestController extends Controller
 
         if ($manifest->partner) {
             $manifest->partner->notify(new ManifestAssignedNotification($manifest));
+            app(\App\Services\ReminderService::class)->scheduleManifestReminders($manifest);
         }
 
         return redirect()->route('domestic.manifests.show', $manifest)
@@ -635,7 +636,434 @@ public function showUploadForm($shipmentId)
         });
 
         $forwardManifest->partner?->notify(new ManifestAssignedNotification($forwardManifest));
+        app(\App\Services\ReminderService::class)->scheduleManifestReminders($forwardManifest);
         return redirect()->route('domestic.manifests.show', $forwardManifest)->with('success', 'Shipment forwarded and the new partner was notified.');
+    }
+
+    /**
+     * Show Arrival Notice Verification Form for a Domestic Manifest
+     */
+    public function arrivalNoticeForm($id)
+    {
+        $manifest = Manifest::with(['bags', 'bags.shipments', 'shipments.shipment', 'shipments.bag', 'partner'])
+            ->findOrFail($id);
+        $this->ensureCanAccessManifest(request()->user(), $manifest);
+
+        $nepalHubs = [
+            'Kathmandu Central Sortation Gateway',
+            'Pokhara Regional Depot (Gandaki)',
+            'Biratnagar Hub (Koshi)',
+            'Birgunj Gateway (Madhesh)',
+            'Narayangarh Transit Hub (Chitwan)',
+            'Butwal / Bhairahawa Hub (Lumbini)',
+            'Nepalgunj Hub (Mid-Western)',
+            'Dhangadhi Hub (Sudurpashchim)',
+            'Surkhet Hub (Karnali)',
+        ];
+
+        $defaultLocation = $manifest->destination_city ? "{$manifest->destination_city} Hub Depot" : 'Kathmandu Central Gateway';
+        $operatorName = auth()->user()->name ?? 'Hub Operations Staff';
+
+        return view('domestic.manifests.arrival-notice', compact('manifest', 'nepalHubs', 'defaultLocation', 'operatorName'));
+    }
+
+    /**
+     * Process Inbound Arrival Notice for Domestic Manifest (Whole vs Partial selection)
+     */
+    public function processArrivalNotice(Request $request, $id)
+    {
+        $manifest = Manifest::with(['shipments.shipment'])->findOrFail($id);
+        $this->ensureCanAccessManifest($request->user(), $manifest);
+
+        $validated = $request->validate([
+            'arrival_mode' => 'required|in:whole,partial',
+            'arrived_shipment_ids' => 'nullable|array',
+            'non_arrival_remarks' => 'nullable|array',
+            'arrival_location' => 'required|string|max:255',
+            'arrival_date' => 'required|date',
+            'arrival_time' => 'required|string|max:10',
+            'operator_name' => 'nullable|string|max:255',
+        ]);
+
+        $timestamp = "{$validated['arrival_date']} {$validated['arrival_time']}:00";
+        $location = $validated['arrival_location'];
+        $operatorName = $validated['operator_name'] ?: ($request->user()->name ?? 'Hub Operations');
+        $isWhole = $validated['arrival_mode'] === 'whole';
+        $arrivedIds = collect($validated['arrived_shipment_ids'] ?? [])->map(fn($v) => (int)$v)->all();
+        $nonArrivalRemarks = $validated['non_arrival_remarks'] ?? [];
+
+        $arrivedCount = 0;
+        $missingCount = 0;
+
+        DB::transaction(function () use ($manifest, $isWhole, $arrivedIds, $nonArrivalRemarks, $timestamp, $location, $operatorName, $request, &$arrivedCount, &$missingCount) {
+            foreach ($manifest->shipments as $manifestShipment) {
+                $shipmentId = (int) $manifestShipment->id;
+                $isMarkedArrived = $isWhole || in_array($shipmentId, $arrivedIds, true);
+
+                if ($isMarkedArrived) {
+                    $manifestShipment->update([
+                        'arrival_status' => 'arrived',
+                        'arrived_at' => $timestamp,
+                        'arrived_location' => $location,
+                        'staff_name' => $operatorName,
+                        'status' => 'received',
+                        'received_at' => $timestamp,
+                    ]);
+
+                    if ($manifestShipment->shipment) {
+                        $manifestShipment->shipment->update([
+                            'status' => 'in_transit',
+                            'current_location' => $location,
+                        ]);
+                        $manifestShipment->shipment->addTimeline(
+                            'arrival_notice',
+                            "Consignment arrived at {$location}. Scanned and verified by {$operatorName}.",
+                            $location
+                        );
+                    }
+
+                    ManifestShipmentEvent::create([
+                        'manifest_shipment_id' => $manifestShipment->id,
+                        'event_type' => 'arrival_notice',
+                        'from_status' => $manifestShipment->status,
+                        'to_status' => 'received',
+                        'performed_by' => $request->user()->id,
+                        'notes' => "Arrived at {$location}. Verified by {$operatorName}.",
+                        'metadata' => ['location' => $location, 'operator' => $operatorName, 'timestamp' => $timestamp],
+                    ]);
+
+                    $arrivedCount++;
+                } else {
+                    $remark = $nonArrivalRemarks[$shipmentId] ?? 'Package not found during arrival scan.';
+                    $manifestShipment->update([
+                        'arrival_status' => 'non_arrival',
+                        'non_arrival_remarks' => $remark,
+                        'notes' => "NON-ARRIVAL: {$remark}",
+                    ]);
+
+                    ManifestShipmentEvent::create([
+                        'manifest_shipment_id' => $manifestShipment->id,
+                        'event_type' => 'exception',
+                        'from_status' => $manifestShipment->status,
+                        'to_status' => 'exception',
+                        'performed_by' => $request->user()->id,
+                        'notes' => "Non-arrival exception: {$remark}",
+                        'metadata' => ['location' => $location, 'remark' => $remark],
+                    ]);
+
+                    if ($manifestShipment->shipment) {
+                        $manifestShipment->shipment->addTimeline(
+                            'exception',
+                            "Arrival Exception at {$location}: {$remark}",
+                            $location
+                        );
+                    }
+
+                    $missingCount++;
+                }
+            }
+
+            $newStatus = $missingCount > 0 ? 'partially_received' : 'received';
+            $manifest->update([
+                'status' => $newStatus,
+                'received_at' => $timestamp,
+                'current_location' => $location,
+            ]);
+
+            $manifest->addTrackingLog(
+                $newStatus,
+                "Arrival Notice processed at {$location}. Arrived: {$arrivedCount} PKG, Missing/Remarks: {$missingCount} PKG.",
+                $location
+            );
+        });
+
+        return redirect()->route('domestic.manifests.show', $manifest)
+            ->with('success', "✅ Inbound Arrival Notice recorded! {$arrivedCount} packages confirmed arrived, {$missingCount} exceptions recorded at {$location}.");
+    }
+
+    /**
+     * Domestic QR / Barcode Scan Desk View
+     */
+    public function scanDesk()
+    {
+        $this->ensureManifestUser(request()->user());
+        $nepalHubs = [
+            'Kathmandu Central Hub',
+            'Pokhara Regional Depot',
+            'Biratnagar Hub',
+            'Birgunj Gateway',
+            'Narayangarh Transit Hub',
+            'Butwal Hub',
+            'Nepalgunj Hub',
+            'Dhangadhi Hub',
+            'Surkhet Hub',
+        ];
+        return view('domestic.manifests.scan', compact('nepalHubs'));
+    }
+
+    /**
+     * Process Scan from Scan Desk (Consignment / HAWB / Bag QR)
+     */
+    public function processScan(Request $request)
+    {
+        $this->ensureManifestUser($request->user());
+
+        $request->validate([
+            'barcode' => 'required|string',
+            'action' => 'required|in:arrival,dispatch,delivery',
+            'location' => 'nullable|string|max:255',
+            'status_note' => 'nullable|string|max:1000',
+        ]);
+
+        $search = trim($request->barcode);
+        $location = $request->location ?: 'Kathmandu Central Hub';
+        $operatorName = $request->user()->name ?? 'Hub Staff';
+        $note = $request->status_note;
+
+        // Try finding Bag first
+        $bag = ManifestBag::with('manifest')->where('qr_code', $search)->orWhere('bag_number', $search)->first();
+        if ($bag) {
+            $status = match($request->action) {
+                'arrival' => 'scanned',
+                'delivery' => 'sorted',
+                default => 'dispatched',
+            };
+            $bag->update(['status' => $status, 'current_location' => $location]);
+            $bag->manifest->addTrackingLog($status, "Bag {$bag->bag_number} scanned ({$status}) at {$location}.", $location, $bag->id);
+            return response()->json([
+                'success' => true,
+                'type' => 'bag',
+                'message' => "Bag {$bag->bag_number} successfully stamped as {$status} at {$location}!",
+                'item' => [
+                    'number' => $bag->bag_number,
+                    'status' => ucfirst($status),
+                    'location' => $location,
+                    'count' => $bag->shipment_count,
+                    'operator' => $operatorName,
+                    'time' => now()->format('Y-m-d H:i:s'),
+                ]
+            ]);
+        }
+
+        // Try finding Domestic Shipment or Shipment
+        $shipment = Shipment::where('tracking_number', $search)->orWhere('hawb_number', $search)->first();
+        if (!$shipment) {
+            $domShipment = \App\Models\DomesticShipment::where('tracking_number', $search)->first();
+            if ($domShipment) {
+                $statusMap = [
+                    'arrival' => 'in_transit',
+                    'dispatch' => 'out_for_delivery',
+                    'delivery' => 'delivered',
+                ];
+                $domShipment->update([
+                    'status' => $statusMap[$request->action],
+                    'current_location' => $location,
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'type' => 'shipment',
+                    'message' => "Consignment {$domShipment->tracking_number} updated to {$statusMap[$request->action]} at {$location}!",
+                    'item' => [
+                        'number' => $domShipment->tracking_number,
+                        'receiver' => $domShipment->receiver_name,
+                        'destination' => $domShipment->receiver_city,
+                        'status' => ucfirst($statusMap[$request->action]),
+                        'location' => $location,
+                        'operator' => $operatorName,
+                        'time' => now()->format('Y-m-d H:i:s'),
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => "No consignment or bag found for code: {$search}"
+            ], 404);
+        }
+
+        // Standard shipment update
+        $statusMap = [
+            'arrival' => 'in_transit',
+            'dispatch' => 'out_for_delivery',
+            'delivery' => 'delivered',
+        ];
+        $newStatus = $statusMap[$request->action];
+        $shipment->update([
+            'status' => $newStatus,
+            'current_location' => $location,
+        ]);
+        $shipment->addTimeline(
+            $request->action,
+            $note ?: "Consignment processed ({$request->action}) at {$location} by {$operatorName}.",
+            $location
+        );
+
+        // Update manifest line if attached
+        if ($shipment->manifestShipment) {
+            $shipment->manifestShipment->update([
+                'status' => $request->action === 'arrival' ? 'received' : ($request->action === 'delivery' ? 'delivered' : 'dispatched'),
+                'arrived_location' => $location,
+                'staff_name' => $operatorName,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'type' => 'shipment',
+            'message' => "Consignment {$shipment->tracking_number} stamped ({$request->action}) successfully!",
+            'item' => [
+                'number' => $shipment->tracking_number,
+                'receiver' => $shipment->receiver_name,
+                'destination' => $shipment->receiver_city,
+                'status' => ucfirst(str_replace('_', ' ', $newStatus)),
+                'location' => $location,
+                'operator' => $operatorName,
+                'time' => now()->format('Y-m-d H:i:s'),
+            ]
+        ]);
+    }
+
+    /**
+     * Bulk Re-Manifesting & Hub-to-Hub Forwarding
+     */
+    public function bulkRemanifest(Request $request)
+    {
+        $this->ensureOperationsUser($request->user());
+
+        $validated = $request->validate([
+            'shipment_ids' => 'required|array|min:1',
+            'shipment_ids.*' => 'required|integer|exists:shipments,id',
+            'partner_id' => 'required|exists:users,id',
+            'origin_city' => 'required|string|max:255',
+            'destination_city' => 'required|string|max:255',
+            'load_type' => 'required|in:consolidated,express,re_manifested,linehaul',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $newManifest = DB::transaction(function () use ($validated, $request) {
+            $partner = User::findOrFail($validated['partner_id']);
+
+            $newManifest = Manifest::create([
+                'manifest_number' => Manifest::generateManifestNumber(),
+                'created_by' => $request->user()->id,
+                'partner_id' => $partner->id,
+                'load_type' => $validated['load_type'],
+                'manifest_type' => 'domestic',
+                'status' => 'pending',
+                'origin_city' => $validated['origin_city'],
+                'destination_city' => $validated['destination_city'],
+                'current_location' => $validated['origin_city'],
+                'total_bags' => 1,
+                'total_shipments' => count($validated['shipment_ids']),
+            ]);
+
+            $bag = ManifestBag::create([
+                'manifest_id' => $newManifest->id,
+                'bag_number' => ManifestBag::generateBagNumber(),
+                'qr_code' => ManifestBag::generateQRCode(),
+                'bag_type' => 'consolidated',
+                'shipment_count' => count($validated['shipment_ids']),
+                'weight' => 0,
+                'current_location' => $validated['origin_city'],
+            ]);
+
+            $totalWeight = 0;
+            foreach ($validated['shipment_ids'] as $shipmentId) {
+                $shipment = Shipment::lockForUpdate()->find($shipmentId);
+                if (!$shipment) continue;
+
+                $weight = (float)($shipment->weight ?? $shipment->actual_weight ?? 1.0);
+                $totalWeight += $weight;
+
+                // Close previous manifest line if exists
+                $oldLine = ManifestShipment::where('shipment_id', $shipmentId)
+                    ->whereNotIn('status', ['delivered', 'forwarded', 'cancelled'])
+                    ->latest()
+                    ->first();
+
+                if ($oldLine) {
+                    $oldLine->update(['status' => 'forwarded']);
+                    ManifestShipmentEvent::create([
+                        'manifest_shipment_id' => $oldLine->id,
+                        'event_type' => 'forwarded',
+                        'from_status' => $oldLine->status,
+                        'to_status' => 'forwarded',
+                        'performed_by' => $request->user()->id,
+                        'notes' => "Re-manifested into {$newManifest->manifest_number}.",
+                        'metadata' => ['new_manifest_id' => $newManifest->id],
+                    ]);
+                }
+
+                // Create new line in outward manifest
+                $newLine = ManifestShipment::create([
+                    'manifest_id' => $newManifest->id,
+                    'bag_id' => $bag->id,
+                    'shipment_id' => $shipmentId,
+                    'partner_id' => $partner->id,
+                    'status' => 'pending',
+                    'delivery_type' => 'door_delivery',
+                    'payment_status' => 'pending',
+                    'notes' => $validated['notes'] ?? "Bulk re-manifested to {$validated['destination_city']}",
+                ]);
+
+                ManifestShipmentEvent::create([
+                    'manifest_shipment_id' => $newLine->id,
+                    'event_type' => 're_manifested',
+                    'to_status' => 'pending',
+                    'to_partner_id' => $partner->id,
+                    'performed_by' => $request->user()->id,
+                    'notes' => $validated['notes'] ?? "Assigned to {$partner->name} for {$validated['destination_city']} delivery",
+                    'metadata' => ['manifest_number' => $newManifest->manifest_number],
+                ]);
+
+                $shipment->update(['current_location' => $validated['origin_city']]);
+                $shipment->addTimeline(
+                    're_manifested',
+                    "Consignment re-manifested into {$newManifest->manifest_number} destined for {$validated['destination_city']} via {$partner->name}.",
+                    $validated['origin_city']
+                );
+            }
+
+            $bag->update(['weight' => $totalWeight]);
+            $newManifest->update([
+                'total_weight' => $totalWeight,
+            ]);
+
+            $newManifest->addTrackingLog(
+                're_manifested',
+                "Bulk re-manifest created from {$validated['origin_city']} to {$validated['destination_city']} with {$newManifest->total_shipments} packages.",
+                $validated['origin_city']
+            );
+
+            return $newManifest;
+        });
+
+        // Notify partner and schedule reminders
+        if ($newManifest->partner) {
+            $newManifest->partner->notify(new ManifestAssignedNotification($newManifest));
+            app(\App\Services\ReminderService::class)->scheduleManifestReminders($newManifest);
+        }
+
+        return redirect()->route('domestic.manifests.show', $newManifest)
+            ->with('success', "🚀 Re-Manifest {$newManifest->manifest_number} created successfully with {$newManifest->total_shipments} packages destined for {$newManifest->destination_city}!");
+    }
+
+    /**
+     * Send immediate manual delivery reminder to the partner for this manifest
+     */
+    public function sendPartnerReminder(Request $request, $id)
+    {
+        $manifest = Manifest::with('partner')->findOrFail($id);
+        $this->ensureOperationsUser($request->user());
+
+        if (!$manifest->partner) {
+            return back()->with('error', 'No domestic delivery partner is assigned to this manifest.');
+        }
+
+        $note = $request->input('note', "Please review pending deliveries for manifest {$manifest->manifest_number}.");
+        app(\App\Services\ReminderService::class)->sendManualManifestReminder($manifest, $note);
+
+        return back()->with('success', "🔔 Delivery SLA reminder successfully dispatched to {$manifest->partner->name}!");
     }
 
     private function ensureManifestUser(User $user): void

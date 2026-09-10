@@ -47,6 +47,12 @@ use App\Http\Controllers\HAWBController;
 // =============================================
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\International\AdminController as InternationalAdminController;
+use App\Http\Controllers\International\HubController as InternationalHubController;
+use App\Http\Controllers\International\AgencyController as InternationalAgencyController;
+use App\Http\Controllers\International\LastMileCarrierController;
+use App\Http\Controllers\International\MAWBController;
+use App\Http\Controllers\International\InternationalManifestController;
+use App\Http\Controllers\Agency\AgencyShipmentController;
 use App\Http\Controllers\International\RateUploadController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Overseas\DashboardController as OverseasDashboardController;
@@ -169,6 +175,7 @@ Route::get('/track/search', function (Request $request) {
 })->name('tracking.search');
 
 Route::get('/track/{trackingNumber}', [TrackingController::class, 'show'])->name('tracking.show');
+Route::get('/tracking/{tracking_number}', [TrackingController::class, 'show'])->name('tracking.public');
 
 // =============================================
 // AUTH PROTECTED ROUTES
@@ -302,10 +309,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/pods/upload/{shipmentId}', [DomesticManifestController::class, 'showUploadForm'])->name('pods.upload.form');
         Route::post('/pods/upload', [DomesticManifestController::class, 'uploadPOD'])->name('pods.upload');
 
+        // Scan Desk & Bulk Re-Manifest
+        Route::get('/scan', [DomesticManifestController::class, 'scanDesk'])->name('scan');
+        Route::post('/process-scan', [DomesticManifestController::class, 'processScan'])->name('process-scan');
+        Route::post('/bulk-re-manifest', [DomesticManifestController::class, 'bulkRemanifest'])->name('bulk-re-manifest');
+
         // This {id} route must come AFTER the specific routes above
         Route::get('/{id}', [DomesticManifestController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [DomesticManifestController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DomesticManifestController::class, 'update'])->name('update');
+        Route::get('/{manifest}/arrival-notice', [DomesticManifestController::class, 'arrivalNoticeForm'])->name('arrival-notice');
+        Route::post('/{manifest}/arrival-notice', [DomesticManifestController::class, 'processArrivalNotice'])->name('process-arrival-notice');
+        Route::post('/{manifest}/send-partner-reminder', [DomesticManifestController::class, 'sendPartnerReminder'])->name('send-partner-reminder');
         Route::put('/{manifest}/shipments/{manifestShipment}/status', [DomesticManifestController::class, 'updateShipmentStatus'])->name('shipments.update-status');
         Route::post('/{manifest}/shipments/{manifestShipment}/forward', [DomesticManifestController::class, 'forwardShipment'])->name('shipments.forward');
 
@@ -760,6 +775,37 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
     Route::put('/transit-points/{id}', [TransitPointController::class, 'update'])->name('transit-points.update');
     Route::delete('/transit-points/{id}', [TransitPointController::class, 'destroy'])->name('transit-points.destroy');
     Route::patch('/transit-points/{id}/toggle', [TransitPointController::class, 'toggle'])->name('transit-points.toggle');
+
+    // -------------------------------------------------------------
+    // INTERNATIONAL AIR-CARGO, HUBS, AGENCIES, MAWBs & MANIFESTS
+    // -------------------------------------------------------------
+    Route::resource('hubs', InternationalHubController::class)->except(['show']);
+
+    Route::get('agencies/{agency}/format-settings', [InternationalAgencyController::class, 'formatSettings'])->name('agencies.format-settings');
+    Route::post('agencies/{agency}/format-settings', [InternationalAgencyController::class, 'updateFormatSettings'])->name('agencies.update-format-settings');
+    Route::resource('agencies', InternationalAgencyController::class)->except(['show']);
+
+    Route::resource('last-mile-carriers', LastMileCarrierController::class)->names('last-mile')->except(['create', 'show', 'edit']);
+    Route::resource('mawbs', MAWBController::class)->except(['show']);
+
+    Route::get('manifests', [InternationalManifestController::class, 'index'])->name('manifests.index');
+    Route::get('manifests/create', [InternationalManifestController::class, 'create'])->name('manifests.create');
+    Route::post('manifests', [InternationalManifestController::class, 'store'])->name('manifests.store');
+    Route::get('manifests/{manifest}', [InternationalManifestController::class, 'show'])->name('manifests.show');
+    Route::get('manifests/{manifest}/data-sheet', [InternationalManifestController::class, 'dataSheet'])->name('manifests.data-sheet');
+    Route::post('manifests/{manifest}/send-agency-email', [InternationalManifestController::class, 'sendAgencyEmail'])->name('manifests.send-agency-email');
+});
+
+// =============================================
+// AGENCY INBOUND DESK & BOX SCAN TELEMETRY
+// =============================================
+Route::prefix('agency')->name('agency.')->middleware(['auth'])->group(function () {
+    Route::get('/scan', [AgencyShipmentController::class, 'scan'])->name('scan');
+    Route::post('/process-scan', [AgencyShipmentController::class, 'processScan'])->name('process-scan');
+    Route::get('/manifests', [AgencyShipmentController::class, 'inboundManifests'])->name('manifests.index');
+    Route::get('/manifests/{manifest}/arrival-notice', [AgencyShipmentController::class, 'arrivalNoticeForm'])->name('manifests.arrival-notice');
+    Route::post('/manifests/{manifest}/arrival-notice', [AgencyShipmentController::class, 'processArrivalNotice'])->name('manifests.process-arrival-notice');
+    Route::get('/shipments', [AgencyShipmentController::class, 'shipments'])->name('shipments.index');
 });
 
 // =============================================
