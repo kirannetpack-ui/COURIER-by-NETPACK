@@ -798,6 +798,7 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
 
     Route::get('agencies/{agency}/format-settings', [InternationalAgencyController::class, 'formatSettings'])->name('agencies.format-settings');
     Route::post('agencies/{agency}/format-settings', [InternationalAgencyController::class, 'updateFormatSettings'])->name('agencies.update-format-settings');
+    Route::post('agencies/{agency}/reset-password', [InternationalAgencyController::class, 'resetPassword'])->name('agencies.reset-password');
     Route::resource('agencies', InternationalAgencyController::class)->except(['show']);
 
     Route::resource('last-mile-carriers', LastMileCarrierController::class)->names('last-mile')->except(['create', 'show', 'edit']);

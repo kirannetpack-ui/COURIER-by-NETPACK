@@ -192,7 +192,12 @@ class OverseasHub extends Model
 
     public function agencies()
     {
-        return $this->hasMany(Agency::class, 'hub_id');
+        return $this->belongsToMany(Agency::class, 'agency_hub', 'hub_id', 'agency_id')->withTimestamps();
+    }
+
+    public function rates()
+    {
+        return $this->hasMany(InternationalRate::class, 'hub_id');
     }
 
     public function mawbs()

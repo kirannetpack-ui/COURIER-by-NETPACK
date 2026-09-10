@@ -84,23 +84,29 @@
                         </span>
                     </div>
 
-                    <!-- Hub Tag -->
-                    <div class="mb-3">
-                        @if($agency->hub)
-                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
-                                <i class="fas fa-plane-departure text-indigo-500"></i>
-                                Hub: {{ $agency->hub->code }} - {{ $agency->hub->name }}
-                            </div>
-                        @else
-                            <span class="text-xs text-slate-400 italic">No assigned hub</span>
-                        @endif
+                    <!-- Hub Tags -->
+                    <div class="mb-3 space-y-1">
+                        <p class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Gateway Hubs (Country & Airport):</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @php
+                                $agencyHubs = $agency->hubs->isNotEmpty() ? $agency->hubs : ($agency->hub ? collect([$agency->hub]) : collect());
+                            @endphp
+                            @forelse($agencyHubs as $hub)
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300" title="{{ $hub->airport_name ?? $hub->address }}">
+                                    <i class="fas fa-plane-departure text-indigo-500 text-[10px]"></i>
+                                    <span class="font-mono text-[10px] font-bold">{{ $hub->hub_code }}</span> {{ $hub->country }}
+                                </span>
+                            @empty
+                                <span class="text-xs text-slate-400 italic">No assigned hub</span>
+                            @endforelse
+                        </div>
                     </div>
 
                     <!-- Notification Emails (Air-Cargo Dispatch List) -->
                     <div class="space-y-1 py-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                         <p class="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Auto-Dispatch Email Targets:</p>
                         @php
-                            $emailList = $agency->notification_email_list;
+                            $emailList = $agency->notification_email_list ?? $agency->notification_emails ?? [];
                             if (empty($emailList) && $agency->email) {
                                 $emailList = [$agency->email];
                             }
@@ -131,6 +137,12 @@
                         <i class="fas fa-table text-emerald-500"></i> Format Settings
                     </a>
                     <div class="flex items-center gap-1.5">
+                        <form action="{{ route('international.agencies.reset-password', $agency->id) }}" method="POST" onsubmit="return confirm('Generate a new random password for {{ addslashes($agency->name) }}?');" class="inline">
+                            @csrf
+                            <button type="submit" class="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Reset Password">
+                                <i class="fas fa-key"></i>
+                            </button>
+                        </form>
                         <a href="{{ route('international.agencies.edit', $agency->id) }}" class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Edit Agency">
                             <i class="fas fa-edit"></i>
                         </a>

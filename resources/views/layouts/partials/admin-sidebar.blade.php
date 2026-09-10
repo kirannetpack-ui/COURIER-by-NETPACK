@@ -170,12 +170,6 @@
                 <i class="fas fa-handshake-angle w-4 text-center"></i>
                 <span>Domestic Partners</span>
             </a>
-
-            <a href="{{ route('admin.overseas-partners.index') }}" 
-               class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.overseas-partners*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-globe-americas w-4 text-center"></i>
-                <span>Overseas Partners</span>
-            </a>
         </div>
 
         <!-- ============================================== -->

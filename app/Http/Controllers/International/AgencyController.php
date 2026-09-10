@@ -12,15 +12,21 @@ class AgencyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware(['auth', 'role:super_admin,admin,international_admin,staff']);
     }
 
     public function index(Request $request)
     {
-        $query = Agency::with(['hub', 'staff', 'manifests']);
+        $query = Agency::with(['hubs', 'hub', 'staff', 'manifests']);
 
         if ($request->filled('hub_id')) {
-            $query->where('hub_id', $request->hub_id);
+            $hubId = $request->hub_id;
+            $query->where(function ($q) use ($hubId) {
+                $q->where('hub_id', $hubId)
+                  ->orWhereHas('hubs', function ($hq) use ($hubId) {
+                      $hq->where('overseas_hubs.id', $hubId);
+                  });
+            });
         }
 
         if ($request->filled('search')) {
@@ -49,7 +55,9 @@ class AgencyController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'hub_id' => 'required|exists:overseas_hubs,id',
+            'hub_ids' => 'nullable|array',
+            'hub_ids.*' => 'exists:overseas_hubs,id',
+            'hub_id' => 'nullable|exists:overseas_hubs,id',
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:20|unique:agencies,code',
             'country' => 'required|string|max:100',
@@ -61,13 +69,23 @@ class AgencyController extends Controller
             'email' => 'required|email|unique:agencies,email',
             'notification_emails' => 'nullable|string', // Comma or newline separated
             'operational_notes' => 'nullable|string',
-            'password' => 'required|string|min:6',
+            'password' => 'nullable|string|min:6',
         ]);
 
-        $emails = $this->parseEmails($request->input('notification_emails'));
+        $hubIds = $request->input('hub_ids', []);
+        if (empty($hubIds) && $request->filled('hub_id')) {
+            $hubIds = [(int) $request->hub_id];
+        }
 
-        Agency::create([
-            'hub_id' => $validated['hub_id'],
+        if (empty($hubIds)) {
+            return back()->withErrors(['hub_ids' => 'Please select at least one Gateway Hub for this Agency.'])->withInput();
+        }
+
+        $emails = $this->parseEmails($request->input('notification_emails'));
+        $rawPassword = !empty($validated['password']) ? $validated['password'] : 'Agency@' . rand(10000, 99999);
+
+        $agency = Agency::create([
+            'hub_id' => $hubIds[0],
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
             'country' => $validated['country'],
@@ -79,17 +97,19 @@ class AgencyController extends Controller
             'email' => strtolower($validated['email']),
             'notification_emails' => $emails,
             'operational_notes' => $validated['operational_notes'] ?? null,
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make($rawPassword),
             'is_active' => true,
         ]);
 
+        $agency->hubs()->sync($hubIds);
+
         return redirect()->route('international.agencies.index')
-            ->with('success', "Agency '{$validated['name']}' created successfully with " . count($emails) . " pre-defined notification email(s).");
+            ->with('success', "Agency '{$validated['name']}' created successfully and linked to " . count($hubIds) . " Gateway Hub(s).");
     }
 
     public function edit($id)
     {
-        $agency = Agency::findOrFail($id);
+        $agency = Agency::with('hubs')->findOrFail($id);
         $hubs = OverseasHub::active()->orderBy('sort_order')->get();
 
         return view('international.agencies.edit', compact('agency', 'hubs'));
@@ -100,7 +120,9 @@ class AgencyController extends Controller
         $agency = Agency::findOrFail($id);
 
         $validated = $request->validate([
-            'hub_id' => 'required|exists:overseas_hubs,id',
+            'hub_ids' => 'nullable|array',
+            'hub_ids.*' => 'exists:overseas_hubs,id',
+            'hub_id' => 'nullable|exists:overseas_hubs,id',
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:20|unique:agencies,code,' . $agency->id,
             'country' => 'required|string|max:100',
@@ -116,10 +138,19 @@ class AgencyController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        $hubIds = $request->input('hub_ids', []);
+        if (empty($hubIds) && $request->filled('hub_id')) {
+            $hubIds = [(int) $request->hub_id];
+        }
+
+        if (empty($hubIds)) {
+            return back()->withErrors(['hub_ids' => 'Please select at least one Gateway Hub for this Agency.'])->withInput();
+        }
+
         $emails = $this->parseEmails($request->input('notification_emails'));
 
         $updates = [
-            'hub_id' => $validated['hub_id'],
+            'hub_id' => $hubIds[0],
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
             'country' => $validated['country'],
@@ -139,9 +170,22 @@ class AgencyController extends Controller
         }
 
         $agency->update($updates);
+        $agency->hubs()->sync($hubIds);
 
         return redirect()->route('international.agencies.index')
-            ->with('success', "Agency '{$agency->name}' updated successfully.");
+            ->with('success', "Agency '{$agency->name}' updated successfully with " . count($hubIds) . " Gateway Hub(s).");
+    }
+
+    public function resetPassword($id)
+    {
+        $agency = Agency::findOrFail($id);
+        $newPassword = \Illuminate\Support\Str::random(10);
+        $agency->update([
+            'password' => Hash::make($newPassword),
+        ]);
+
+        return redirect()->route('international.agencies.index')
+            ->with('success', "Password for Agency '{$agency->name}' has been reset to: {$newPassword}");
     }
 
     /**

@@ -24,7 +24,7 @@ class InternationalRateController extends Controller
      */
     public function index(Request $request)
     {
-        $query = InternationalRate::with(['hub', 'zone', 'creator']);
+        $query = InternationalRate::with(['hub', 'agency', 'zone', 'creator']);
 
         if ($request->filled('hub_id')) {
             if ($request->hub_id === 'direct') {
@@ -32,6 +32,10 @@ class InternationalRateController extends Controller
             } else {
                 $query->where('hub_id', $request->hub_id);
             }
+        }
+
+        if ($request->filled('agency_id')) {
+            $query->where('agency_id', $request->agency_id);
         }
 
         if ($request->filled('service_type')) {
@@ -49,12 +53,17 @@ class InternationalRateController extends Controller
                   ->orWhereHas('zone', function ($zq) use ($search) {
                       $zq->where('name', 'LIKE', "%{$search}%")
                          ->orWhere('code', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('agency', function ($aq) use ($search) {
+                      $aq->where('name', 'LIKE', "%{$search}%")
+                         ->orWhere('code', 'LIKE', "%{$search}%");
                   });
             });
         }
 
         $rates = $query->orderBy('created_at', 'desc')->paginate(15);
         $hubs = OverseasHub::active()->orderBy('sort_order')->get();
+        $agencies = \App\Models\Agency::where('is_active', true)->orderBy('name')->get();
         $zones = InternationalZone::active()->get();
 
         $stats = [
@@ -64,7 +73,7 @@ class InternationalRateController extends Controller
             'active_rates' => InternationalRate::where('is_active', true)->count(),
         ];
 
-        return view('admin.international-rates.index', compact('rates', 'hubs', 'zones', 'stats'));
+        return view('admin.international-rates.index', compact('rates', 'hubs', 'agencies', 'zones', 'stats'));
     }
 
     /**
@@ -72,8 +81,9 @@ class InternationalRateController extends Controller
      */
     public function create(Request $request)
     {
-        $hubs = OverseasHub::active()->orderBy('sort_order')->get();
+        $hubs = OverseasHub::with(['agencies' => fn($q) => $q->where('is_active', true)])->active()->orderBy('sort_order')->get();
         $zones = InternationalZone::active()->get();
+        $agencies = \App\Models\Agency::where('is_active', true)->orderBy('name')->get();
         $preselectedHubId = $request->query('hub_id');
 
         $hubsJson = $hubs->map(fn($h) => [
@@ -84,12 +94,17 @@ class InternationalRateController extends Controller
             'mode_type' => $h->mode_type,
             'coverage_countries' => (array)($h->coverage_countries ?? []),
             'service_routes' => (array)($h->service_routes ?? []),
+            'agencies' => $h->agencies->map(fn($a) => [
+                'id' => $a->id,
+                'name' => $a->name,
+                'code' => $a->code,
+            ])->values()->all(),
         ]);
 
         $defaultCustoms = (float) GlobalTariffSetting::getValue('default_customs_clearance_charge', 500.00);
         $defaultGodown = (float) GlobalTariffSetting::getValue('default_godown_charge', 300.00);
 
-        return view('admin.international-rates.create', compact('hubs', 'zones', 'preselectedHubId', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
+        return view('admin.international-rates.create', compact('hubs', 'agencies', 'zones', 'preselectedHubId', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
     }
 
     /**
@@ -103,6 +118,7 @@ class InternationalRateController extends Controller
             'country_code' => 'nullable|string|max:10',
             'zone_id' => 'required_if:rate_type,zone|nullable|exists:international_zones,id',
             'hub_id' => 'nullable|exists:overseas_hubs,id',
+            'agency_id' => 'nullable|exists:agencies,id',
             'service_type' => 'required|in:express,economy',
             'weight_tiers' => 'nullable|array',
             'per_kg_tiers' => 'nullable|array',
@@ -159,8 +175,9 @@ class InternationalRateController extends Controller
      */
     public function edit($id)
     {
-        $rate = InternationalRate::findOrFail($id);
-        $hubs = OverseasHub::active()->orderBy('sort_order')->get();
+        $rate = InternationalRate::with('agency')->findOrFail($id);
+        $hubs = OverseasHub::with(['agencies' => fn($q) => $q->where('is_active', true)])->active()->orderBy('sort_order')->get();
+        $agencies = \App\Models\Agency::where('is_active', true)->orderBy('name')->get();
         $zones = InternationalZone::active()->get();
 
         $hubsJson = $hubs->map(fn($h) => [
@@ -171,12 +188,17 @@ class InternationalRateController extends Controller
             'mode_type' => $h->mode_type,
             'coverage_countries' => (array)($h->coverage_countries ?? []),
             'service_routes' => (array)($h->service_routes ?? []),
+            'agencies' => $h->agencies->map(fn($a) => [
+                'id' => $a->id,
+                'name' => $a->name,
+                'code' => $a->code,
+            ])->values()->all(),
         ]);
 
         $defaultCustoms = (float) GlobalTariffSetting::getValue('default_customs_clearance_charge', 500.00);
         $defaultGodown = (float) GlobalTariffSetting::getValue('default_godown_charge', 300.00);
 
-        return view('admin.international-rates.edit', compact('rate', 'hubs', 'zones', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
+        return view('admin.international-rates.edit', compact('rate', 'hubs', 'agencies', 'zones', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
     }
 
     /**
@@ -192,6 +214,7 @@ class InternationalRateController extends Controller
             'country_code' => 'nullable|string|max:10',
             'zone_id' => 'required_if:rate_type,zone|nullable|exists:international_zones,id',
             'hub_id' => 'nullable|exists:overseas_hubs,id',
+            'agency_id' => 'nullable|exists:agencies,id',
             'service_type' => 'required|in:express,economy',
             'weight_tiers' => 'nullable|array',
             'per_kg_tiers' => 'nullable|array',

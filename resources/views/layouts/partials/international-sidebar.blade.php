@@ -146,15 +146,6 @@
         <!-- ============================================== -->
         <div class="pt-2">
             <p class="text-[10px] text-sky-400 font-extrabold uppercase tracking-widest px-3 mb-1">Partners & Tariffs</p>
-            
-            <!-- Overseas Partners -->
-            <a href="{{ route('international.partners') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.partners*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-handshake w-4 text-center text-teal-400"></i>
-                <span>Overseas Partners</span>
-                <span class="ml-auto bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                    {{ \App\Models\User::where('user_type', 'overseas')->count() }}
-                </span>
-            </a>
 
             <!-- Rate Inquiry Calculator Desk -->
             <a href="{{ route('rates.inquiry') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">

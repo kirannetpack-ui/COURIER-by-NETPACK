@@ -117,11 +117,7 @@ class AdminController extends Controller
      */
     public function partners()
     {
-        $partners = User::where('user_type', 'overseas')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-        return view('international.admin.partners', compact('partners'));
+        return redirect()->route('international.agencies.index');
     }
 
     /**

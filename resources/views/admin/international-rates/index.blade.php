@@ -92,10 +92,17 @@
                     @endforeach
                 </select>
 
+                <select name="agency_id" class="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white outline-none">
+                    <option value="">All Agencies</option>
+                    @foreach($agencies as $ag)
+                        <option value="{{ $ag->id }}" {{ request('agency_id') == $ag->id ? 'selected' : '' }}>{{ $ag->code }} - {{ $ag->name }}</option>
+                    @endforeach
+                </select>
+
                 <button type="submit" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition">
                     Filter
                 </button>
-                @if(request()->hasAny(['search', 'service_type', 'hub_id', 'rate_type']))
+                @if(request()->hasAny(['search', 'service_type', 'hub_id', 'agency_id', 'rate_type']))
                     <a href="{{ route('admin.international-rates.index') }}" class="text-xs text-slate-500 hover:underline px-2">Reset</a>
                 @endif
             </form>
@@ -107,7 +114,7 @@
                 <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                     <tr>
                         <th class="px-4 py-3">Scope & Target</th>
-                        <th class="px-4 py-3">Gateway Hub</th>
+                        <th class="px-4 py-3">Gateway Hub & Agency</th>
                         <th class="px-4 py-3">Service</th>
                         <th class="px-4 py-3">0.5KG - 10KG (20 Slabs)</th>
                         <th class="px-4 py-3">>10KG Dynamic Ranges</th>
@@ -142,10 +149,22 @@
 
                             <td class="px-4 py-3">
                                 @if($r->hub)
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                                        {{ $r->hub->hub_code }}
-                                    </span>
-                                    <span class="text-[11px] text-slate-600 block mt-0.5 truncate max-w-[150px]">{{ $r->hub->hub_name }}</span>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                            {{ $r->hub->hub_code }}
+                                        </span>
+                                        <span class="text-[11px] font-semibold text-slate-700 truncate max-w-[140px]">{{ $r->hub->country }}</span>
+                                    </div>
+                                    <div class="mt-1">
+                                        @if($r->agency)
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 w-fit" title="{{ $r->agency->name }}">
+                                                <i class="fas fa-building text-[8px] text-amber-600"></i>
+                                                <span class="font-mono text-[9px]">{{ $r->agency->code }}</span> {{ \Illuminate\Support\Str::limit($r->agency->name, 20) }}
+                                            </span>
+                                        @else
+                                            <span class="text-[10px] text-slate-400 italic">All Hub Agencies</span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                         DIRECT

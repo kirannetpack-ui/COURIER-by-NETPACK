@@ -58,9 +58,44 @@ class Agency extends Authenticatable
         });
     }
 
+    public function hubs()
+    {
+        return $this->belongsToMany(OverseasHub::class, 'agency_hub', 'agency_id', 'hub_id')->withTimestamps();
+    }
+
     public function hub()
     {
         return $this->belongsTo(OverseasHub::class, 'hub_id');
+    }
+
+    public function getPrimaryHubAttribute()
+    {
+        return $this->hubs->first() ?? $this->hub;
+    }
+
+    public function rates()
+    {
+        return $this->hasMany(InternationalRate::class, 'agency_id');
+    }
+
+    public function getContactPersonAttribute()
+    {
+        return $this->primary_contact;
+    }
+
+    public function setContactPersonAttribute($value)
+    {
+        $this->attributes['primary_contact'] = $value;
+    }
+
+    public function getStatusAttribute()
+    {
+        return $this->is_active ? 'active' : 'inactive';
+    }
+
+    public function setStatusAttribute($value)
+    {
+        $this->attributes['is_active'] = (strtolower((string)$value) === 'active' || $value === true || $value === 1 || $value === '1');
     }
 
     public function staff()

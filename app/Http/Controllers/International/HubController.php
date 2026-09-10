@@ -10,7 +10,7 @@ class HubController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware(['auth', 'role:super_admin,admin,international_admin,staff']);
     }
 
     public function index(Request $request)

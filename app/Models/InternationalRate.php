@@ -12,6 +12,7 @@ class InternationalRate extends Model
     protected $fillable = [
         'created_by',
         'hub_id',
+        'agency_id',
         'service_type',
         'rate_type',
         'country',
@@ -49,6 +50,11 @@ class InternationalRate extends Model
     public function hub()
     {
         return $this->belongsTo(OverseasHub::class, 'hub_id');
+    }
+
+    public function agency()
+    {
+        return $this->belongsTo(Agency::class, 'agency_id');
     }
 
     public function zone()

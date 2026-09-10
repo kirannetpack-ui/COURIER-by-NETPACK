@@ -9,9 +9,13 @@
         rateType: 'country',
         serviceType: '{{ old("service_type", "economy") }}',
         selectedHubId: '{{ old("hub_id", $preselectedHubId ?? "") }}',
+        selectedAgencyId: '{{ old("agency_id", "") }}',
         hubs: @json($hubsJson),
         get currentHub() {
             return this.hubs.find(h => String(h.id) === String(this.selectedHubId)) || null;
+        },
+        get hubAgencies() {
+            return this.currentHub ? (this.currentHub.agencies || []) : [];
         },
         get coveredCountries() {
             return this.currentHub ? (this.currentHub.coverage_countries || []) : [];
@@ -96,11 +100,11 @@
                 <span class="text-[11px] font-normal text-slate-400">Rates mapped to destination gateway clearance</span>
             </h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gateway Hub *</label>
                     <select name="hub_id" x-model="selectedHubId" 
-                            @change="if(currentHub && !serviceType) { serviceType = 'economy'; }"
+                            @change="if(currentHub && !serviceType) { serviceType = 'economy'; } selectedAgencyId = '';"
                             class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white font-medium">
                         <option value="">Direct Express (Nepal Origin Direct Carrier)</option>
                         @foreach($hubs as $hub)
@@ -112,9 +116,20 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hub Agency</label>
+                    <select name="agency_id" x-model="selectedAgencyId" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white font-medium">
+                        <option value="">All Hub Agencies (Default)</option>
+                        <template x-for="ag in hubAgencies" :key="ag.id">
+                            <option :value="ag.id" x-text="ag.code + ' - ' + ag.name" :selected="String(ag.id) === String(selectedAgencyId)"></option>
+                        </template>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1">Rate entered for specific hub agency</p>
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Rate Scope Type *</label>
                     <select name="rate_type" x-model="rateType" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white">
-                        <option value="country">Country-Wise (Single Specific Destination Country)</option>
+                        <option value="country">Country-Wise (Single Destination Country)</option>
                         <option value="zone">Zone-Wise (Geographic Country Group)</option>
                     </select>
                 </div>

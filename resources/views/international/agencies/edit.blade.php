@@ -33,18 +33,45 @@
         @csrf
         @method('PUT')
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Assigned Destination Hub <span class="text-rose-500">*</span></label>
-                <select name="hub_id" required class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
-                    @foreach($hubs as $hub)
-                        <option value="{{ $hub->id }}" {{ old('hub_id', $agency->hub_id) == $hub->id ? 'selected' : '' }}>
-                            {{ $hub->code }} - {{ $hub->name }} ({{ $hub->country }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+        @php
+            $currentHubIds = old('hub_ids', $agency->hubs->pluck('id')->toArray());
+            if (empty($currentHubIds) && !empty($agency->hub_id)) {
+                $currentHubIds = [$agency->hub_id];
+            }
+        @endphp
 
+        <!-- Assigned Gateway Hubs (Country & Airport) -->
+        <div class="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-indigo-900 dark:text-indigo-300">
+                        <i class="fas fa-network-wired mr-1.5"></i> Assigned Gateway Hubs (Country & Airport) <span class="text-rose-500">*</span>
+                    </label>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        A single hub can have multiple agencies, and this agency can provide clearance/delivery services across multiple hubs. Select all hubs this agency operates in.
+                    </p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+                @foreach($hubs as $hub)
+                    @php
+                        $isChecked = in_array($hub->id, $currentHubIds);
+                    @endphp
+                    <label class="relative flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 cursor-pointer transition shadow-xs">
+                        <input type="checkbox" name="hub_ids[]" value="{{ $hub->id }}" {{ $isChecked ? 'checked' : '' }} class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                        <div class="min-w-0 text-xs">
+                            <div class="flex items-center gap-1.5 font-black text-slate-900 dark:text-white">
+                                <span class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-mono text-[10px]">{{ $hub->hub_code }}</span>
+                                <span class="truncate">{{ $hub->country }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{{ $hub->airport_name ?? $hub->address ?? ($hub->location . ' Airport') }}</p>
+                        </div>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Agency Code <span class="text-rose-500">*</span></label>
                 <input type="text" name="code" value="{{ old('code', $agency->code) }}" required maxlength="20" class="w-full uppercase font-mono tracking-wider text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
@@ -56,7 +83,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Primary Contact Person</label>
                 <input type="text" name="primary_contact" value="{{ old('primary_contact', $agency->primary_contact) }}" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
@@ -68,6 +95,11 @@
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Primary Email</label>
                 <input type="email" name="email" value="{{ old('email', $agency->email) }}" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">New Password</label>
+                <input type="password" name="password" placeholder="Leave blank to keep unchanged" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                <p class="text-[10px] text-slate-400 mt-1">Leave blank to keep current password</p>
             </div>
         </div>
 
