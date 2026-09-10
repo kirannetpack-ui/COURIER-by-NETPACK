@@ -142,135 +142,41 @@
                     </div>
 
                     <!-- International Tab -->
-<div class="tab-pane" id="tab-international">
-    <div class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Service Type <span class="text-red-500">*</span></label>
-                <select name="service_type" id="intl_service_type" onchange="toggleIntlServiceFields()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold">
-                    <option value="economy" selected>🌍 Economy Service (Agency & Hub Routing - 7-15 Days)</option>
-                    <option value="express">⚡ Express / Priority Service (Nepal Origin Only - 3-4 Working Days)</option>
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Select Express (DHL/UPS/FedEx/SF) or Economy Agency Hub consolidation</p>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Package Type</label>
-                <select name="package_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    <option value="box" selected>📦 Box / Carton</option>
-                    <option value="parcel">📦 Parcel</option>
-                    <option value="envelope">✉️ Envelope / Document</option>
-                    <option value="other">📦 Other Packaging</option>
-                </select>
-            </div>
-        </div>
+                    <div class="tab-pane" id="tab-international">
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Service Type <span class="text-red-500">*</span></label>
+                                    <select name="service_type" id="intl_service_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold">
+                                        <option value="express" {{ request('service_type') === 'express' ? 'selected' : '' }}>⚡ Priority Express Service (3–4 Working Days)</option>
+                                        <option value="economy" {{ request('service_type', 'economy') === 'economy' && request('service_type') !== 'express' ? 'selected' : '' }}>🌍 Economy Air Cargo Service (6–8 Working Days)</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Select Priority Express or Economy Air Cargo service as per your quotation.</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Package Type</label>
+                                    <select name="package_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                        <option value="box" selected>📦 Box / Carton</option>
+                                        <option value="parcel">📦 Parcel</option>
+                                        <option value="envelope">✉️ Envelope / Document</option>
+                                        <option value="other">📦 Other Packaging</option>
+                                    </select>
+                                </div>
+                            </div>
 
-        <!-- Express Carrier Selection (Nepal Origin Only, 3-4 Working Days) -->
-        <div id="express_fields" class="hidden p-4 rounded-xl border border-sky-200 bg-sky-50/50 space-y-3">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-sky-900 flex items-center gap-1.5">
-                    <i class="fas fa-plane-departure text-sky-600"></i> Express / Priority Service Details
-                </span>
-                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    Nepal Origin Only &bull; 3–4 Working Days SLA
-                </span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Booked Express Carrier Partner</label>
-                    <select name="express_carrier" class="w-full px-3 py-2 border border-sky-300 rounded-lg text-sm bg-white font-semibold">
-                        <option value="DHL">🟡 DHL Express Worldwide</option>
-                        <option value="UPS">🟤 UPS Worldwide Express / Saver</option>
-                        <option value="FEDEX">🟣 FedEx International Priority</option>
-                        <option value="SF">🔴 SF Express International</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Origin Gateway</label>
-                    <input type="text" readonly value="Tribhuvan International Airport (KTM), Nepal" class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100 text-gray-700 font-medium">
-                </div>
-            </div>
-        </div>
-
-        <!-- Economy Agency & Hub Routing (Dubai, UK, Australia, NZ) -->
-        <div id="economy_fields" class="p-4 rounded-xl border border-indigo-200 bg-indigo-50/30 space-y-3">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
-                    <i class="fas fa-network-wired text-indigo-600"></i> Economy Service (Global Gateway Hubs)
-                </span>
-                <span class="text-[11px] font-medium text-slate-500">
-                    Consolidated Flights via Gateway Agency Desks
-                </span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Designated Transit Hub</label>
-                    <select name="hub_id" id="booking_hub_id" onchange="filterBookingAgencies()" class="w-full px-3 py-2 border rounded-lg text-xs bg-white">
-                        <option value="">-- Select Gateway Hub --</option>
-                        @if(!empty($hubs))
-                            @foreach($hubs as $h)
-                                <option value="{{ $h->id }}" data-mode="{{ $h->mode_type }}" data-code="{{ $h->code }}">
-                                    {{ $h->code }} - {{ $h->name }}
-                                </option>
-                            @endforeach
-                        @endif
-                    </select>
-                    <p class="text-[10px] text-gray-400 mt-1">DXB (Gulf/UPS/Canada), LHR (UK/EU), SYD (AUS), AKL (NZ)</p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Partner Receiving Agency</label>
-                    <select name="agency_id" id="booking_agency_id" class="w-full px-3 py-2 border rounded-lg text-xs bg-white">
-                        <option value="">-- Central Hub Desk / Auto --</option>
-                        @if(!empty($agencies))
-                            @foreach($agencies as $ag)
-                                <option value="{{ $ag->id }}" data-hub="{{ $ag->hub_id }}">
-                                    {{ $ag->name }}
-                                </option>
-                            @endforeach
-                        @endif
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Customs Clearance Mode</label>
-                    <select name="customs_mode" id="booking_customs_mode" class="w-full px-3 py-2 border rounded-lg text-xs bg-white font-bold">
-                        <option value="DDP" selected>DDP (Delivered Duty Paid)</option>
-                        <option value="DDU">DDU (Delivered Duty Unpaid)</option>
-                    </select>
-                    <p class="text-[10px] text-gray-400 mt-1">UK/EU under DDP, USA/Canada under DDU / DDP</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Destination Last Mile Delivery Company</label>
-                    <select name="last_mile_carrier_name" class="w-full px-3 py-2 border rounded-lg text-xs bg-white">
-                        <option value="">-- Select Courier / Local Partner --</option>
-                        @if(!empty($carriers))
-                            @foreach($carriers as $car)
-                                <option value="{{ $car->name }}">{{ $car->name }} ({{ $car->country ?? 'Global' }})</option>
-                            @endforeach
-                        @else
-                            <option value="Canpar Express">Canpar Express (Canada Toronto DDP)</option>
-                            <option value="Obibox">Obibox (Canada Courier)</option>
-                            <option value="Royal Mail">Royal Mail (United Kingdom DDP)</option>
-                            <option value="Australia Post">Australia Post (Australia SYD)</option>
-                            <option value="New Zealand Post">New Zealand Post (NZ AKL)</option>
-                            <option value="UPS">UPS Worldwide Crossing</option>
-                            <option value="Aramex">Aramex (Gulf & Middle East)</option>
-                        @endif
-                    </select>
-                    <p class="text-[10px] text-gray-400 mt-1">Canpar, Obibox, Royal Mail, AusPost, NZPost, or local courier</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Agency Inbound Handover Instructions</label>
-                    <input type="text" name="agency_instructions" placeholder="e.g. Toronto direct delivery via Canpar / Obibox" class="w-full px-3 py-2 border rounded-lg text-xs bg-white">
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                            @if(request('quoted_rate'))
+                                <div class="bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center justify-between text-xs">
+                                    <div class="flex items-center gap-2 text-teal-900 font-medium">
+                                        <i class="fas fa-certificate text-teal-600"></i>
+                                        <span>Verified Rate Applied from Tariff Inquiry</span>
+                                    </div>
+                                    <div class="font-bold text-teal-800 font-mono text-sm">
+                                        Rs. {{ number_format(request('quoted_rate')) }}
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
 
                     <!-- E-Commerce Tab -->
                     <div class="tab-pane" id="tab-ecommerce">
@@ -570,52 +476,9 @@
         if (tab === 'international') {
             document.getElementById('delivery-multiple').classList.add('hidden');
             document.getElementById('delivery-international').classList.remove('hidden');
-            toggleIntlServiceFields();
-            filterBookingAgencies();
         } else {
             document.getElementById('delivery-multiple').classList.remove('hidden');
             document.getElementById('delivery-international').classList.add('hidden');
-        }
-    }
-
-    function toggleIntlServiceFields() {
-        const select = document.getElementById('intl_service_type');
-        if (!select) return;
-        const val = select.value;
-        const exp = document.getElementById('express_fields');
-        const eco = document.getElementById('economy_fields');
-        if (val === 'express') {
-            if (exp) exp.classList.remove('hidden');
-            if (eco) eco.classList.add('hidden');
-        } else {
-            if (exp) exp.classList.add('hidden');
-            if (eco) eco.classList.remove('hidden');
-        }
-    }
-
-    function filterBookingAgencies() {
-        const hubSelect = document.getElementById('booking_hub_id');
-        const agencySelect = document.getElementById('booking_agency_id');
-        const modeSelect = document.getElementById('booking_customs_mode');
-        if (!hubSelect || !agencySelect) return;
-
-        const hubId = hubSelect.value;
-        const selectedOpt = hubSelect.options[hubSelect.selectedIndex];
-        if (selectedOpt && selectedOpt.dataset.mode && modeSelect) {
-            const m = selectedOpt.dataset.mode;
-            if (m === 'DDP' || m === 'DDU') {
-                modeSelect.value = m;
-            }
-        }
-
-        for (let i = 0; i < agencySelect.options.length; i++) {
-            const opt = agencySelect.options[i];
-            if (!opt.value) continue;
-            if (!hubId || opt.dataset.hub == hubId) {
-                opt.style.display = '';
-            } else {
-                opt.style.display = 'none';
-            }
         }
     }
 
@@ -952,7 +815,6 @@
             const intlSelect = document.getElementById('intl_service_type');
             if (intlSelect) {
                 intlSelect.value = prefillServiceType;
-                toggleIntlServiceFields();
             }
         }
 
@@ -972,15 +834,6 @@
                     const newOpt = new Option('🌐 ' + prefillCountry, prefillCountry, true, true);
                     countrySelect.add(newOpt);
                 }
-            }
-        }
-
-        const prefillHubId = '{{ request('hub_id') }}';
-        if (prefillHubId) {
-            const hubSelect = document.getElementById('booking_hub_id');
-            if (hubSelect) {
-                hubSelect.value = prefillHubId;
-                filterBookingAgencies();
             }
         }
 

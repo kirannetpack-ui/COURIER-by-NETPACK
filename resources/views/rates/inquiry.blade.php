@@ -141,8 +141,7 @@ function rateInquiryDesk() {
                 chargeable_weight: this.quoteData?.weight_info?.chargeable_weight || this.weight,
                 service_type: quote.service_type,
                 packaging: this.packaging,
-                quoted_rate: quote.itemized.total_cost,
-                hub_id: quote.hub_id || ''
+                quoted_rate: quote.itemized.total_cost
             });
             window.location.href = '{{ route('shipments.create') }}?' + params.toString();
         }
@@ -507,7 +506,7 @@ function rateInquiryDesk() {
             <div x-show="loading" class="bg-white rounded-2xl p-12 text-center border border-slate-200">
                 <i class="fas fa-circle-notch animate-spin text-3xl text-teal-600 mb-3 block"></i>
                 <p class="text-sm font-bold text-slate-800">Calculating exact air cargo tariffs...</p>
-                <p class="text-xs text-slate-500 mt-1">Applying customs clearance, terminal godown, and hub-routing matrix.</p>
+                <p class="text-xs text-slate-500 mt-1">Applying customs clearance, terminal godown handling, and statutory tariffs.</p>
             </div>
 
             <!-- Error Notification -->
@@ -533,15 +532,13 @@ function rateInquiryDesk() {
                                 <div>
                                     <h4 class="text-sm font-black text-slate-900" x-text="q.service_label"></h4>
                                     <p class="text-[11px] text-slate-500">
-                                        <span x-text="q.hub_name"></span> &bull; <span class="font-medium text-slate-700" x-text="q.transit_days"></span>
+                                        <span class="font-medium text-slate-700"><i class="far fa-clock mr-1 text-slate-400"></i>Estimated Transit: <span x-text="q.transit_days"></span></span>
                                     </p>
                                 </div>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white text-slate-700 border border-slate-200"
-                                      x-text="q.mode_type"></span>
-                                <span x-show="idx === 0" class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-teal-600 text-white">
+                                <span x-show="idx === 0" class="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-teal-600 text-white">
                                     RECOMMENDED
                                 </span>
                             </div>

@@ -10,6 +10,9 @@ use App\Models\RemoteAreaSurcharge;
 use App\Models\AdditionalCharge;
 use App\Models\Shipment;
 use App\Models\OverseasTransitPoint;
+use App\Models\OverseasHub;
+use App\Models\Agency;
+use App\Models\LastMileCarrier;
 use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -513,10 +516,99 @@ private function parseSurchargeFile($file)
      */
     public function showShipment($id)
     {
-        $shipment = Shipment::with(['customer', 'overseasPartner', 'rider'])
+        $shipment = Shipment::with(['customer', 'overseasPartner', 'rider', 'currentHub', 'currentAgency', 'lastMileCarrier'])
             ->findOrFail($id);
 
-        return view('international.admin.shipment-details', compact('shipment'));
+        $hubs = OverseasHub::where('is_active', true)->orderBy('name')->get();
+        $agencies = Agency::where('is_active', true)->orderBy('name')->get();
+        $carriers = LastMileCarrier::where('is_active', true)->orderBy('name')->get();
+
+        return view('international.admin.shipment-details', compact('shipment', 'hubs', 'agencies', 'carriers'));
+    }
+
+    /**
+     * Admin post-booking routing assignment (Hub, Agency, Carrier & Customs)
+     */
+    public function updateRouting(Request $request, $id)
+    {
+        $shipment = Shipment::findOrFail($id);
+
+        $request->validate([
+            'status' => 'nullable|in:pending,confirmed,processing,picked_up,in_transit,customs_clearance,out_for_delivery,delivered,cancelled',
+            'current_hub_id' => 'nullable|exists:overseas_hubs,id',
+            'current_agency_id' => 'nullable|exists:agencies,id',
+            'customs_mode' => 'nullable|in:DDP,DDU',
+            'last_mile_carrier_name' => 'nullable|string|max:100',
+            'last_mile_carrier_id' => 'nullable|exists:last_mile_carriers,id',
+            'last_mile_tracking_number' => 'nullable|string|max:100',
+            'routing_notes' => 'nullable|string|max:500',
+        ]);
+
+        if ($shipment->service_type === 'express') {
+            if ($request->filled('last_mile_carrier_name')) {
+                $shipment->last_mile_carrier_name = $request->last_mile_carrier_name;
+            }
+            if ($request->filled('last_mile_tracking_number')) {
+                $shipment->last_mile_tracking_number = $request->last_mile_tracking_number;
+            }
+        } else {
+            $shipment->current_hub_id = $request->current_hub_id ?: null;
+            $shipment->current_agency_id = $request->current_agency_id ?: null;
+            $shipment->customs_mode = $request->customs_mode ?: 'DDP';
+            if ($request->filled('last_mile_carrier_name')) {
+                $shipment->last_mile_carrier_name = $request->last_mile_carrier_name;
+            }
+            if ($request->filled('last_mile_carrier_id')) {
+                $shipment->last_mile_carrier_id = $request->last_mile_carrier_id;
+            }
+            if ($request->filled('last_mile_tracking_number')) {
+                $shipment->last_mile_tracking_number = $request->last_mile_tracking_number;
+            }
+            $shipment->agency_milestone = 'routing_assigned';
+        }
+
+        $oldStatus = $shipment->status;
+        $newStatus = $request->status ?: ($oldStatus === 'pending' ? 'confirmed' : $oldStatus);
+        $shipment->status = $newStatus;
+
+        $note = $request->routing_notes 
+            ?: ($shipment->service_type === 'express'
+                ? "Priority Express carrier assigned: " . ($shipment->last_mile_carrier_name ?? 'Partner Carrier')
+                : "International routing defined by Operations Admin (Customs: {$shipment->customs_mode}).");
+
+        $shipment->save();
+
+        try {
+            $scanService = app(ShipmentScanService::class);
+            if ($newStatus === 'confirmed' && $oldStatus === 'pending') {
+                $scanService->record($shipment, 'booking_confirmed', null, $note, $request->user(), 'international_admin');
+            } else {
+                $history = $shipment->tracking_history ?? [];
+                $history[] = [
+                    'status' => $shipment->status,
+                    'status_label' => 'Routing Assigned by Operations Admin',
+                    'description' => $note,
+                    'location' => 'Tribhuvan International Airport (TIA) Ops Desk',
+                    'time' => now()->toDateTimeString(),
+                ];
+                $shipment->tracking_history = $history;
+                $shipment->save();
+            }
+        } catch (\Exception $e) {
+            $history = $shipment->tracking_history ?? [];
+            $history[] = [
+                'status' => $shipment->status,
+                'status_label' => 'Routing Assigned by Operations Admin',
+                'description' => $note,
+                'location' => 'Tribhuvan International Airport (TIA) Ops Desk',
+                'time' => now()->toDateTimeString(),
+            ];
+            $shipment->tracking_history = $history;
+            $shipment->save();
+        }
+
+        return redirect()->route('international.shipments.show', $shipment->id)
+            ->with('success', 'International routing & operational carrier partner assigned successfully!');
     }
 
     /**

@@ -311,19 +311,18 @@ class ShipmentController extends Controller
             ]
         ];
 
-        // Estimated delivery
+        // Estimated delivery & routing assignment (defined by admin post-booking)
         if ($request->shipment_type === 'international') {
             if ($request->service_type === 'express') {
                 $shipment->estimated_delivery = now()->addDays(4);
-                $shipment->last_mile_carrier_name = $request->express_carrier ?? 'DHL';
             } else {
-                $shipment->estimated_delivery = now()->addDays(15);
-                $shipment->last_mile_carrier_name = $request->last_mile_carrier_name ?: null;
+                $shipment->estimated_delivery = now()->addDays(8);
             }
-            $shipment->current_hub_id = $request->hub_id ?: null;
-            $shipment->current_agency_id = $request->agency_id ?: null;
-            $shipment->customs_mode = $request->customs_mode ?: 'DDP';
-            $shipment->agency_milestone = 'booking_completed';
+            $shipment->last_mile_carrier_name = null;
+            $shipment->current_hub_id = null;
+            $shipment->current_agency_id = null;
+            $shipment->customs_mode = 'DDP';
+            $shipment->agency_milestone = 'pending_admin_routing';
         } else {
             $shipment->estimated_delivery = now()->addDays(3);
         }

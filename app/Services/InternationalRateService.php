@@ -272,7 +272,7 @@ class InternationalRateService
             $quotes[] = [
                 'rate_id' => $rate->id,
                 'service_type' => $rate->service_type,
-                'service_label' => $rate->service_type === 'express' ? '⚡ Priority Express (3–4 Days)' : '🌐 Economy Gateway Hub (6–8 Days)',
+                'service_label' => $rate->service_type === 'express' ? '⚡ Priority Express (3–4 Days)' : '🌐 Economy Air Cargo (6–8 Days)',
                 'rate_scope' => $rate->rate_type === 'zone' ? ($rate->zone->name ?? 'Regional Zone') : 'Country Direct',
                 'hub_id' => $rate->hub_id,
                 'hub_name' => $hubName,

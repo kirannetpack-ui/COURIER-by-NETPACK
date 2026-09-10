@@ -779,6 +779,7 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
     Route::post('/shipments', [InternationalAdminController::class, 'storeShipment'])->name('shipments.store');
     Route::get('/shipments/{id}', [InternationalAdminController::class, 'showShipment'])->name('shipments.show');
     Route::put('/shipments/{id}/status', [InternationalAdminController::class, 'updateShipmentStatus'])->name('shipments.update-status');
+    Route::put('/shipments/{id}/routing', [InternationalAdminController::class, 'updateRouting'])->name('shipments.update-routing');
 
     Route::get('/reports', [InternationalAdminController::class, 'reports'])->name('reports');
 
