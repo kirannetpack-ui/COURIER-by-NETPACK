@@ -70,12 +70,26 @@ class InternationalRateController extends Controller
     /**
      * Show form for creating a new international rate.
      */
-    public function create()
+    public function create(Request $request)
     {
         $hubs = OverseasHub::active()->orderBy('sort_order')->get();
         $zones = InternationalZone::active()->get();
+        $preselectedHubId = $request->query('hub_id');
 
-        return view('admin.international-rates.create', compact('hubs', 'zones'));
+        $hubsJson = $hubs->map(fn($h) => [
+            'id' => $h->id,
+            'hub_code' => $h->hub_code,
+            'hub_name' => $h->hub_name,
+            'country' => $h->country,
+            'mode_type' => $h->mode_type,
+            'coverage_countries' => (array)($h->coverage_countries ?? []),
+            'service_routes' => (array)($h->service_routes ?? []),
+        ]);
+
+        $defaultCustoms = (float) GlobalTariffSetting::getValue('default_customs_clearance_charge', 500.00);
+        $defaultGodown = (float) GlobalTariffSetting::getValue('default_godown_charge', 300.00);
+
+        return view('admin.international-rates.create', compact('hubs', 'zones', 'preselectedHubId', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
     }
 
     /**
@@ -149,7 +163,20 @@ class InternationalRateController extends Controller
         $hubs = OverseasHub::active()->orderBy('sort_order')->get();
         $zones = InternationalZone::active()->get();
 
-        return view('admin.international-rates.edit', compact('rate', 'hubs', 'zones'));
+        $hubsJson = $hubs->map(fn($h) => [
+            'id' => $h->id,
+            'hub_code' => $h->hub_code,
+            'hub_name' => $h->hub_name,
+            'country' => $h->country,
+            'mode_type' => $h->mode_type,
+            'coverage_countries' => (array)($h->coverage_countries ?? []),
+            'service_routes' => (array)($h->service_routes ?? []),
+        ]);
+
+        $defaultCustoms = (float) GlobalTariffSetting::getValue('default_customs_clearance_charge', 500.00);
+        $defaultGodown = (float) GlobalTariffSetting::getValue('default_godown_charge', 300.00);
+
+        return view('admin.international-rates.edit', compact('rate', 'hubs', 'zones', 'hubsJson', 'defaultCustoms', 'defaultGodown'));
     }
 
     /**

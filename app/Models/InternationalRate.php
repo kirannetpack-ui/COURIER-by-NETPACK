@@ -65,11 +65,19 @@ class InternationalRate extends Model
     {
         return $query->where(function ($q) use ($country) {
             $q->where('rate_type', 'country')
-              ->where('country', $country);
+              ->where(function ($cq) use ($country) {
+                  $cq->where('country', $country)
+                     ->orWhere('country_code', strtoupper($country));
+              });
         })->orWhere(function ($q) use ($country) {
             $q->where('rate_type', 'zone')
               ->whereHas('zone', function ($zq) use ($country) {
                   $zq->whereJsonContains('countries', $country);
+              });
+        })->orWhere(function ($q) use ($country) {
+            $q->whereNotNull('hub_id')
+              ->whereHas('hub', function ($hq) use ($country) {
+                  $hq->whereJsonContains('coverage_countries', $country);
               });
         });
     }

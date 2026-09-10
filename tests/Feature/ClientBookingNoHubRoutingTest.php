@@ -206,4 +206,44 @@ class ClientBookingNoHubRoutingTest extends TestCase
         $this->assertStringNotContainsString('Gateway Hub', $quote['service_label']);
         $this->assertStringContainsString('Economy Air Cargo', $quote['service_label']);
     }
+
+    public function test_admin_can_update_hub_with_string_coverage_countries_without_json_error(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => 'super_admin',
+        ]);
+
+        $hub = OverseasHub::create([
+            'hub_code' => 'TESTSYD',
+            'hub_name' => 'Sydney Test Gateway',
+            'country' => 'Australia',
+            'location' => 'Sydney Mascot',
+            'mode_type' => 'HYBRID',
+            'coverage_countries' => ['Australia'],
+            'is_active' => true,
+        ]);
+
+        // Submit form with raw string 'Australia' just like the web form did
+        $response = $this->actingAs($admin)->put(route('international.hubs.update', $hub->id), [
+            'code' => 'TESTSYD',
+            'name' => 'Sydney Test Gateway Updated',
+            'country' => 'Australia',
+            'city' => 'Sydney',
+            'airport_name' => 'Sydney Kingsford Smith Airport',
+            'mode_type' => 'DDP',
+            'coverage_countries' => 'Australia, New Zealand',
+            'service_routes' => 'Trans-Tasman, Pacific Direct',
+            'sort_order' => 5,
+            'is_active' => 1,
+        ]);
+
+        $response->assertRedirect(route('international.hubs.index'));
+        $response->assertSessionHas('success');
+
+        $hub->refresh();
+        $this->assertEquals('DDP', $hub->mode_type);
+        $this->assertEquals(5, $hub->sort_order);
+        $this->assertIsArray($hub->coverage_countries);
+        $this->assertEquals(['Australia', 'New Zealand'], $hub->coverage_countries);
+    }
 }

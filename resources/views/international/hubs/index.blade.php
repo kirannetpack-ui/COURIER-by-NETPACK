@@ -81,13 +81,39 @@
                         </div>
                         <div class="flex items-center justify-between text-slate-600 dark:text-slate-400">
                             <span>Airports / Handlers:</span>
-                            <span class="font-medium text-slate-700 dark:text-slate-300">{{ $hub->airport_name ?? 'Primary Airport' }}</span>
+                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[170px]">{{ $hub->airport_name ?? 'Primary Airport' }}</span>
                         </div>
+                    </div>
+
+                    <!-- Clearance & Delivery Destination Countries -->
+                    <div class="mt-3">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                <i class="fas fa-passport text-indigo-500 mr-1"></i> Clearance & Delivery Scope
+                            </p>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ count((array)$hub->coverage_countries) }} Countries</span>
+                        </div>
+                        @if(!empty($hub->coverage_countries))
+                            <div class="flex flex-wrap gap-1">
+                                @foreach(array_slice((array)$hub->coverage_countries, 0, 5) as $c)
+                                    <span class="text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800/60">
+                                        {{ $c }}
+                                    </span>
+                                @endforeach
+                                @if(count((array)$hub->coverage_countries) > 5)
+                                    <span class="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                        +{{ count((array)$hub->coverage_countries) - 5 }} more
+                                    </span>
+                                @endif
+                            </div>
+                        @else
+                            <p class="text-[11px] text-slate-400 italic">No specific coverage countries defined</p>
+                        @endif
                     </div>
 
                     @if(!empty($hub->service_routes))
                         <div class="mt-3">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Route Scope</p>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Corridors & Routes</p>
                             <div class="flex flex-wrap gap-1">
                                 @foreach((array)$hub->service_routes as $route)
                                     <span class="text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
@@ -99,12 +125,26 @@
                     @endif
                 </div>
 
-                <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <a href="{{ route('international.agencies.index', ['hub_id' => $hub->id]) }}" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
-                        <i class="fas fa-users-cog"></i> Agencies
-                    </a>
-                    <div class="flex items-center gap-1.5">
-                        <a href="{{ route('international.hubs.edit', $hub->id) }}" class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Edit Hub">
+                <div class="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5">
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('admin.international-rates.create', ['hub_id' => $hub->id]) }}" 
+                           class="text-[11px] font-bold text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/70 hover:bg-teal-200 px-2 py-1 rounded-lg border border-teal-300 dark:border-teal-800 transition flex items-center gap-1"
+                           title="Enter Rates for this Hub's Countries">
+                            <i class="fas fa-plus"></i> Rate
+                        </a>
+                        <a href="{{ route('admin.international-rates.index', ['hub_id' => $hub->id]) }}" 
+                           class="text-[11px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center gap-1"
+                           title="View All Rates Configured for this Hub">
+                            <i class="fas fa-table-cells"></i> Rates
+                        </a>
+                        <a href="{{ route('international.agencies.index', ['hub_id' => $hub->id]) }}" 
+                           class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                           title="Manage Attached Partner Agencies">
+                            <i class="fas fa-users-cog"></i> Agencies
+                        </a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="{{ route('international.hubs.edit', $hub->id) }}" class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Edit Hub Configuration">
                             <i class="fas fa-edit"></i>
                         </a>
                         <form action="{{ route('international.hubs.destroy', $hub->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this Hub? All related agencies will be affected.');" class="inline">

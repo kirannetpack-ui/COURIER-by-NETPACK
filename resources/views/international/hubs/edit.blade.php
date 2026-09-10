@@ -79,12 +79,21 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Coverage Countries (Comma-separated)</label>
-                <input type="text" name="coverage_countries" value="{{ old('coverage_countries', is_array($hub->coverage_countries) ? implode(', ', $hub->coverage_countries) : $hub->coverage_countries) }}" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400">
+                        Clearance & Delivery Countries (Comma-separated) <span class="text-rose-500">*</span>
+                    </label>
+                    <a href="{{ route('admin.international-rates.create', ['hub_id' => $hub->id]) }}" class="text-[11px] font-bold text-teal-600 hover:underline">
+                        <i class="fas fa-table-cells"></i> Configure Rates
+                    </a>
+                </div>
+                <input type="text" name="coverage_countries" value="{{ old('coverage_countries', is_array($hub->coverage_countries) ? implode(', ', $hub->coverage_countries) : $hub->coverage_countries) }}" placeholder="e.g. Australia, New Zealand or AE, SA, QA, KW" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <p class="text-[11px] text-slate-400 mt-1">Countries cleared and delivered via this gateway hub. These countries automatically populate when Super Admin and Staff configure rate matrices.</p>
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1.5">Service Routes / Corridors (Comma-separated)</label>
-                <input type="text" name="service_routes" value="{{ old('service_routes', is_array($hub->service_routes) ? implode(', ', $hub->service_routes) : $hub->service_routes) }}" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <input type="text" name="service_routes" value="{{ old('service_routes', is_array($hub->service_routes) ? implode(', ', $hub->service_routes) : $hub->service_routes) }}" placeholder="e.g. Trans-Tasman Express, Pacific Linehaul, Obibox Crossing" class="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <p class="text-[11px] text-slate-400 mt-1">Regional corridors or linehaul routes operated from this hub.</p>
             </div>
         </div>
 

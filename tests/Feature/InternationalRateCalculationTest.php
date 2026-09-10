@@ -333,5 +333,103 @@ class InternationalRateCalculationTest extends TestCase
         $calcResponse->assertJsonPath('data.packaging.price', 850);
         $this->assertNotEmpty($calcResponse->json('data.quotes'));
     }
+
+    /**
+     * Test that Super Admin and International Staff can configure rate matrices according to hubs.
+     */
+    public function test_super_admin_and_staff_can_enter_rates_according_to_hubs_and_quote_properly(): void
+    {
+        $superAdmin = User::factory()->create(['user_type' => 'super_admin']);
+        $staff = User::factory()->create([
+            'user_type' => 'staff',
+            'service_scope' => 'international',
+        ]);
+
+        $hub = OverseasHub::create([
+            'hub_code' => 'SYDTEST',
+            'hub_name' => 'Sydney Oceania Hub',
+            'country' => 'Australia',
+            'location' => 'Sydney Airport',
+            'mode_type' => 'DDP',
+            'coverage_countries' => ['Australia', 'New Zealand', 'Fiji'],
+            'service_routes' => ['Pacific Express', 'Trans-Tasman Linehaul'],
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+
+        // 1. Visit create page with ?hub_id=... as Super Admin
+        $createView = $this->actingAs($superAdmin)->get(route('admin.international-rates.create', ['hub_id' => $hub->id]));
+        $createView->assertOk();
+        $createView->assertSee('SYDTEST');
+        $createView->assertSee('Sydney Oceania Hub');
+        $createView->assertSee('Defined Clearance & Delivery Countries for this Hub', false);
+
+        // 2. International Staff visits create page
+        $staffCreateView = $this->actingAs($staff)->get(route('admin.international-rates.create', ['hub_id' => $hub->id]));
+        $staffCreateView->assertOk();
+
+        // 3. Super Admin creates a rate matrix for a country covered by this hub
+        $storeResponse = $this->actingAs($superAdmin)->post(route('admin.international-rates.store'), [
+            'rate_type' => 'country',
+            'country' => 'New Zealand',
+            'country_code' => 'NZ',
+            'hub_id' => $hub->id,
+            'service_type' => 'economy',
+            'transit_days_min' => 6,
+            'transit_days_max' => 8,
+            'weight_tiers' => [
+                '0.5' => 2200,
+                '1.0' => 2600,
+                '1.5' => 3000,
+                '2.0' => 3400,
+                '10.0' => 9800,
+            ],
+            'per_kg_tiers' => [
+                [
+                    'min_weight' => 10.1,
+                    'max_weight' => 45.0,
+                    'rate_per_kg' => 850,
+                ],
+                [
+                    'min_weight' => 45.1,
+                    'max_weight' => 9999.0,
+                    'rate_per_kg' => 750,
+                ],
+            ],
+            'customs_clearance_charge' => 450.00,
+            'godown_charge' => 250.00,
+            'fuel_surcharge_percent' => 0,
+            'doc_fee' => 0,
+            'notes' => 'Direct DDP clearance via Sydney Oceania Hub to Auckland/Wellington.',
+            'is_active' => 1,
+        ]);
+
+        $storeResponse->assertRedirect(route('admin.international-rates.index'));
+        $storeResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('international_rates', [
+            'country' => 'New Zealand',
+            'hub_id' => $hub->id,
+            'service_type' => 'economy',
+            'customs_clearance_charge' => 450.00,
+        ]);
+
+        // 4. Rate inquiry quote calculation for New Zealand under this hub
+        $quoteResponse = $this->postJson(route('rates.calculate'), [
+            'country' => 'New Zealand',
+            'weight' => 1.5,
+        ]);
+
+        $quoteResponse->assertOk();
+        $quotes = $quoteResponse->json('data.quotes');
+        $this->assertNotEmpty($quotes);
+
+        $nzQuote = collect($quotes)->firstWhere('service_type', 'economy');
+        $this->assertNotNull($nzQuote);
+        $this->assertEquals(3000, $nzQuote['itemized']['base_freight']);
+        $this->assertEquals(450, $nzQuote['itemized']['customs_clearance']);
+        $this->assertEquals(250, $nzQuote['itemized']['godown_charge']);
+        $this->assertEquals(3700, $nzQuote['itemized']['total_cost']);
+    }
 }
 

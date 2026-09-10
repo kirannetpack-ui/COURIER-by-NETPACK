@@ -68,8 +68,12 @@ class HubController extends Controller
             'address' => 'nullable|string',
             'coverage_countries' => 'nullable',
             'service_routes' => 'nullable',
+            'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable',
         ]);
+
+        $coverageCountries = $this->parseCommaSeparatedList($request->input('coverage_countries'));
+        $serviceRoutes = $this->parseCommaSeparatedList($request->input('service_routes'));
 
         $hub = OverseasHub::create([
             'hub_code' => strtoupper($validated['hub_code']),
@@ -79,10 +83,10 @@ class HubController extends Controller
             'hub_type' => $validated['hub_type'] ?? 'main_hub',
             'mode_type' => $validated['mode_type'],
             'address' => $validated['address'] ?? ($validated['country'] . ' Airport Cargo Terminal'),
-            'coverage_countries' => $validated['coverage_countries'] ?? [],
-            'service_routes' => $validated['service_routes'] ?? null,
+            'coverage_countries' => $coverageCountries,
+            'service_routes' => $serviceRoutes,
             'is_active' => $request->boolean('is_active', true),
-            'sort_order' => OverseasHub::max('sort_order') + 1,
+            'sort_order' => $validated['sort_order'] ?? (OverseasHub::max('sort_order') + 1),
         ]);
 
         return redirect()->route('international.hubs.index')
@@ -125,8 +129,12 @@ class HubController extends Controller
             'address' => 'nullable|string',
             'coverage_countries' => 'nullable',
             'service_routes' => 'nullable',
+            'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable',
         ]);
+
+        $coverageCountries = $this->parseCommaSeparatedList($request->input('coverage_countries'));
+        $serviceRoutes = $this->parseCommaSeparatedList($request->input('service_routes'));
 
         $hub->update([
             'hub_code' => strtoupper($validated['hub_code']),
@@ -136,13 +144,33 @@ class HubController extends Controller
             'hub_type' => $validated['hub_type'] ?? $hub->hub_type,
             'mode_type' => $validated['mode_type'],
             'address' => $validated['address'] ?? $hub->address,
-            'coverage_countries' => $validated['coverage_countries'] ?? $hub->coverage_countries,
-            'service_routes' => $validated['service_routes'] ?? $hub->service_routes,
+            'coverage_countries' => $coverageCountries,
+            'service_routes' => $serviceRoutes,
+            'sort_order' => $validated['sort_order'] ?? $hub->sort_order,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
         return redirect()->route('international.hubs.index')
             ->with('success', "International Hub '{$hub->hub_name}' updated successfully.");
+    }
+
+    /**
+     * Helper to reliably split comma, newline, or array input into a clean string list.
+     */
+    protected function parseCommaSeparatedList($value): array
+    {
+        if (is_null($value) || $value === '') {
+            return [];
+        }
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('trim', $value)));
+        }
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return array_values(array_filter(array_map('trim', $decoded)));
+        }
+        $parts = preg_split('/[,\r\n]+/', (string) $value);
+        return array_values(array_filter(array_map('trim', $parts)));
     }
 
     public function destroy($id)

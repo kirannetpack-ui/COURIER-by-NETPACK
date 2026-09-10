@@ -8,6 +8,21 @@
      x-data="{
         rateType: '{{ $rate->rate_type }}',
         serviceType: '{{ $rate->service_type }}',
+        selectedHubId: '{{ old("hub_id", $rate->hub_id ?? "") }}',
+        hubs: @json($hubsJson),
+        get currentHub() {
+            return this.hubs.find(h => String(h.id) === String(this.selectedHubId)) || null;
+        },
+        get coveredCountries() {
+            return this.currentHub ? (this.currentHub.coverage_countries || []) : [];
+        },
+        selectCountry(countryName) {
+            const input = document.getElementById('target_country_input');
+            if (input) {
+                input.value = countryName;
+                input.dispatchEvent(new Event('input'));
+            }
+        },
         baseHalfKg: {{ $rate->weight_tiers['0.5'] ?? 2500 }},
         incrementHalfKg: 400,
         ranges: @json($rate->per_kg_tiers ?? [
@@ -71,33 +86,101 @@
 
         <!-- SECTION 1: TARGETING, HUB & SERVICE -->
         <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200/80 space-y-4">
-            <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5 flex items-center gap-2">
-                <i class="fas fa-bullseye text-teal-600"></i>
-                <span>1. Destination Scope, Hub & Service Details</span>
+            <h2 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5 flex items-center justify-between">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-bullseye text-teal-600"></i>
+                    <span>1. Destination Scope, Hub & Service Details</span>
+                </span>
+                <span class="text-[11px] font-normal text-slate-400">Rates mapped to destination gateway clearance</span>
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gateway Hub *</label>
+                    <select name="hub_id" x-model="selectedHubId" 
+                            class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white font-medium">
+                        <option value="">Direct Express (Nepal Origin Direct Carrier)</option>
+                        @foreach($hubs as $hub)
+                            <option value="{{ $hub->id }}" {{ (string)old('hub_id', $rate->hub_id) === (string)$hub->id ? 'selected' : '' }}>
+                                {{ $hub->hub_code }} - {{ $hub->hub_name }} ({{ $hub->mode_type }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Rate Scope Type *</label>
                     <select name="rate_type" x-model="rateType" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white">
-                        <option value="country">Country-Wise (Single Specific Country)</option>
+                        <option value="country">Country-Wise (Single Specific Destination Country)</option>
                         <option value="zone">Zone-Wise (Geographic Country Group)</option>
                     </select>
                 </div>
 
-                <div x-show="rateType === 'country'">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Target Country *</label>
-                    <input type="text" name="country" value="{{ old('country', $rate->country) }}"
-                           class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Service Type *</label>
+                    <select name="service_type" x-model="serviceType" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white font-medium">
+                        <option value="express">⚡ Priority Express (3–4 Days Direct Carrier)</option>
+                        <option value="economy">🌐 Economy Air Cargo Service (6–8 Days Gateway Hub)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Hub Clearance & Delivery Destinations Banner -->
+            <div x-show="currentHub" class="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800/60 space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-600 text-white" x-text="currentHub?.hub_code"></span>
+                        <span class="text-xs font-bold text-slate-800 dark:text-white" x-text="currentHub?.hub_name"></span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300" x-text="'Customs: ' + (currentHub?.mode_type || 'DDP')"></span>
+                    </div>
+                    <span class="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Click any destination country below to 1-click select:</span>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        <i class="fas fa-plane-arrival text-indigo-500 mr-1"></i> Defined Clearance & Delivery Countries for this Hub:
+                    </p>
+                    <template x-if="coveredCountries.length > 0">
+                        <div class="flex flex-wrap gap-1.5">
+                            <template x-for="country in coveredCountries" :key="country">
+                                <button type="button" @click="selectCountry(country)"
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 transition flex items-center gap-1.5 shadow-xs">
+                                    <i class="fas fa-check-circle text-[10px] text-teal-500"></i>
+                                    <span x-text="country"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                    <template x-if="coveredCountries.length === 0">
+                        <p class="text-xs text-slate-500 italic">No specific clearance countries defined on this hub yet. You can type destination country below or update the hub.</p>
+                    </template>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                <div x-show="rateType === 'country'" class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Target Country * <span class="text-[10px] font-normal text-slate-400">(Type or click from hub above)</span>
+                    </label>
+                    <input type="text" name="country" id="target_country_input" list="hub_countries_list"
+                           value="{{ old('country', $rate->country) }}"
+                           placeholder="e.g. Australia, United Kingdom, United Arab Emirates, United States"
+                           class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none font-medium">
+                    <datalist id="hub_countries_list">
+                        <template x-for="country in coveredCountries" :key="country">
+                            <option :value="country"></option>
+                        </template>
+                    </datalist>
                 </div>
 
                 <div x-show="rateType === 'country'">
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Country ISO Code (Optional)</label>
                     <input type="text" name="country_code" value="{{ old('country_code', $rate->country_code) }}"
+                           placeholder="e.g. AU, GB, AE, US"
                            class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none uppercase font-mono">
                 </div>
 
-                <div x-show="rateType === 'zone'" class="md:col-span-2">
+                <div x-show="rateType === 'zone'" class="md:col-span-3">
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Target Zone *</label>
                     <select name="zone_id" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white">
                         <option value="">Select an International Zone</option>
@@ -108,30 +191,8 @@
                         @endforeach
                     </select>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gateway Hub *</label>
-                    <select name="hub_id" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white font-medium">
-                        <option value="">Direct Express (Nepal Origin Direct Carrier)</option>
-                        @foreach($hubs as $hub)
-                            <option value="{{ $hub->id }}" {{ old('hub_id', $rate->hub_id) == $hub->id ? 'selected' : '' }}>
-                                {{ $hub->hub_code }} - {{ $hub->hub_name }} ({{ $hub->mode_type }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Service Type *</label>
-                    <select name="service_type" x-model="serviceType" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white">
-                        <option value="express">⚡ Priority Express (3–4 Days)</option>
-                        <option value="economy">🌐 Economy Gateway Hub (6–8 Days)</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 md:col-span-3 sm:w-80">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Min SLA (Days)</label>
                         <input type="number" name="transit_days_min" value="{{ old('transit_days_min', $rate->transit_days_min) }}" min="1" required

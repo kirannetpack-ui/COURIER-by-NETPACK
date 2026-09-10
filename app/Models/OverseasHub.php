@@ -35,6 +35,8 @@ class OverseasHub extends Model
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'sort_order' => 'integer',
+        'coverage_countries' => 'array',
+        'service_routes' => 'array',
     ];
 
     protected static function boot()
@@ -106,50 +108,81 @@ class OverseasHub extends Model
 
     public function getCoverageCountriesAttribute($value)
     {
-        if (is_null($value)) {
+        if (is_null($value) || $value === '') {
             return [];
         }
         if (is_array($value)) {
-            return $value;
+            return array_values(array_filter(array_map('trim', $value)));
         }
         $decoded = json_decode($value, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
+            return array_values(array_filter(array_map('trim', $decoded)));
         }
-        return array_map('trim', explode(',', $value));
+        $parts = preg_split('/[,\r\n]+/', (string) $value);
+        return array_values(array_filter(array_map('trim', $parts)));
     }
 
     public function setCoverageCountriesAttribute($value)
     {
-        if (is_array($value)) {
-            $this->attributes['coverage_countries'] = json_encode($value);
-        } else {
-            $this->attributes['coverage_countries'] = $value;
+        if (is_null($value) || $value === '') {
+            $this->attributes['coverage_countries'] = json_encode([]);
+            return;
         }
+
+        if (is_array($value)) {
+            $clean = array_values(array_filter(array_map('trim', $value)));
+            $this->attributes['coverage_countries'] = json_encode($clean);
+            return;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            $decoded = json_decode($trimmed, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $clean = array_values(array_filter(array_map('trim', $decoded)));
+                $this->attributes['coverage_countries'] = json_encode($clean);
+                return;
+            }
+
+            $parts = preg_split('/[,\r\n]+/', $trimmed);
+            $clean = array_values(array_filter(array_map('trim', $parts)));
+            $this->attributes['coverage_countries'] = json_encode($clean);
+            return;
+        }
+
+        $this->attributes['coverage_countries'] = json_encode([]);
     }
 
     public function getServiceRoutesAttribute($value)
     {
-        if (is_null($value)) {
+        if (is_null($value) || $value === '') {
             return [];
         }
         if (is_array($value)) {
-            return $value;
+            return array_values(array_filter(array_map('trim', $value)));
         }
         $decoded = json_decode($value, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
+            return array_values(array_filter(array_map('trim', $decoded)));
         }
-        return [$value];
+        $parts = preg_split('/[,\r\n]+/', (string) $value);
+        return array_values(array_filter(array_map('trim', $parts)));
     }
 
     public function setServiceRoutesAttribute($value)
     {
-        if (is_array($value)) {
-            $this->attributes['service_routes'] = json_encode($value);
-        } else {
-            $this->attributes['service_routes'] = $value;
+        if (is_null($value) || $value === '') {
+            $this->attributes['service_routes'] = null;
+            return;
         }
+
+        if (is_array($value)) {
+            $clean = array_values(array_filter(array_map('trim', $value)));
+            $this->attributes['service_routes'] = implode(', ', $clean);
+            return;
+        }
+
+        $this->attributes['service_routes'] = trim((string) $value);
     }
 
     public function partner()
