@@ -17,10 +17,20 @@
                 $user = auth()->user();
                 $sidebar = 'layouts.partials.default-sidebar';
                 
-                // Determine sidebar based on user type using helper methods
+                // Determine sidebar based on user type and service scope
                 if ($user->isSuperAdmin() || $user->user_type === 'admin') {
                     $sidebar = 'layouts.partials.admin-sidebar';
-                } elseif ($user->isDomesticAdmin() || $user->user_type === 'staff') {
+                } elseif ($user->user_type === 'staff') {
+                    $scope = $user->effectiveServiceScope();
+                    if ($scope === 'international') {
+                        $sidebar = 'layouts.partials.international-sidebar';
+                    } elseif ($scope === 'domestic' || $scope === 'ecommerce') {
+                        $sidebar = 'layouts.partials.domestic-sidebar';
+                    } else {
+                        // Super Admin created staff sees all services and underneath
+                        $sidebar = 'layouts.partials.admin-sidebar';
+                    }
+                } elseif ($user->isDomesticAdmin()) {
                     $sidebar = 'layouts.partials.domestic-sidebar';
                 } elseif ($user->isInternationalAdmin() || $user->user_type === 'overseas') {
                     $sidebar = 'layouts.partials.international-sidebar';

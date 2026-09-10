@@ -16,34 +16,57 @@ class CheckServiceRole
 
         $user = Auth::user();
         
-        // Super Admin and Admin have access to everything
-        if (in_array($user->user_type, ['super_admin', 'admin'], true) || in_array($user->role, ['super_admin', 'admin'], true)) {
+        // Super Admin and primary system Admin have access to everything
+        if (in_array($user->user_type, ['super_admin', 'admin'], true)) {
             return $next($request);
         }
 
-        // Normalize user type and role
+        // Staff created by Super Admin (scope = all) can view all services and underneath
+        if ($user->user_type === 'staff' && $user->effectiveServiceScope() === 'all') {
+            return $next($request);
+        }
+
+        // Normalize user type
         $userType = strtolower(trim($user->user_type ?? ''));
-        $userRole = strtolower(trim($user->role ?? ''));
+        $normalizedRoles = array_map(fn($r) => strtolower(trim($r)), $roles);
 
-        // Check if user has any of the required roles
-        $hasRole = false;
-        foreach ($roles as $role) {
-            $r = strtolower(trim($role));
-            if ($userType === $r || $userRole === $r) {
-                $hasRole = true;
-                break;
+        // Service-scoped staff enforcement:
+        // International staff can only see international section.
+        // Domestic staff can only see domestic section.
+        if ($userType === 'staff') {
+            $scope = $user->effectiveServiceScope();
+
+            if (in_array('international_admin', $normalizedRoles, true)) {
+                if ($scope === 'international') {
+                    return $next($request);
+                }
+                abort(403, 'Unauthorized access. You only have permission to access your assigned service.');
             }
-            // Client and Customer are treated as unified client entities
-            if (in_array($r, ['client', 'customer'], true) && in_array($userType, ['client', 'customer'], true)) {
-                $hasRole = true;
-                break;
+
+            if (in_array('domestic_admin', $normalizedRoles, true)) {
+                if ($scope === 'domestic' || $scope === 'ecommerce') {
+                    return $next($request);
+                }
+                abort(403, 'Unauthorized access. You only have permission to access your assigned service.');
+            }
+
+            if (in_array('staff', $normalizedRoles, true)) {
+                return $next($request);
             }
         }
 
-        if (!$hasRole) {
-            abort(403, 'Unauthorized access. You do not have permission to access this service.');
+        // Check explicit user_type match
+        if (in_array($userType, $normalizedRoles, true)) {
+            return $next($request);
         }
 
-        return $next($request);
+        // Client and Customer are treated as unified client entities
+        if (in_array('client', $normalizedRoles, true) || in_array('customer', $normalizedRoles, true)) {
+            if (in_array($userType, ['client', 'customer'], true)) {
+                return $next($request);
+            }
+        }
+
+        abort(403, 'Unauthorized access. You do not have permission to access this service.');
     }
 }

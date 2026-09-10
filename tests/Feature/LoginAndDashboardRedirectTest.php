@@ -54,6 +54,7 @@ class LoginAndDashboardRedirectTest extends TestCase
             'email' => 'staff@netpack.test',
             'password' => bcrypt('password123'),
             'user_type' => 'staff',
+            'service_scope' => 'domestic',
             'verification_status' => 'approved',
             'password_changed' => true,
         ]);
@@ -145,8 +146,14 @@ class LoginAndDashboardRedirectTest extends TestCase
 
     public function test_home_controller_redirects_each_role_to_proper_dashboard(): void
     {
-        $staff = User::factory()->create(['user_type' => 'staff', 'verification_status' => 'approved']);
-        $this->actingAs($staff)->get('/dashboard')->assertRedirect(route('domestic.dashboard'));
+        $domStaff = User::factory()->create(['user_type' => 'staff', 'service_scope' => 'domestic', 'verification_status' => 'approved']);
+        $this->actingAs($domStaff)->get('/dashboard')->assertRedirect(route('domestic.dashboard'));
+
+        $intlStaff = User::factory()->create(['user_type' => 'staff', 'service_scope' => 'international', 'verification_status' => 'approved']);
+        $this->actingAs($intlStaff)->get('/dashboard')->assertRedirect(route('international.dashboard'));
+
+        $superStaff = User::factory()->create(['user_type' => 'staff', 'service_scope' => 'all', 'verification_status' => 'approved']);
+        $this->actingAs($superStaff)->get('/dashboard')->assertRedirect(route('admin.dashboard'));
 
         $seller = User::factory()->create(['user_type' => 'seller', 'verification_status' => 'approved']);
         $this->actingAs($seller)->get('/dashboard')->assertRedirect(route('seller.dashboard'));

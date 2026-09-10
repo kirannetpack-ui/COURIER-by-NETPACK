@@ -101,6 +101,8 @@ class User extends Authenticatable
         'rejection_reason',
         'role',
         'is_active',
+        'created_by',
+        'service_scope',
     ];
 
     /**
@@ -270,16 +272,83 @@ class User extends Authenticatable
         return $this->isCustomer();
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function createdUsers()
+    {
+        return $this->hasMany(User::class, 'created_by');
+    }
+
+    /**
+     * Determine effective service scope for staff and administrative routing.
+     * Possible values: 'all', 'international', 'domestic', 'ecommerce'
+     */
+    public function effectiveServiceScope(): string
+    {
+        if (!empty($this->service_scope)) {
+            return strtolower(trim($this->service_scope));
+        }
+
+        if ($this->creator) {
+            $creatorType = $this->creator->user_type;
+            if ($creatorType === self::TYPE_INTERNATIONAL_ADMIN) {
+                return 'international';
+            }
+            if ($creatorType === self::TYPE_DOMESTIC_ADMIN) {
+                return 'domestic';
+            }
+            if ($creatorType === 'ecommerce_admin') {
+                return 'ecommerce';
+            }
+            if ($this->creator->isSuperAdmin() || $creatorType === 'admin') {
+                return 'all';
+            }
+        }
+
+        return 'all';
+    }
+
+    public function isSuperAdminStaff(): bool
+    {
+        return $this->user_type === self::TYPE_STAFF && $this->effectiveServiceScope() === 'all';
+    }
+
+    public function isInternationalStaff(): bool
+    {
+        return $this->user_type === self::TYPE_STAFF && $this->effectiveServiceScope() === 'international';
+    }
+
+    public function isDomesticStaff(): bool
+    {
+        return $this->user_type === self::TYPE_STAFF && $this->effectiveServiceScope() === 'domestic';
+    }
+
+    public function isEcommerceStaff(): bool
+    {
+        return $this->user_type === self::TYPE_STAFF && $this->effectiveServiceScope() === 'ecommerce';
+    }
+
     /**
      * Get the default dashboard route name for this user type.
      */
     public function dashboardRoute(): string
     {
+        if ($this->user_type === self::TYPE_STAFF) {
+            return match ($this->effectiveServiceScope()) {
+                'international' => 'international.dashboard',
+                'domestic' => 'domestic.dashboard',
+                'ecommerce' => 'domestic.ecommerce.dashboard',
+                default => 'admin.dashboard',
+            };
+        }
+
         return match ($this->user_type) {
             self::TYPE_SUPER_ADMIN, 'admin' => 'admin.dashboard',
             self::TYPE_DOMESTIC_ADMIN => 'domestic.dashboard',
             self::TYPE_INTERNATIONAL_ADMIN => 'international.dashboard',
-            self::TYPE_STAFF => 'domestic.dashboard',
             self::TYPE_PARTNER => 'partner.dashboard',
             self::TYPE_OVERSEAS => 'overseas.dashboard',
             self::TYPE_SELLER => 'seller.dashboard',

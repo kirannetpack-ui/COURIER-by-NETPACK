@@ -96,13 +96,24 @@
                         <label class="block text-sm font-medium mb-1">Account Status *</label>
                         <select name="verification_status" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('verification_status') border-red-500 @enderror">
                             <option value="pending" {{ old('verification_status') === 'pending' ? 'selected' : '' }}>⏳ Pending</option>
-                            <option value="approved" {{ old('verification_status') === 'approved' ? 'selected' : '' }}>✅ Approved</option>
+                            <option value="approved" {{ old('verification_status', 'approved') === 'approved' ? 'selected' : '' }}>✅ Approved</option>
                             <option value="rejected" {{ old('verification_status') === 'rejected' ? 'selected' : '' }}>❌ Rejected</option>
                             <option value="suspended" {{ old('verification_status') === 'suspended' ? 'selected' : '' }}>⛔ Suspended</option>
                         </select>
                         @error('verification_status')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium mb-1">Staff Service Scope (For Staff Accounts)</label>
+                        <select name="service_scope" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                            <option value="all" selected>👑 All Services (Super Admin Staff — Can view all services and underneath)</option>
+                            <option value="international">✈️ International Air Freight Only (Scoped strictly to International Hubs & Flights)</option>
+                            <option value="domestic">🏔️ Nepal Domestic Logistics Only (Scoped strictly to 7 Provincial Hubs & Depots)</option>
+                            <option value="ecommerce">🛵 E-Commerce & Rider Fleet Only (Scoped strictly to E-Commerce & Deliveries)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Defines the operational boundary. Super Admin staff can view all 3 services; department staff only see their assigned domain.</p>
                     </div>
 
                     <!-- Password -->

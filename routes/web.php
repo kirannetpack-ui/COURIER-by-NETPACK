@@ -700,6 +700,12 @@ Route::prefix('domestic')->name('domestic.')->middleware(['auth', 'role:domestic
 
     // Reports
     Route::get('/reports', [DomesticAdminController::class, 'reports'])->name('reports');
+
+    // Operations Staff Management
+    Route::get('/staff', [\App\Http\Controllers\Domestic\StaffController::class, 'index'])->name('staff.index');
+    Route::get('/staff/create', [\App\Http\Controllers\Domestic\StaffController::class, 'create'])->name('staff.create');
+    Route::post('/staff', [\App\Http\Controllers\Domestic\StaffController::class, 'store'])->name('staff.store');
+    Route::delete('/staff/{id}', [\App\Http\Controllers\Domestic\StaffController::class, 'destroy'])->name('staff.destroy');
 });
 
 // =============================================
@@ -794,6 +800,12 @@ Route::prefix('international')->name('international.')->middleware(['auth', 'rol
     Route::get('manifests/{manifest}', [InternationalManifestController::class, 'show'])->name('manifests.show');
     Route::get('manifests/{manifest}/data-sheet', [InternationalManifestController::class, 'dataSheet'])->name('manifests.data-sheet');
     Route::post('manifests/{manifest}/send-agency-email', [InternationalManifestController::class, 'sendAgencyEmail'])->name('manifests.send-agency-email');
+
+    // Operations Staff Management
+    Route::get('/staff', [\App\Http\Controllers\International\StaffController::class, 'index'])->name('staff.index');
+    Route::get('/staff/create', [\App\Http\Controllers\International\StaffController::class, 'create'])->name('staff.create');
+    Route::post('/staff', [\App\Http\Controllers\International\StaffController::class, 'store'])->name('staff.store');
+    Route::delete('/staff/{id}', [\App\Http\Controllers\International\StaffController::class, 'destroy'])->name('staff.destroy');
 });
 
 // =============================================

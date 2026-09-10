@@ -42,11 +42,14 @@ class LoginController extends Controller
         $intended = $request->session()->get('url.intended');
         if ($intended) {
             $isAuthorizedForIntended = true;
+            $scope = method_exists($user, 'effectiveServiceScope') ? $user->effectiveServiceScope() : 'all';
 
             if (str_contains($intended, '/client') && !in_array($user->user_type, ['client', 'customer', 'super_admin', 'admin'], true)) {
                 $isAuthorizedForIntended = false;
-            } elseif (str_contains($intended, '/admin') && !in_array($user->user_type, ['super_admin', 'admin'], true)) {
-                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/admin')) {
+                if (!in_array($user->user_type, ['super_admin', 'admin'], true) && !($user->user_type === 'staff' && $scope === 'all')) {
+                    $isAuthorizedForIntended = false;
+                }
             } elseif (str_contains($intended, '/seller') && !in_array($user->user_type, ['seller', 'super_admin', 'admin'], true)) {
                 $isAuthorizedForIntended = false;
             } elseif (str_contains($intended, '/rider') && !in_array($user->user_type, ['rider', 'super_admin', 'admin'], true)) {
@@ -55,10 +58,18 @@ class LoginController extends Controller
                 $isAuthorizedForIntended = false;
             } elseif (str_contains($intended, '/overseas') && !in_array($user->user_type, ['overseas', 'super_admin', 'admin'], true)) {
                 $isAuthorizedForIntended = false;
-            } elseif (str_contains($intended, '/domestic') && !in_array($user->user_type, ['domestic_admin', 'staff', 'super_admin', 'admin'], true)) {
-                $isAuthorizedForIntended = false;
-            } elseif (str_contains($intended, '/international') && !in_array($user->user_type, ['international_admin', 'staff', 'super_admin', 'admin'], true)) {
-                $isAuthorizedForIntended = false;
+            } elseif (str_contains($intended, '/domestic')) {
+                $canAccessDomestic = in_array($user->user_type, ['domestic_admin', 'super_admin', 'admin'], true) || 
+                                     ($user->user_type === 'staff' && in_array($scope, ['domestic', 'ecommerce', 'all'], true));
+                if (!$canAccessDomestic) {
+                    $isAuthorizedForIntended = false;
+                }
+            } elseif (str_contains($intended, '/international')) {
+                $canAccessInternational = in_array($user->user_type, ['international_admin', 'super_admin', 'admin'], true) || 
+                                          ($user->user_type === 'staff' && in_array($scope, ['international', 'all'], true));
+                if (!$canAccessInternational) {
+                    $isAuthorizedForIntended = false;
+                }
             }
 
             if (!$isAuthorizedForIntended) {

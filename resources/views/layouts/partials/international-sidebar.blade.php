@@ -173,6 +173,15 @@
                 <i class="fas fa-route w-4 text-center text-purple-400"></i>
                 <span>Transit Hubs & Points</span>
             </a>
+
+            <!-- Operations Staff -->
+            <a href="{{ route('international.staff.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.staff*') ? 'bg-sky-600/30 text-sky-200 border border-sky-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-users-gear w-4 text-center text-indigo-400"></i>
+                <span>Operations Staff</span>
+                <span class="ml-auto bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                    {{ \App\Models\User::where('user_type', 'staff')->where('service_scope', 'international')->count() }}
+                </span>
+            </a>
         </div>
 
         <!-- System & Logout -->

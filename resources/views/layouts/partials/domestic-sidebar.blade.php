@@ -178,6 +178,15 @@
                 <i class="fas fa-file-chart-column w-4 text-center text-cyan-400"></i>
                 <span>Domestic Reports</span>
             </a>
+
+            <!-- Operations Staff -->
+            <a href="{{ route('domestic.staff.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.staff*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-users-gear w-4 text-center text-teal-400"></i>
+                <span>Operations Staff</span>
+                <span class="ml-auto bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                    {{ \App\Models\User::where('user_type', 'staff')->whereIn('service_scope', ['domestic', 'ecommerce'])->count() }}
+                </span>
+            </a>
         </div>
 
         <!-- System & Logout -->

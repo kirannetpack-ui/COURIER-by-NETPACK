@@ -88,6 +88,7 @@ class AdminUserController extends Controller
             'dob' => 'nullable|date|before:today',
             'permanent_address' => 'nullable|string',
             'temporary_address' => 'nullable|string',
+            'service_scope' => 'nullable|in:all,international,domestic,ecommerce',
         ]);
 
         if ($validator->fails()) {
@@ -101,6 +102,8 @@ class AdminUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'user_type' => $request->user_type,
+            'service_scope' => $request->service_scope ?? 'all',
+            'created_by' => $request->user()->id,
             'phone' => $request->phone,
             'verification_status' => $request->verification_status,
             'registration_completed' => $request->verification_status === 'approved',

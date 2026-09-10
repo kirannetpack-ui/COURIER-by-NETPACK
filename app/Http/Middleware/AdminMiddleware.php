@@ -23,11 +23,16 @@ class AdminMiddleware
 
         $user = Auth::user();
         
-        // Keep this alias aligned with the system-level administrator types.
-        if (!in_array($user->user_type, ['super_admin', 'admin', 'staff'], true)) {
-            abort(403, 'Unauthorized access. Admin privileges required.');
+        // Super Admin and Admin have full administrative access.
+        if (in_array($user->user_type, ['super_admin', 'admin'], true)) {
+            return $next($request);
         }
 
-        return $next($request);
+        // Staff created by Super Admin (scope = all) can view all services and underneath.
+        if ($user->user_type === 'staff' && $user->effectiveServiceScope() === 'all') {
+            return $next($request);
+        }
+
+        abort(403, 'Unauthorized access. Admin privileges required.');
     }
 }

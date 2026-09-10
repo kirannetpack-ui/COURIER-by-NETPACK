@@ -17,20 +17,48 @@ class CheckRole
         $user = Auth::user();
 
         // Super Admin and Admin have access to everything
-        if (in_array($user->user_type, ['super_admin', 'admin'], true) || in_array($user->role, ['super_admin', 'admin'], true)) {
+        if (in_array($user->user_type, ['super_admin', 'admin'], true)) {
+            return $next($request);
+        }
+
+        // Staff created by Super Admin (scope = all) can view all services and underneath
+        if ($user->user_type === 'staff' && $user->effectiveServiceScope() === 'all') {
             return $next($request);
         }
 
         $userType = strtolower(trim($user->user_type ?? ''));
-        $userRole = strtolower(trim($user->role ?? ''));
+        $normalizedRoles = array_map(fn($r) => strtolower(trim($r)), $roles);
 
-        // Check if user has required role
-        foreach ($roles as $role) {
-            $r = strtolower(trim($role));
-            if ($userType === $r || $userRole === $r) {
+        // Service-scoped staff enforcement
+        if ($userType === 'staff') {
+            $scope = $user->effectiveServiceScope();
+
+            if (in_array('international_admin', $normalizedRoles, true)) {
+                if ($scope === 'international') {
+                    return $next($request);
+                }
+                abort(403, 'Unauthorized access.');
+            }
+
+            if (in_array('domestic_admin', $normalizedRoles, true)) {
+                if ($scope === 'domestic' || $scope === 'ecommerce') {
+                    return $next($request);
+                }
+                abort(403, 'Unauthorized access.');
+            }
+
+            if (in_array('staff', $normalizedRoles, true)) {
                 return $next($request);
             }
-            if (in_array($r, ['client', 'customer'], true) && in_array($userType, ['client', 'customer'], true)) {
+        }
+
+        // Check if user has required role
+        if (in_array($userType, $normalizedRoles, true)) {
+            return $next($request);
+        }
+
+        if (in_array('client', $normalizedRoles, true) || in_array('customer', $normalizedRoles, true)) {
+            if (in_array($userType, ['client', 'customer'], true)) {
                 return $next($request);
             }
         }
