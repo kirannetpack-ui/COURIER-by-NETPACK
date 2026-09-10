@@ -90,6 +90,8 @@ class InternationalRateCalculationTest extends TestCase
         $response->assertSee('Rate Inquiry', false);
         $response->assertSee('Shipment Specifications', false);
         $response->assertSee('United States', false);
+        $response->assertSee('x-data="rateInquiryDesk()"', false);
+        $response->assertDontSee('c.toLowerCase().includes(q));', false);
     }
 
     /**

@@ -4,19 +4,20 @@
 @section('page-title', 'International Rate Inquiry')
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-6" 
-     x-data="{
-        country: '{{ $initialCountry }}',
-        countryInput: '{{ $initialCountry }}',
+<script>
+function rateInquiryDesk() {
+    return {
+        country: @json($initialCountry),
+        countryInput: @json($initialCountry),
         showCountryDropdown: false,
         allCountries: @json($countryList),
         highlightedIndex: 0,
-        weight: {{ $initialWeight }},
+        weight: {{ (float)$initialWeight }},
         useDimensions: false,
         length: '',
         width: '',
         height: '',
-        packaging: '{{ $initialPackaging }}',
+        packaging: @json($initialPackaging),
         packagingCatalog: @json($packagingCatalog),
         serviceType: 'all',
         loading: false,
@@ -28,7 +29,9 @@
                 return this.allCountries;
             }
             const q = this.countryInput.toLowerCase().trim();
-            return this.allCountries.filter(c => c.toLowerCase().includes(q));
+            return this.allCountries.filter(function(c) {
+                return c.toLowerCase().includes(q);
+            });
         },
 
         get currentPackaging() {
@@ -143,7 +146,11 @@
             });
             window.location.href = '{{ route('shipments.create') }}?' + params.toString();
         }
-     }">
+    };
+}
+</script>
+
+<div class="max-w-7xl mx-auto space-y-6" x-data="rateInquiryDesk()">
 
     <!-- Hero Banner -->
     <div class="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-teal-900/50 relative overflow-hidden">
