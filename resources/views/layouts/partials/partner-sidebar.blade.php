@@ -1,153 +1,174 @@
 <!-- Partner Sidebar -->
-<aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0" x-show="sidebarOpen" x-transition>
-    <div class="p-4 border-b border-gray-800 flex flex-col gap-2">
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none" x-show="sidebarOpen" x-transition>
+    <!-- Brand Header -->
+    <div class="p-4 border-b border-slate-800 flex flex-col gap-2">
         <x-logo variant="white" size="sm" :href="route('partner.dashboard')" />
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 w-fit">
-            <i class="fas fa-handshake text-[9px]"></i> Partner Network
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 w-fit tracking-wider uppercase">
+            <i class="fas fa-handshake text-[9px] text-amber-400"></i> Partner Network
         </span>
     </div>
     
-    <!-- User Info -->
-    <div class="p-4 border-b border-gray-700">
+    <!-- Partner Info Card -->
+    <div class="p-3 mx-3 my-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center">
-                <i class="fas fa-user text-white"></i>
+            <div class="w-10 h-10 bg-gradient-to-tr from-amber-600 to-orange-500 rounded-xl flex items-center justify-center font-bold text-white shadow-sm flex-shrink-0">
+                <i class="fas fa-building-user text-sm"></i>
             </div>
-            <div>
-                <p class="font-medium text-sm">{{ auth()->user()->name ?? 'Partner' }}</p>
-                <p class="text-xs text-gray-400">{{ auth()->user()->email ?? '' }}</p>
+            <div class="min-w-0 flex-1">
+                <p class="font-bold text-xs text-white truncate">{{ auth()->user()->company_name ?? auth()->user()->name ?? 'Domestic Partner' }}</p>
+                <p class="text-[11px] text-amber-300/80 truncate">{{ auth()->user()->email ?? '' }}</p>
             </div>
         </div>
+        <div class="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Hub Service Status</span>
+            <span class="font-bold text-emerald-400">Active</span>
+        </div>
+    </div>
+
+    <!-- Quick Scan & Inbound Action -->
+    <div class="px-3 py-1.5 space-y-1.5">
+        <a href="{{ route('partner.scan') }}" 
+           class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shadow-md shadow-amber-900/30 transition transform hover:-translate-y-0.5">
+            <i class="fas fa-qrcode text-sm"></i>
+            <span>Scan Consignment QR</span>
+        </a>
     </div>
     
-    <nav class="p-4 space-y-1">
-        <!-- Dashboard -->
-        <a href="{{ route('partner.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.dashboard') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-            <i class="fas fa-chart-pie w-5"></i>
+    <nav class="p-3 space-y-1 text-xs">
+        <!-- Dashboard Overview -->
+        <a href="{{ route('partner.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('partner.dashboard') ? 'bg-amber-600 text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-chart-pie w-4 text-center"></i>
             <span>Dashboard</span>
         </a>
 
-        <!-- Delivery Management -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Delivery Management</p>
+        <!-- ============================================== -->
+        <!-- DELIVERIES & ATTENTION -->
+        <!-- ============================================== -->
+        <div class="pt-2">
+            <p class="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest px-3 mb-1">Deliveries & SLAs</p>
             
-            <a href="{{ route('partner.deliveries.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.deliveries*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-truck w-5"></i>
-                <span>All Deliveries</span>
+            <!-- All Deliveries -->
+            <a href="{{ route('partner.deliveries.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.deliveries.index') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-truck-fast w-4 text-center text-sky-400"></i>
+                <span>Assigned Deliveries</span>
                 @php
-                    $pendingCount = \App\Models\PickupRequest::where('partner_id', auth()->id())->where('status', 'pending')->count();
+                    $pendingDeliveriesCount = \App\Models\PickupRequest::where('partner_id', auth()->id())->where('status', 'pending')->count();
                 @endphp
-                @if($pendingCount > 0)
-                    <span class="ml-auto bg-yellow-600 text-xs px-2 py-1 rounded-full">{{ $pendingCount }}</span>
+                @if($pendingDeliveriesCount > 0)
+                    <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded">
+                        {{ $pendingDeliveriesCount }}
+                    </span>
                 @endif
             </a>
-            
-            <a href="{{ route('partner.deliveries.attention') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.deliveries.attention*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-exclamation-triangle w-5"></i>
+
+            <!-- Attention Needed (SLA Reminders) -->
+            <a href="{{ route('partner.deliveries.attention') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.deliveries.attention*') ? 'bg-rose-600/30 text-rose-200 border border-rose-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-triangle-exclamation w-4 text-center text-rose-400"></i>
                 <span>Attention Needed</span>
                 @php
                     $attentionCount = \App\Models\PickupRequest::where('partner_id', auth()->id())->where('is_delayed', true)->where('status', '!=', 'delivered')->count();
                 @endphp
                 @if($attentionCount > 0)
-                    <span class="ml-auto bg-red-600 text-xs px-2 py-1 rounded-full">{{ $attentionCount }}</span>
+                    <span class="ml-auto bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded animate-pulse">
+                        {{ $attentionCount }} Alert
+                    </span>
                 @endif
             </a>
-            
-            <a href="{{ route('partner.scan') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.scan') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-qrcode w-5"></i>
-                <span>QR Scan</span>
+
+            <!-- QR Scanner -->
+            <a href="{{ route('partner.scan') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.scan') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-barcode w-4 text-center text-emerald-400"></i>
+                <span>Barcode & QR Scan Desk</span>
             </a>
         </div>
 
-        <!-- Zone & Rate Management -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Zone & Rate Management</p>
+        <!-- ============================================== -->
+        <!-- MANIFESTS & PROOF OF DELIVERY -->
+        <!-- ============================================== -->
+        <div class="pt-2">
+            <p class="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest px-3 mb-1">Manifests & PODs</p>
             
-            <a href="{{ route('partner.zones.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.zones*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-map w-5"></i>
-                <span>Delivery Zones</span>
-                <span class="ml-auto bg-blue-600 text-xs px-2 py-1 rounded-full">{{ \App\Models\DeliveryZone::where('partner_id', auth()->id())->count() }}</span>
+            <!-- Inbound Manifests -->
+            <a href="{{ route('domestic.manifests.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.index') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-boxes-stacked w-4 text-center text-teal-400"></i>
+                <span>Regional Manifests</span>
             </a>
+
+            <!-- Proof of Delivery (POD) -->
+            <a href="{{ route('domestic.manifests.pods') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.pods*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-file-signature w-4 text-center text-purple-400"></i>
+                <span>Proof of Delivery (POD)</span>
+                <span class="ml-auto bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                    {{ \App\Models\ProofOfDelivery::count() }}
+                </span>
+            </a>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- COVERAGE & RATES -->
+        <!-- ============================================== -->
+        <div class="pt-2">
+            <p class="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest px-3 mb-1">Coverage & Rates</p>
             
-            <!-- Rates Menu - NEW -->
-            <a href="{{ route('partner.rates.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.rates*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-money-bill-wave w-5"></i>
-                <span>Rates</span>
+            <!-- Delivery Zones -->
+            <a href="{{ route('partner.zones.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.zones*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-map-location-dot w-4 text-center text-blue-400"></i>
+                <span>Delivery Zones</span>
                 @php
                     $zoneCount = \App\Models\DeliveryZone::where('partner_id', auth()->id())->count();
                 @endphp
                 @if($zoneCount > 0)
-                    <span class="ml-auto bg-green-600 text-xs px-2 py-1 rounded-full">{{ $zoneCount }}</span>
+                    <span class="ml-auto bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                        {{ $zoneCount }}
+                    </span>
                 @endif
             </a>
+
+            <!-- Service Rates -->
+            <a href="{{ route('partner.rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.rates*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-money-bill-wave w-4 text-center text-emerald-400"></i>
+                <span>Partner Rates</span>
+            </a>
         </div>
 
-<!-- MANIFESTS -->
-<div class="pt-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">MANIFESTS</p>
-    
-    <!-- All Manifests -->
-    <a href="{{ route('domestic.manifests.index') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.index') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-boxes w-5 {{ request()->routeIs('domestic.manifests.index') ? 'text-blue-600' : 'text-gray-500' }}"></i>
-        <span>All Manifests</span>
-        <span class="ml-auto bg-blue-600 text-xs text-white px-2 py-1 rounded-full">{{ App\Models\Manifest::count() }}</span>
-    </a>
-    
-    <!-- Create Manifest -->
-    @if(Route::has('domestic.manifests.create'))
-    <a href="{{ route('domestic.manifests.create') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.create') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-plus-circle w-5 {{ request()->routeIs('domestic.manifests.create') ? 'text-blue-600' : 'text-green-500' }}"></i>
-        <span>Create Manifest</span>
-    </a>
-    @endif
-    
-    <!-- Proof of Delivery -->
-    <a href="{{ route('domestic.manifests.pods') }}" 
-       class="flex items-center gap-3 px-4 py-3 rounded-lg transition 
-              {{ request()->routeIs('domestic.manifests.pods*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i class="fas fa-file-signature w-5 {{ request()->routeIs('domestic.manifests.pods*') ? 'text-blue-600' : 'text-purple-500' }}"></i>
-        <span>Proof of Delivery</span>
-        <span class="ml-auto bg-green-600 text-xs text-white px-2 py-1 rounded-full">{{ App\Models\ProofOfDelivery::count() }}</span>
-    </a>
-</div>        <!-- Staff Management -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Staff Management</p>
+        <!-- ============================================== -->
+        <!-- STAFF & REPORTS -->
+        <!-- ============================================== -->
+        <div class="pt-2">
+            <p class="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest px-3 mb-1">Staff & Analytics</p>
             
-            <a href="{{ route('partner.staff.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('partner.staff*') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-users w-5"></i>
+            <!-- Staff Members -->
+            <a href="{{ route('partner.staff.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.staff*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-users w-4 text-center text-indigo-400"></i>
                 <span>Staff Members</span>
-                <span class="ml-auto bg-purple-600 text-xs px-2 py-1 rounded-full">{{ \App\Models\PartnerStaff::where('partner_id', auth()->id())->count() ?? 0 }}</span>
+            </a>
+
+            <!-- Export Report -->
+            <a href="{{ route('partner.deliveries.export') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                <i class="fas fa-file-export w-4 text-center text-sky-400"></i>
+                <span>Export Deliveries (CSV)</span>
+            </a>
+
+            <!-- Live Radar Tracking Link -->
+            <a href="{{ route('tracking.page') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-amber-300 group">
+                <i class="fas fa-satellite-dish w-4 text-center text-amber-400 group-hover:scale-110 transition"></i>
+                <span class="font-medium">Live Radar Map</span>
+                <i class="fas fa-external-link-alt ml-auto text-[10px] opacity-60"></i>
             </a>
         </div>
 
-        <!-- Reports -->
-        <div class="pt-4">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">Reports</p>
-            
-            <a href="{{ route('partner.deliveries.export') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition">
-                <i class="fas fa-file-export w-5"></i>
-                <span>Export Report</span>
+        <!-- System & Logout -->
+        <div class="pt-3 border-t border-slate-800 mt-3">
+            <a href="{{ route('profile') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('profile*') ? 'bg-amber-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-id-badge w-4 text-center"></i>
+                <span>Partner Profile</span>
             </a>
-        </div>
 
-        <!-- System -->
-        <div class="pt-4 mt-4 border-t border-gray-700">
-            <p class="text-xs text-gray-500 uppercase tracking-wider px-4 mb-2">System</p>
-            
-            <a href="{{ route('profile') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition {{ request()->routeIs('profile') ? 'bg-gray-800 text-teal-400' : 'text-gray-300' }}">
-                <i class="fas fa-user-circle w-5"></i>
-                <span>My Profile</span>
-            </a>
-            
-            <form method="POST" action="{{ route('logout') }}" class="block">
+            <form method="POST" action="{{ route('logout') }}" class="block pt-1">
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition text-gray-300 hover:text-red-400">
-                    <i class="fas fa-sign-out-alt w-5"></i>
-                    <span>Logout</span>
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 transition text-slate-400 hover:text-red-400 font-medium">
+                    <i class="fas fa-arrow-right-from-bracket w-4 text-center"></i>
+                    <span>Sign Out</span>
                 </button>
             </form>
         </div>

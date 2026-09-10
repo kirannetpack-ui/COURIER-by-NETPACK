@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', config('app.name'))</title>
+    <title>@yield('title', 'Overseas Hub Panel') - COURIER with NETPACK</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -11,33 +11,8 @@
 </head>
 <body>
     <div x-data="{ sidebarOpen: true }" class="flex min-h-screen bg-gray-100">
-        <!-- Sidebar -->
-        @auth
-            @php
-                $user = auth()->user();
-                $sidebar = 'layouts.partials.default-sidebar';
-                
-                // Determine sidebar based on user type using helper methods
-                if ($user->isSuperAdmin() || $user->user_type === 'admin') {
-                    $sidebar = 'layouts.partials.admin-sidebar';
-                } elseif ($user->isDomesticAdmin() || $user->user_type === 'staff') {
-                    $sidebar = 'layouts.partials.domestic-sidebar';
-                } elseif ($user->isInternationalAdmin() || $user->user_type === 'overseas') {
-                    $sidebar = 'layouts.partials.international-sidebar';
-                } elseif ($user->isPartner()) {
-                    $sidebar = 'layouts.partials.partner-sidebar';
-                } elseif ($user->isSeller()) {
-                    $sidebar = 'layouts.partials.seller-sidebar';
-                } elseif ($user->isRider()) {
-                    $sidebar = 'layouts.partials.rider-sidebar';
-                } elseif ($user->isCustomer() || (method_exists($user, 'isClient') && $user->isClient())) {
-                    $sidebar = 'layouts.partials.customer-sidebar';
-                } else {
-                    $sidebar = 'layouts.partials.customer-sidebar';
-                }
-            @endphp
-            @include($sidebar)
-        @endauth
+        <!-- International / Overseas Sidebar -->
+        @include('layouts.partials.international-sidebar')
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto" :class="sidebarOpen ? 'ml-64' : 'ml-0'">

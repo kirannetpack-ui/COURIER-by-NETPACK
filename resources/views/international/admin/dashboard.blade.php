@@ -1,149 +1,306 @@
 @extends('layouts.app')
 
-@section('title', 'International Service Dashboard')
+@section('title', 'International Air Freight & Hubs Command - COURIER with NETPACK')
+@section('page-title', 'International Air Cargo Command')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    <!-- Welcome Section -->
-    <div class="bg-gradient-to-r from-teal-600 to-blue-600 rounded-xl shadow-lg p-6 mb-6 text-white">
-        <div class="flex items-center justify-between">
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header with Global Hub Status -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950 via-slate-900 to-indigo-950 p-6 sm:p-8 text-white border border-sky-500/20 shadow-xl">
+        <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase tracking-widest">
+                        <i class="fas fa-plane-departure text-[9px] mr-1"></i> Global Freight Command
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <i class="fas fa-network-wired text-[9px] mr-1 text-sky-400"></i> 4 Gateway Hubs Active
+                    </span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                    International Air Cargo & Hub Gateway
+                </h1>
+                <p class="text-sm text-slate-300 max-w-xl">
+                    Express 3-4 days air courier from Nepal (DHL, UPS, FedEx, SF) and agency-based economy hubs connecting Dubai, UK/Europe, Australia, and New Zealand.
+                </p>
+            </div>
+
+            <!-- Fast Action CTAs -->
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('international.manifests.create') }}" 
+                   class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-sky-900/40 transition transform hover:-translate-y-0.5">
+                    <i class="fas fa-file-invoice-dollar text-base"></i>
+                    <span>Build Flight Manifest</span>
+                </a>
+                <a href="{{ route('agency.manifests.index') }}" 
+                   class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition">
+                    <i class="fas fa-inbox text-base text-emerald-400"></i>
+                    <span>Agency Inbound</span>
+                </a>
+                <a href="{{ route('tracking.page') }}" target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-700 transition">
+                    <i class="fas fa-satellite-dish text-base text-sky-400"></i>
+                    <span>Radar Map</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Freight Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- International Shipments -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-sky-500/40 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Air Freight Cargo</p>
+                    <p class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{{ number_format($stats['total_shipments'] ?? 0) }}</p>
+                    <div class="flex items-center gap-2 mt-2 text-[11px]">
+                        <span class="text-sky-600 font-bold">{{ $stats['in_transit_shipments'] ?? 0 }} In-Flight</span> •
+                        <span class="text-emerald-600 font-bold">{{ $stats['delivered_shipments'] ?? 0 }} Handed Over</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="fas fa-plane-departure"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAWB Pool -->
+        <a href="{{ route('international.mawbs.index') }}" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-indigo-500/40 hover:shadow-md transition block group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">MAWB Stock Pool</p>
+                    <p class="text-2xl sm:text-3xl font-black text-indigo-600 mt-1">{{ \App\Models\MAWB::unused()->count() }}</p>
+                    <p class="text-[11px] text-slate-400 mt-2 font-medium group-hover:text-indigo-600 transition">
+                        {{ \App\Models\MAWB::count() }} Total Master Waybills &rarr;
+                    </p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-110 transition">
+                    <i class="fas fa-barcode"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- Flight Manifests -->
+        <a href="{{ route('international.manifests.index') }}" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition block group">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Flight Manifests</p>
+                    <p class="text-2xl sm:text-3xl font-black text-teal-600 mt-1">{{ \App\Models\Manifest::where('type', 'international')->count() }}</p>
+                    <p class="text-[11px] text-slate-400 mt-2 font-medium group-hover:text-teal-600 transition">
+                        Agency Datasheets & Email &rarr;
+                    </p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-110 transition">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- Overseas Partners & Agencies -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-amber-500/40 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Agencies & Couriers</p>
+                    <p class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">{{ \App\Models\Agency::count() }}</p>
+                    <p class="text-[11px] text-slate-500 mt-2 font-medium">
+                        <span class="text-emerald-600 font-bold">{{ \App\Models\LastMileCarrier::count() }} Last-Mile</span> Handover Carriers
+                    </p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="fas fa-building"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Default Gateway Hubs Overview Banner -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
             <div>
-                <h1 class="text-2xl font-bold">International Service Dashboard</h1>
-                <p class="text-teal-100 mt-1">Manage overseas partners, rates, and international shipments</p>
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fas fa-network-wired text-sky-600"></i> International Gateway Hubs (Economy Architecture)
+                </h3>
+                <p class="text-xs text-slate-500">Global linehaul routes, destination customs clearance, and last-mile carrier handovers</p>
             </div>
-            <div class="flex gap-2">
-                <span class="px-3 py-1 bg-white/20 rounded-full text-sm">
-                    <i class="fas fa-globe mr-1"></i> Global Operations
-                </span>
+            <a href="{{ route('international.hubs.index') }}" class="text-xs font-bold text-sky-600 hover:underline">
+                Manage Hubs & Agencies &rarr;
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- DUBAI HUB -->
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-black text-sm text-sky-400">DUBAI (DXB)</span>
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Middle East & Global</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Gulf countries linehaul, UPS Worldwide Crossing & Direct Canada DDP route to Toronto.
+                </p>
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Last-Mile:</span>
+                    <span class="font-bold text-emerald-400">Canpar • Obibox • Local</span>
+                </div>
+            </div>
+
+            <!-- UK HUB -->
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-black text-sm text-indigo-400">UNITED KINGDOM (LHR)</span>
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Europe & Americas</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    UK & Europe handled under DDP mode; USA & Canada handled under DDU mode.
+                </p>
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Customs Mode:</span>
+                    <span class="font-bold text-indigo-300">DDP / DDU Routing</span>
+                </div>
+            </div>
+
+            <!-- AUSTRALIA HUB -->
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-black text-sm text-emerald-400">AUSTRALIA (SYD)</span>
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Oceania</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Handling nationwide Australia consignments with localized customs sortation.
+                </p>
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Last-Mile:</span>
+                    <span class="font-bold text-emerald-400">AusPost • StarTrack</span>
+                </div>
+            </div>
+
+            <!-- NEW ZEALAND HUB -->
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-black text-sm text-teal-400">NEW ZEALAND (AKL)</span>
+                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">Pacific</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Auckland gateway handling North and South Island commercial and personal freight.
+                </p>
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Last-Mile:</span>
+                    <span class="font-bold text-teal-300">NZ Post • CourierPost</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-blue-50 rounded-xl p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600">Overseas Partners</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ number_format($stats['overseas_partners'] ?? 0) }}</p>
-                </div>
-                <i class="fas fa-handshake text-blue-500 text-2xl"></i>
+    <!-- Quick Operations Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{{ route('international.hubs.index') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-sky-500 hover:shadow-sm transition flex items-center gap-4 group">
+            <div class="w-11 h-11 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                <i class="fas fa-network-wired"></i>
             </div>
-        </div>
-        <div class="bg-green-50 rounded-xl p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600">Base Rates</p>
-                    <p class="text-2xl font-bold text-green-600">{{ number_format($stats['rates'] ?? 0) }}</p>
-                </div>
-                <i class="fas fa-file-invoice-dollar text-green-500 text-2xl"></i>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">Gateway Hubs</p>
+                <p class="text-xs text-slate-400">Add, edit & routes</p>
             </div>
-        </div>
-        <div class="bg-yellow-50 rounded-xl p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600">Surcharges</p>
-                    <p class="text-2xl font-bold text-yellow-600">{{ number_format($stats['surcharges'] ?? 0) }}</p>
-                </div>
-                <i class="fas fa-map-marker-alt text-yellow-500 text-2xl"></i>
+        </a>
+
+        <a href="{{ route('international.mawbs.index') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-indigo-500 hover:shadow-sm transition flex items-center gap-4 group">
+            <div class="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                <i class="fas fa-barcode"></i>
             </div>
-        </div>
-        <div class="bg-purple-50 rounded-xl p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600">International Shipments</p>
-                    <p class="text-2xl font-bold text-purple-600">{{ number_format($stats['international_shipments'] ?? 0) }}</p>
-                </div>
-                <i class="fas fa-ship text-purple-500 text-2xl"></i>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">MAWB Pool</p>
+                <p class="text-xs text-slate-400">Airline master numbers</p>
             </div>
-        </div>
+        </a>
+
+        <a href="{{ route('agency.manifests.index') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-sm transition flex items-center gap-4 group">
+            <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">Agency Desk</p>
+                <p class="text-xs text-slate-400">Inbound arrival notice</p>
+            </div>
+        </a>
+
+        <a href="{{ route('agency.scan') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-500 hover:shadow-sm transition flex items-center gap-4 group">
+            <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                <i class="fas fa-qrcode"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">Box QR Scanner</p>
+                <p class="text-xs text-slate-400">Instant flight telemetry</p>
+            </div>
+        </a>
     </div>
 
-    <!-- Additional Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-indigo-50 rounded-lg p-3">
-            <p class="text-xs text-gray-600">Additional Charges</p>
-            <p class="text-xl font-bold text-indigo-600">{{ number_format($stats['additional_charges'] ?? 0) }}</p>
+    <!-- Recent International Shipments Registry -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Recent International Consignments</h3>
+                <p class="text-xs text-slate-500">Live air freight telemetry, overseas destination, and partner routing</p>
+            </div>
+            <a href="{{ route('international.shipments') }}" class="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline">
+                View All Shipments &rarr;
+            </a>
         </div>
-        <div class="bg-pink-50 rounded-lg p-3">
-            <p class="text-xs text-gray-600">Active Partners</p>
-            <p class="text-xl font-bold text-pink-600">{{ number_format(\App\Models\User::where('user_type', 'overseas')->where('verification_status', 'approved')->count()) }}</p>
-        </div>
-        <div class="bg-teal-50 rounded-lg p-3">
-            <p class="text-xs text-gray-600">Pending Partners</p>
-            <p class="text-xl font-bold text-teal-600">{{ number_format(\App\Models\User::where('user_type', 'overseas')->where('verification_status', 'pending')->count()) }}</p>
-        </div>
-    </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <a href="{{ route('international.rates.create') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-upload text-2xl text-teal-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">Upload Rate Sheet</span>
-        </a>
-        <a href="{{ route('international.partners') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-handshake text-2xl text-blue-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">Manage Partners</span>
-        </a>
-        <a href="{{ route('international.shipments') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-ship text-2xl text-purple-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">View Shipments</span>
-        </a>
-        <a href="{{ route('international.surcharges') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-map-marker-alt text-2xl text-red-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">Remote Surcharges</span>
-        </a>
- <button onclick="openTrackingModal()" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-        <i class="fas fa-sync-alt text-2xl text-teal-600 block mb-2"></i>
-        <span class="text-sm font-medium text-gray-700">Update Tracking</span>
-    </button>
-    </div>
-
-    <!-- Recent Shipments -->
-    <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-800">Recent International Shipments</h3>
-        </div>
-        <div class="p-6">
+        <div class="p-4">
             @php
-                $recentShipments = \App\Models\Shipment::with(['customer', 'overseasPartner'])
+                $recentIntlShipments = \App\Models\Shipment::with(['customer', 'overseasPartner'])
                     ->whereNotNull('overseas_partner_id')
-                    ->orderBy('created_at', 'desc')
-                    ->limit(10)
+                    ->latest()
+                    ->take(8)
                     ->get();
             @endphp
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b">
-                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Tracking</th>
-                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Customer</th>
-                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Destination</th>
-                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Partner</th>
-                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($recentShipments as $shipment)
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="py-2 px-3 font-mono text-sm">{{ $shipment->tracking_number ?? 'N/A' }}</td>
-                                <td class="py-2 px-3">{{ $shipment->customer->name ?? 'N/A' }}</td>
-                                <td class="py-2 px-3">{{ $shipment->receiver_country ?? 'N/A' }}</td>
-                                <td class="py-2 px-3">{{ $shipment->overseasPartner->name ?? 'N/A' }}</td>
-                                <td class="py-2 px-3">
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-{{ $shipment->status === 'delivered' ? 'green' : ($shipment->status === 'pending' ? 'yellow' : 'blue') }}-100 text-{{ $shipment->status === 'delivered' ? 'green' : ($shipment->status === 'pending' ? 'yellow' : 'blue') }}-800">
-                                        {{ ucfirst($shipment->status ?? 'Unknown') }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-gray-500">No shipments found</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+
+            @if($recentIntlShipments->isNotEmpty())
+                <div class="divide-y divide-slate-100">
+                    @foreach($recentIntlShipments as $shipment)
+                        <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 rounded-xl px-3 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xs">
+                                    <i class="fas fa-plane"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono font-bold text-xs text-slate-900">{{ $shipment->tracking_number }}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                            {{ $shipment->status === 'delivered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                               ($shipment->status === 'in_transit' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-slate-100 text-slate-700') }}">
+                                            {{ str_replace('_', ' ', $shipment->status) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-0.5">
+                                        {{ $shipment->receiver_country ?? 'International' }} • Consignee: {{ $shipment->receiver_name ?? 'Consignee' }}
+                                        @if($shipment->overseasPartner)
+                                            • Gateway: {{ $shipment->overseasPartner->name }}
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 sm:text-right">
+                                <a href="{{ route('tracking.show', $shipment->tracking_number) }}" 
+                                   class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition">
+                                    Radar
+                                </a>
+                                <a href="{{ route('hawb.print', ['id' => $shipment->id, 'type' => 'international']) }}" target="_blank"
+                                   class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                                    HAWB
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8 text-slate-400">
+                    <i class="fas fa-plane text-3xl mb-2 text-slate-300"></i>
+                    <p class="text-xs">No international air cargo shipments recorded yet.</p>
+                </div>
+            @endif
         </div>
     </div>
 </div>

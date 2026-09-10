@@ -205,6 +205,11 @@
                 <span class="ml-auto bg-slate-700 text-slate-200 text-[10px] px-1.5 py-0.5 rounded font-mono">{{ \App\Models\Manifest::count() }}</span>
             </a>
 
+            <a href="{{ route('domestic.manifests.scan') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.scan*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-barcode w-4 text-center text-teal-400"></i>
+                <span>Nepal Scan Desk</span>
+            </a>
+
             <a href="{{ route('domestic.manifests.pods') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.manifests.pods*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-signature w-4 text-center"></i>
                 <span>Proof of Delivery (POD)</span>
@@ -218,6 +223,17 @@
         <div class="pt-3">
             <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">International Cargo</p>
             
+            <a href="{{ route('international.mawbs.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('international.mawbs*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-barcode w-4 text-center text-sky-400"></i>
+                <span>MAWB Pool Registry</span>
+                <span class="ml-auto bg-sky-500/20 text-sky-300 text-[10px] font-mono px-1.5 py-0.5 rounded">{{ \App\Models\MAWB::unused()->count() }} Unused</span>
+            </a>
+
+            <a href="{{ route('agency.manifests.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('agency.manifests*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-inbox w-4 text-center text-emerald-400"></i>
+                <span>Agency Inbound Desk</span>
+            </a>
+
             <a href="{{ route('admin.rates.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.rates*') ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
                 <span>International Rates</span>

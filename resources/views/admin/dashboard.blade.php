@@ -27,6 +27,84 @@
         </div>
     @endif
 
+    <!-- 3 Core Logistics Services Command Center -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Service 1: International Air Freight -->
+        <a href="{{ route('international.dashboard') }}" 
+           class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-5 text-white shadow-md border border-indigo-500/30 hover:border-indigo-400 hover:shadow-indigo-500/20 hover:shadow-lg transition-all duration-300">
+            <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:scale-150 transition duration-500"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 font-mono">
+                        <i class="fas fa-plane-departure text-[9px]"></i> Service 1
+                    </span>
+                    <h3 class="text-base font-black text-white mt-2 group-hover:text-indigo-200 transition flex items-center gap-2">
+                        <span>International Air Freight</span>
+                        <i class="fas fa-arrow-right text-xs opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition"></i>
+                    </h3>
+                    <p class="text-xs text-slate-300 mt-1">4 Global Hubs (DXB, LHR, SYD, AKL), MAWB pool allocation & foreign agencies.</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-indigo-500 group-hover:text-white transition">
+                    <i class="fas fa-globe"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-indigo-800/50 flex items-center justify-between text-[11px] text-indigo-300 font-medium">
+                <span>DDP / DDU Customs &bull; MAWBs</span>
+                <span class="font-bold flex items-center gap-1 text-white">Hub Console &rarr;</span>
+            </div>
+        </a>
+
+        <!-- Service 2: Nepal Domestic Logistics -->
+        <a href="{{ route('domestic.dashboard') }}" 
+           class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 p-5 text-white shadow-md border border-teal-500/30 hover:border-teal-400 hover:shadow-teal-500/20 hover:shadow-lg transition-all duration-300">
+            <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-teal-500/10 rounded-full blur-xl pointer-events-none group-hover:scale-150 transition duration-500"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-teal-500/30 text-teal-200 border border-teal-400/40 font-mono">
+                        <i class="fas fa-mountain-sun text-[9px]"></i> Service 2
+                    </span>
+                    <h3 class="text-base font-black text-white mt-2 group-hover:text-teal-200 transition flex items-center gap-2">
+                        <span>Nepal Domestic Logistics</span>
+                        <i class="fas fa-arrow-right text-xs opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition"></i>
+                    </h3>
+                    <p class="text-xs text-slate-300 mt-1">7 Provincial Gateways, regional manifesting, QR scan desks & PODs.</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-teal-500 group-hover:text-white transition">
+                    <i class="fas fa-truck-moving"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-teal-800/50 flex items-center justify-between text-[11px] text-teal-300 font-medium">
+                <span>7 Provinces &bull; Sortation & PODs</span>
+                <span class="font-bold flex items-center gap-1 text-white">Domestic Console &rarr;</span>
+            </div>
+        </a>
+
+        <!-- Service 3: E-Commerce & Rider Fleet -->
+        <a href="{{ route('admin.riders.dashboard') }}" 
+           class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-amber-950 to-slate-900 p-5 text-white shadow-md border border-amber-500/30 hover:border-amber-400 hover:shadow-amber-500/20 hover:shadow-lg transition-all duration-300">
+            <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:scale-150 transition duration-500"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/30 text-amber-200 border border-amber-400/40 font-mono">
+                        <i class="fas fa-motorcycle text-[9px]"></i> Service 3
+                    </span>
+                    <h3 class="text-base font-black text-white mt-2 group-hover:text-amber-200 transition flex items-center gap-2">
+                        <span>E-Commerce & Rider Fleet</span>
+                        <i class="fas fa-arrow-right text-xs opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition"></i>
+                    </h3>
+                    <p class="text-xs text-slate-300 mt-1">Live GPS telemetry radar, COD cash-in-hand guarantee & settlements.</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-amber-500 group-hover:text-white transition">
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-amber-800/50 flex items-center justify-between text-[11px] text-amber-300 font-medium">
+                <span>Rider GPS Radar &bull; COD Settlement</span>
+                <span class="font-bold flex items-center gap-1 text-white">Rider Fleet Console &rarr;</span>
+            </div>
+        </a>
+    </div>
+
     <!-- Operational KPI Metrics Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 hover:border-teal-500/40 transition">
