@@ -24,6 +24,36 @@ class DomesticPartner extends Authenticatable
         'is_active' => 'boolean',
         'kyc_verified' => 'boolean'
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($partner) {
+            if (empty($partner->company_name) && !empty($partner->name)) {
+                $partner->company_name = $partner->name;
+            }
+            if (empty($partner->name) && !empty($partner->company_name)) {
+                $partner->name = $partner->company_name;
+            }
+            if (empty($partner->password)) {
+                $partner->password = bcrypt('Password123!');
+            }
+            if (empty($partner->address)) {
+                $partner->address = 'Kathmandu Valley Central Hub';
+            }
+            if (empty($partner->city)) {
+                $partner->city = 'Kathmandu';
+            }
+            if (empty($partner->district)) {
+                $partner->district = 'Kathmandu';
+            }
+            if (empty($partner->province)) {
+                $partner->province = 'Bagmati';
+            }
+            if (empty($partner->email)) {
+                $partner->email = ($partner->code ?? 'partner-' . uniqid()) . '@partner.netpack.com';
+            }
+        });
+    }
     
     public function zones()
     {

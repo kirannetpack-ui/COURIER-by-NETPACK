@@ -87,7 +87,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Flight Manifests</p>
-                    <p class="text-2xl sm:text-3xl font-black text-teal-600 mt-1">{{ \App\Models\Manifest::where('type', 'international')->count() }}</p>
+                    <p class="text-2xl sm:text-3xl font-black text-teal-600 mt-1">{{ \App\Models\Manifest::countInternational() }}</p>
                     <p class="text-[11px] text-slate-400 mt-2 font-medium group-hover:text-teal-600 transition">
                         Agency Datasheets & Email &rarr;
                     </p>

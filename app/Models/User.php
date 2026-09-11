@@ -181,6 +181,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class, 'seller_id');
     }
 
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'user_id');
+    }
+
     public function wallet()
     {
         return $this->hasOne(Wallet::class);
@@ -460,5 +465,49 @@ class User extends Authenticatable
         ]);
 
         return $this;
+    }
+
+    /**
+     * Get the individual rider profile associated with this user
+     */
+    public function riderProfile()
+    {
+        return $this->hasOne(RiderProfile::class, 'user_id');
+    }
+
+    /**
+     * Ensure this user has an initialized RiderProfile
+     */
+    public function ensureRiderProfile(): RiderProfile
+    {
+        if ($this->riderProfile) {
+            return $this->riderProfile;
+        }
+
+        $riderCode = 'RDR-' . date('Y') . '-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+        return RiderProfile::create([
+            'user_id' => $this->id,
+            'rider_code' => $riderCode,
+            'full_name' => $this->name,
+            'mobile' => $this->phone ?? '9800000000',
+            'email' => $this->email,
+            'dob' => $this->dob,
+            'gender' => $this->gender ?? 'male',
+            'address' => $this->address ?? 'Kathmandu',
+            'province' => $this->province ?? 'Bagmati',
+            'district' => $this->district ?? 'Kathmandu',
+            'vehicle_type' => in_array($this->vehicle_type ?? '', ['motorcycle', 'scooter', 'bicycle', 'car', 'van']) ? $this->vehicle_type : 'motorcycle',
+            'vehicle_number' => $this->vehicle_registration_number ?? 'BA-99-PA-1234',
+            'driving_license_number' => $this->license_number ?? '01-06-00001234',
+            'verification_status' => $this->verification_status === 'approved' ? 'verified' : 'pending',
+            'cod_level' => 'level_1',
+            'cod_limit' => 5000.00,
+            'current_outstanding_cod' => 0.00,
+            'trust_score' => 100,
+            'badge_status' => $this->verification_status === 'approved' ? 'verified' : 'new',
+            'rating' => 5.00,
+            'agreement_accepted' => true,
+            'agreement_accepted_at' => now(),
+        ]);
     }
 }

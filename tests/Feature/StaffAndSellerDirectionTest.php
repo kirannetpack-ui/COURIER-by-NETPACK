@@ -32,9 +32,9 @@ class StaffAndSellerDirectionTest extends TestCase
         $dashboardResponse = $this->actingAs($seller)->get(route('seller.dashboard'));
         $dashboardResponse->assertStatus(200);
         $dashboardResponse->assertSee('Merchant Dispatch Hub');
-        $dashboardResponse->assertSee('Book / Create Order');
-        $dashboardResponse->assertSee('Orders Registry');
-        $dashboardResponse->assertSee('Book Courier Parcel');
+        $dashboardResponse->assertSee('Book Shipment');
+        $dashboardResponse->assertSee('Rider Delivery');
+        $dashboardResponse->assertSee('Domestic Courier');
     }
 
     public function test_international_admin_creates_staff_and_staff_only_opens_international_section(): void

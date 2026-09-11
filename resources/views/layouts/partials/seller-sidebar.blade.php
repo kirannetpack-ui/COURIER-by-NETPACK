@@ -1,5 +1,6 @@
-<!-- Seller Sidebar -->
-<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none" x-show="sidebarOpen" x-transition>
+<!-- Compact Seller Sidebar -->
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none z-40 transition-transform duration-200 fixed lg:static top-0 left-0"
+       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
     <!-- Brand Header -->
     <div class="p-4 border-b border-slate-800 flex flex-col gap-2">
         <x-logo variant="white" size="sm" :href="route('seller.dashboard')" />
@@ -28,158 +29,91 @@
         </div>
     </div>
 
-    <!-- Quick Dispatch Action Button -->
+    <!-- Quick Booking Action Button -->
     <div class="px-3 py-1.5">
         <a href="{{ route('seller.orders.create') }}" 
            class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-900/30 transition transform hover:-translate-y-0.5">
             <i class="fas fa-plus-circle text-sm"></i>
-            <span>Book / Create Order</span>
+            <span>Book New Shipment</span>
         </a>
     </div>
     
     <nav class="p-3 space-y-1 text-xs">
-        <!-- Dashboard Overview -->
-        <a href="{{ route('seller.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.dashboard') ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+        <!-- 1. Dashboard -->
+        <a href="{{ route('seller.dashboard') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.dashboard') ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <i class="fas fa-chart-pie w-4 text-center"></i>
             <span>Dashboard</span>
         </a>
 
-        <!-- ============================================== -->
-        <!-- ORDERS & DISPATCH -->
-        <!-- ============================================== -->
-        <div class="pt-2">
-            <p class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest px-3 mb-1">E-Commerce Orders</p>
-            
-            <!-- All Orders -->
-            <a href="{{ route('seller.orders') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.orders') && !request()->routeIs('seller.orders.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-shopping-cart w-4 text-center text-amber-400"></i>
-                <span>Orders Registry</span>
-                @php
-                    $pendingOrdersCount = \App\Models\Order::where('seller_id', auth()->id())->where('status', 'pending')->count();
-                @endphp
-                @if($pendingOrdersCount > 0)
-                    <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded">
-                        {{ $pendingOrdersCount }} Pending
-                    </span>
-                @endif
-            </a>
+        <!-- 2. Rate Calculator & Inquiry -->
+        <a href="{{ route('rates.inquiry') }}" target="_blank" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-emerald-300 group">
+            <i class="fas fa-calculator w-4 text-center text-amber-400 group-hover:scale-110 transition"></i>
+            <span>Rate Calculator</span>
+            <i class="fas fa-external-link-alt ml-auto text-[10px] opacity-60"></i>
+        </a>
 
-            <!-- New Order Booking -->
-            <a href="{{ route('seller.orders.create') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.orders.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-truck-ramp-box w-4 text-center text-emerald-400"></i>
-                <span>Instant Order Booking</span>
-            </a>
+        <!-- 3. Book Shipment (Rider, Domestic, International) -->
+        <a href="{{ route('seller.orders.create') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.orders.create') || request()->routeIs('seller.shipments.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-truck-fast w-4 text-center text-emerald-400"></i>
+            <span>Book Shipment</span>
+            <span class="ml-auto bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                3 Tiers
+            </span>
+        </a>
 
-            <!-- Export Orders -->
-            <a href="{{ route('seller.orders.export') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-white">
-                <i class="fas fa-file-export w-4 text-center text-sky-400"></i>
-                <span>Export Orders (CSV)</span>
-            </a>
-        </div>
+        <!-- 3b. E-Commerce Direct & Multi-Leg Dispatch -->
+        <a href="{{ route('seller.ecommerce.index') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.ecommerce*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-boxes-packing w-4 text-center text-teal-400"></i>
+            <span>E-Commerce Dispatch</span>
+            <span class="ml-auto bg-teal-500/20 text-teal-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                Direct
+            </span>
+        </a>
 
-        <!-- ============================================== -->
-        <!-- SHIPMENTS & RADAR TRACKING -->
-        <!-- ============================================== -->
-        <div class="pt-2">
-            <p class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest px-3 mb-1">Logistics & Tracking</p>
-            
-            <!-- Book Courier Shipment -->
-            <a href="{{ route('seller.shipments.create') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.shipments.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-box-open w-4 text-center text-teal-400"></i>
-                <span>Book Courier Parcel</span>
-            </a>
+        <!-- 4. Orders & Shipments Registry -->
+        <a href="{{ route('seller.orders') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.orders') && !request()->routeIs('seller.orders.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-boxes-stacked w-4 text-center text-sky-400"></i>
+            <span>Orders & History</span>
+            @php
+                $pendingSellerOrders = \App\Models\Order::where('seller_id', auth()->id())->where('status', 'pending')->count();
+            @endphp
+            @if($pendingSellerOrders > 0)
+                <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded">
+                    {{ $pendingSellerOrders }}
+                </span>
+            @endif
+        </a>
 
-            <!-- Rate Inquiry & Tariff Desk -->
-            <a href="{{ route('rates.inquiry') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('rates.inquiry*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-calculator w-4 text-center text-amber-400"></i>
-                <span>Rate Inquiry Desk</span>
-            </a>
+        <!-- 5. Wallet & COD Settlements -->
+        <a href="{{ route('seller.wallet') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.wallet*') || request()->routeIs('seller.withdraw*') || request()->routeIs('seller.earnings*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-wallet w-4 text-center text-teal-400"></i>
+            <span>Wallet & COD</span>
+        </a>
 
-            <!-- My Shipments -->
-            <a href="{{ route('seller.shipments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.shipments') && !request()->routeIs('seller.shipments.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-truck-fast w-4 text-center text-indigo-400"></i>
-                <span>Courier Shipments</span>
-            </a>
+        <!-- 6. Store Settings / Profile -->
+        <a href="{{ route('seller.settings') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('seller.settings*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-gear w-4 text-center text-slate-400"></i>
+            <span>Store Settings & Payout</span>
+        </a>
 
-            <!-- Live Radar Tracking -->
+        <!-- Live GPS Radar Link -->
+        <div class="pt-2 border-t border-slate-800/80 mt-2">
             <a href="{{ route('tracking.page') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-slate-300 hover:bg-slate-800 hover:text-emerald-300 group">
                 <i class="fas fa-satellite-dish w-4 text-center text-emerald-400 group-hover:scale-110 transition"></i>
-                <span class="font-medium">Live Radar Tracking</span>
+                <span class="font-medium">Live Radar Map</span>
                 <i class="fas fa-external-link-alt ml-auto text-[10px] opacity-60"></i>
             </a>
         </div>
 
-        <!-- ============================================== -->
-        <!-- PRODUCTS CATALOG -->
-        <!-- ============================================== -->
-        <div class="pt-2">
-            <p class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest px-3 mb-1">Catalog Management</p>
-            
-            <!-- Products List -->
-            <a href="{{ route('seller.products.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.products.index') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-boxes-stacked w-4 text-center text-purple-400"></i>
-                <span>My Products</span>
-                @php
-                    $sellerProductCount = \App\Models\Product::where('user_id', auth()->id())->count();
-                @endphp
-                @if($sellerProductCount > 0)
-                    <span class="ml-auto bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                        {{ $sellerProductCount }}
-                    </span>
-                @endif
-            </a>
-
-            <!-- Add Product -->
-            <a href="{{ route('seller.products.create') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.products.create') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-plus w-4 text-center text-purple-300"></i>
-                <span>Add New Product</span>
-            </a>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- FINANCE & SETTLEMENTS -->
-        <!-- ============================================== -->
-        <div class="pt-2">
-            <p class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest px-3 mb-1">Finance & Settlements</p>
-            
-            <!-- Earnings -->
-            <a href="{{ route('seller.earnings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.earnings*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-money-bill-trend-up w-4 text-center text-emerald-400"></i>
-                <span>Earnings & Reports</span>
-            </a>
-
-            <!-- Digital Wallet -->
-            <a href="{{ route('seller.wallet') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.wallet*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-wallet w-4 text-center text-teal-400"></i>
-                <span>Digital Wallet</span>
-            </a>
-
-            <!-- Withdraw Funds -->
-            <a href="{{ route('seller.withdraw') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.withdraw*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-hand-holding-dollar w-4 text-center text-amber-400"></i>
-                <span>Payout & Withdraw</span>
-            </a>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- SUPPORT & SETTINGS -->
-        <!-- ============================================== -->
-        <div class="pt-2">
-            <p class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest px-3 mb-1">Settings & Help</p>
-
-            <a href="{{ route('seller.support') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.support*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-headset w-4 text-center text-rose-400"></i>
-                <span>Support Tickets</span>
-            </a>
-
-            <a href="{{ route('seller.settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('seller.settings*') ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-gear w-4 text-center text-slate-400"></i>
-                <span>Store Settings</span>
-            </a>
-        </div>
-
         <!-- Logout -->
-        <div class="pt-3 border-t border-slate-800 mt-3">
+        <div class="pt-2 border-t border-slate-800 mt-2">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 transition text-slate-400 hover:text-red-400 font-medium">

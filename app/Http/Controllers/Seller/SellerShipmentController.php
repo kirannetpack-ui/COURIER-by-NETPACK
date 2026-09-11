@@ -82,19 +82,12 @@ class SellerShipmentController extends Controller
     /**
      * Show form to create a new shipment.
      *
-     * @return \Illuminate\View\View
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function create()
+    public function create(Request $request)
     {
-        $sellerId = Auth::id();
-        
-        // Get completed orders that don't have shipments yet
-        $orders = Order::where('seller_id', $sellerId)
-            ->where('status', 'completed')
-            ->whereDoesntHave('shipment')
-            ->get();
-        
-        return view('seller.shipments.create', compact('orders'));
+        return redirect()->route('shipments.create', $request->all());
     }
 
     /**

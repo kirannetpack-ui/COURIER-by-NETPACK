@@ -1,11 +1,11 @@
 <!-- Top Sticky Header with Permanent Static Greeting & Global Quick Tracking -->
 <header class="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3 sticky top-0 z-30 shadow-xs backdrop-blur-md bg-white/95">
     <div class="flex items-center justify-between gap-3">
-        <!-- Left: Hamburger & Namaste Greeting -->
+        <!-- Left: Hamburger (Mobile Only) & Namaste Greeting -->
         <div class="flex items-center gap-3 sm:gap-4 min-w-0">
             <button @click="sidebarOpen = !sidebarOpen" 
                     type="button"
-                    class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition focus:outline-none"
+                    class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition focus:outline-none lg:hidden"
                     aria-label="Toggle Navigation">
                 <i class="fas fa-bars text-lg"></i>
             </button>
@@ -15,7 +15,7 @@
                 <span class="text-xl sm:text-2xl select-none" role="img" aria-label="Namaste">🙏</span>
                 <div class="flex flex-col min-w-0">
                     <h2 class="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate leading-tight">
-                        Namaste, <span class="text-teal-700">{{ auth()->user()->name ?? 'Client' }}</span>!
+                        Namaste, <span class="text-teal-700">{{ auth()->user()?->name ?? 'Client' }}</span>!
                     </h2>
                     <p class="text-[11px] font-medium text-slate-500 truncate hidden sm:block">
                         COURIER <span class="italic text-teal-600 font-serif">with</span> NETPACK &bull; Nepal's Premier Logistics
@@ -79,7 +79,7 @@
                 @endif
             </a>
 
-            <!-- Profile / Avatar Dropdown Link -->
+            <!-- Profile / Avatar or Sign In Link -->
             @auth
                 <a href="{{ route('profile') }}" 
                    class="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-full hover:bg-slate-100 border border-slate-200 transition"
@@ -90,6 +90,12 @@
                     <span class="text-xs font-semibold text-slate-700 hidden sm:inline-block max-w-[100px] truncate">
                         {{ auth()->user()->name }}
                     </span>
+                </a>
+            @else
+                <a href="{{ route('login') }}" 
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition">
+                    <i class="fas fa-sign-in-alt text-[10px]"></i>
+                    <span>Sign In</span>
                 </a>
             @endauth
         </div>

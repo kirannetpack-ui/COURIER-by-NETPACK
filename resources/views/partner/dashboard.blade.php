@@ -101,7 +101,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Inbound Manifests</p>
-                    <p class="text-2xl sm:text-3xl font-black text-teal-600 mt-1">{{ \App\Models\Manifest::where('type', '!=', 'international')->count() }}</p>
+                    <p class="text-2xl sm:text-3xl font-black text-teal-600 mt-1">{{ \App\Models\Manifest::countDomestic() }}</p>
                     <p class="text-[11px] text-slate-400 mt-2 font-medium group-hover:text-teal-600 transition">
                         Arrival notice checklist &rarr;
                     </p>

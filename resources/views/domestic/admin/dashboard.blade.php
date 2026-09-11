@@ -71,7 +71,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sortation Manifests</p>
-                    <p class="text-2xl sm:text-3xl font-black text-blue-600 mt-1">{{ number_format(\App\Models\Manifest::where('type', '!=', 'international')->count()) }}</p>
+                    <p class="text-2xl sm:text-3xl font-black text-blue-600 mt-1">{{ number_format(\App\Models\Manifest::countDomestic()) }}</p>
                     <p class="text-[11px] text-slate-500 mt-2 font-medium">
                         <a href="{{ route('domestic.manifests.index') }}" class="text-blue-600 hover:underline font-bold">
                             Arrival Notice Desks &rarr;

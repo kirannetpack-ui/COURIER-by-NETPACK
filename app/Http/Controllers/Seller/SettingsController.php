@@ -88,7 +88,10 @@ class SettingsController extends Controller
             'account_holder_name' => 'nullable|string|max:255',
             'account_number' => 'nullable|string|max:50',
             'account_type' => 'nullable|in:savings,current',
-            'ifsc_code' => 'nullable|string|max:20',
+            'ifsc_code' => 'nullable|string|max:50',
+            'esewa_id' => 'nullable|string|max:50',
+            'khalti_id' => 'nullable|string|max:50',
+            'qr_code' => 'nullable|file|mimes:jpg,jpeg,png|max:3072',
         ]);
 
         $user->update([
@@ -99,8 +102,57 @@ class SettingsController extends Controller
             'ifsc_code' => $request->ifsc_code,
         ]);
 
+        $qrPath = null;
+        if ($request->hasFile('qr_code')) {
+            $qrPath = $request->file('qr_code')->store('seller-qrs', 'public');
+        }
+
+        if (class_exists('App\Models\SellerPaymentMethod')) {
+            if ($request->bank_name && $request->account_number) {
+                \App\Models\SellerPaymentMethod::updateOrCreate(
+                    ['user_id' => $user->id, 'method_type' => 'bank'],
+                    [
+                        'bank_name' => $request->bank_name,
+                        'account_name' => $request->account_holder_name ?? $user->name,
+                        'account_number' => $request->account_number,
+                        'branch' => $request->ifsc_code,
+                        'account_type' => $request->account_type ?? 'savings',
+                        'is_default' => true,
+                        'verification_document' => $qrPath,
+                        'metadata' => array_filter([
+                            'esewa_id' => $request->esewa_id,
+                            'khalti_id' => $request->khalti_id,
+                            'qr_path' => $qrPath,
+                        ]),
+                    ]
+                );
+            }
+
+            if ($request->esewa_id) {
+                \App\Models\SellerPaymentMethod::updateOrCreate(
+                    ['user_id' => $user->id, 'method_type' => 'esewa'],
+                    [
+                        'esewa_id' => $request->esewa_id,
+                        'mobile_number' => $request->esewa_id,
+                        'account_name' => $request->account_holder_name ?? $user->name,
+                    ]
+                );
+            }
+
+            if ($request->khalti_id) {
+                \App\Models\SellerPaymentMethod::updateOrCreate(
+                    ['user_id' => $user->id, 'method_type' => 'khalti'],
+                    [
+                        'khalti_id' => $request->khalti_id,
+                        'mobile_number' => $request->khalti_id,
+                        'account_name' => $request->account_holder_name ?? $user->name,
+                    ]
+                );
+            }
+        }
+
         return redirect()->route('seller.settings')
-            ->with('success', 'Bank details updated successfully!');
+            ->with('success', 'Bank & COD Settlement details updated successfully!');
     }
 
     /**

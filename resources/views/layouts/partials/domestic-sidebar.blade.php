@@ -1,5 +1,6 @@
 <!-- Domestic Admin & Operations Staff Sidebar -->
-<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none" x-show="sidebarOpen" x-transition>
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none z-40 transition-transform duration-200 fixed lg:static top-0 left-0"
+       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
     <!-- Brand Header -->
     <div class="p-4 border-b border-slate-800 flex flex-col gap-2">
         <x-logo variant="white" size="sm" :href="route('domestic.dashboard')" />
@@ -52,7 +53,7 @@
                 <i class="fas fa-boxes-stacked w-4 text-center text-teal-400"></i>
                 <span>Regional Manifests</span>
                 <span class="ml-auto bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                    {{ \App\Models\Manifest::where('type', '!=', 'international')->count() }}
+                    {{ \App\Models\Manifest::countDomestic() }}
                 </span>
             </a>
 
@@ -158,6 +159,30 @@
                 </span>
             </a>
 
+            <!-- E-Commerce Direct Rider Network -->
+            <a href="{{ route('domestic.ecommerce.riders.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.ecommerce.riders*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-motorcycle w-4 text-center text-teal-400"></i>
+                <span>Direct Rider Network</span>
+                @php
+                    $pendingRidersCount = \App\Models\RiderProfile::where('verification_status', 'pending')->count();
+                @endphp
+                @if($pendingRidersCount > 0)
+                    <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded animate-pulse">
+                        {{ $pendingRidersCount }} KYC
+                    </span>
+                @else
+                    <span class="ml-auto bg-teal-500/20 text-teal-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                        {{ \App\Models\RiderProfile::count() }}
+                    </span>
+                @endif
+            </a>
+
+            <!-- Rider COD Ledgers & Deposits -->
+            <a href="{{ route('domestic.ecommerce.riders.cod') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.ecommerce.riders.cod*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fas fa-hand-holding-dollar w-4 text-center text-emerald-400"></i>
+                <span>Rider COD Ledgers</span>
+            </a>
+
             <!-- Orders -->
             <a href="{{ route('domestic.orders') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.orders*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-shopping-cart w-4 text-center text-amber-400"></i>
@@ -165,12 +190,6 @@
                 <span class="ml-auto bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
                     {{ \App\Models\Order::count() }}
                 </span>
-            </a>
-
-            <!-- Products -->
-            <a href="{{ route('domestic.products') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('domestic.products*') ? 'bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fas fa-box-archive w-4 text-center text-purple-400"></i>
-                <span>Product Catalog</span>
             </a>
 
             <!-- Reports -->

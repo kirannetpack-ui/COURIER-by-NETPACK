@@ -97,45 +97,101 @@
                 </form>
             </div>
 
-            <!-- Bank Account Settings -->
+            <!-- COD Settlement & Payout Accounts (Bank, QR, eSewa, Khalti) -->
             <div class="mb-8 border-t pt-6">
-                <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">🏦 Bank Account</h3>
-                <form method="POST" action="{{ route('seller.settings.update-bank') }}">
+                <div class="flex items-center justify-between border-b pb-2 mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">🏦 COD Settlement & Payout Accounts</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Configure your Bank Account, Banking QR, eSewa, or Khalti for automatic Cash on Delivery settlements.</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
+                        Settlement Destination
+                    </span>
+                </div>
+
+                <form method="POST" action="{{ route('seller.settings.update-bank') }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Bank Name</label>
-                            <input type="text" name="bank_name" value="{{ old('bank_name', $user->bank_name) }}" 
-                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    
+                    <div class="space-y-4">
+                        <!-- 1. Commercial Bank Details -->
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+                                <i class="fas fa-building-columns text-emerald-600"></i>
+                                <span>Commercial Bank Account</span>
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Bank Name</label>
+                                    <input type="text" name="bank_name" value="{{ old('bank_name', $user->bank_name) }}" 
+                                           class="w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                           placeholder="e.g. Nabil Bank, Global IME, NIC Asia">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Account Holder Name</label>
+                                    <input type="text" name="account_holder_name" value="{{ old('account_holder_name', $user->account_holder_name) }}" 
+                                           class="w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                           placeholder="Name as registered on bank">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Account Number</label>
+                                    <input type="text" name="account_number" value="{{ old('account_number', $user->account_number) }}" 
+                                           class="w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                           placeholder="Bank account number">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">Account Type & Branch</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <select name="account_type" class="text-xs px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                            <option value="savings" {{ old('account_type', $user->account_type) === 'savings' ? 'selected' : '' }}>Savings</option>
+                                            <option value="current" {{ old('account_type', $user->account_type) === 'current' ? 'selected' : '' }}>Current</option>
+                                        </select>
+                                        <input type="text" name="ifsc_code" value="{{ old('ifsc_code', $user->ifsc_code) }}" 
+                                               class="text-xs px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                               placeholder="Branch / Swift">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Account Holder Name</label>
-                            <input type="text" name="account_holder_name" value="{{ old('account_holder_name', $user->account_holder_name) }}" 
-                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Account Number</label>
-                            <input type="text" name="account_number" value="{{ old('account_number', $user->account_number) }}" 
-                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Account Type</label>
-                            <select name="account_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                <option value="">Select Account Type</option>
-                                <option value="savings" {{ old('account_type', $user->account_type) === 'savings' ? 'selected' : '' }}>Savings</option>
-                                <option value="current" {{ old('account_type', $user->account_type) === 'current' ? 'selected' : '' }}>Current</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium mb-1">IFSC Code</label>
-                            <input type="text" name="ifsc_code" value="{{ old('ifsc_code', $user->ifsc_code) }}" 
-                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+
+                        <!-- 2. Digital Wallets & QR Code -->
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+                                <i class="fas fa-qrcode text-teal-600"></i>
+                                <span>Digital Wallets & Banking QR</span>
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                                        <span class="text-emerald-600 font-bold">eSewa ID</span> / Mobile Number
+                                    </label>
+                                    <input type="text" name="esewa_id" value="{{ old('esewa_id', optional(\App\Models\SellerPaymentMethod::where('user_id', $user->id)->where('method_type', 'esewa')->first())->esewa_id) }}" 
+                                           class="w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                           placeholder="eSewa 98XXXXXXXX">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                                        <span class="text-purple-600 font-bold">Khalti ID</span> / Mobile Number
+                                    </label>
+                                    <input type="text" name="khalti_id" value="{{ old('khalti_id', optional(\App\Models\SellerPaymentMethod::where('user_id', $user->id)->where('method_type', 'khalti')->first())->khalti_id) }}" 
+                                           class="w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                           placeholder="Khalti 98XXXXXXXX">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                                        <span>Upload Banking / Wallet QR</span>
+                                    </label>
+                                    <input type="file" name="qr_code" accept=".jpg,.jpeg,.png"
+                                           class="w-full text-xs px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                                    <p class="text-[10px] text-slate-400 mt-0.5">JPG, PNG (Max 3MB)</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <button type="submit" class="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition">
-                            <i class="fas fa-save mr-2"></i> Update Bank Details
+
+                    <div class="mt-4">
+                        <button type="submit" class="bg-teal-600 text-white px-6 py-2.5 rounded-xl hover:bg-teal-700 font-bold text-xs shadow-sm transition">
+                            <i class="fas fa-save mr-1.5"></i> Save Settlement & Payout Details
                         </button>
                     </div>
                 </form>

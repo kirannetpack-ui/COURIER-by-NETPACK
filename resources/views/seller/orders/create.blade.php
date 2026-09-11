@@ -92,6 +92,51 @@
                 </div>
             @endif
 
+            <!-- 3-Tier Channel Switcher Banner -->
+            <div class="mb-6 bg-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-800">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Global Dispatch Desks</span>
+                        <h2 class="text-base font-bold text-white mt-0.5">Select Shipment Service Tier</h2>
+                    </div>
+                    <a href="{{ route('rates.inquiry') }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition border border-amber-500/30 flex items-center gap-1.5 self-start sm:self-auto">
+                        <i class="fas fa-calculator text-amber-400"></i>
+                        <span>Calculate Rates First &rarr;</span>
+                    </a>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                    <!-- 1. Rider Delivery (Active here) -->
+                    <div class="p-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-2.5 shadow-sm">
+                        <i class="fas fa-motorcycle text-base"></i>
+                        <div>
+                            <p class="leading-tight">1. Rider Delivery</p>
+                            <p class="text-[10px] font-normal text-emerald-100">Local City E-Commerce</p>
+                        </div>
+                        <span class="ml-auto text-[10px] bg-white/20 px-1.5 py-0.5 rounded uppercase">Current</span>
+                    </div>
+
+                    <!-- 2. Domestic Courier -->
+                    <a href="{{ route('shipments.create', ['shipment_type' => 'domestic']) }}" 
+                       class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-2.5 transition border border-slate-700">
+                        <i class="fas fa-truck-fast text-base text-teal-400"></i>
+                        <div>
+                            <p class="leading-tight">2. Domestic Courier</p>
+                            <p class="text-[10px] font-normal text-slate-400">Nepal 7 Provinces</p>
+                        </div>
+                    </a>
+
+                    <!-- 3. International Air Cargo -->
+                    <a href="{{ route('shipments.create', ['shipment_type' => 'international']) }}" 
+                       class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-2.5 transition border border-slate-700">
+                        <i class="fas fa-plane-departure text-base text-sky-400"></i>
+                        <div>
+                            <p class="leading-tight">3. International Cargo</p>
+                            <p class="text-[10px] font-normal text-slate-400">Worldwide Air Freight</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
             <form method="POST" action="{{ route('seller.orders.store') }}" id="orderForm">
                 @csrf
 
@@ -195,6 +240,31 @@
                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 <p class="text-xs text-gray-500 mt-1">Upload invoice or bill showing COD amount (PDF, JPG, PNG)</p>
                 <p class="text-xs text-orange-600 mt-1">⚠️ Mandatory for COD orders</p>
+            </div>
+
+            <!-- COD Remittance Account Notice -->
+            <div class="md:col-span-2 p-3.5 rounded-xl bg-white border border-orange-300 shadow-xs text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 flex items-center gap-1.5">
+                        <i class="fas fa-building-columns text-emerald-600"></i>
+                        <span>COD Cash Remittance Destination</span>
+                    </span>
+                    <a href="{{ route('seller.settings') }}" target="_blank" class="text-[11px] text-teal-700 font-bold hover:underline">
+                        Set Payout Account &rarr;
+                    </a>
+                </div>
+                @php
+                    $sellerUser = Auth::user();
+                @endphp
+                @if($sellerUser->bank_name || $sellerUser->account_number)
+                    <p class="text-slate-600">
+                        Collected COD cash will be remitted to: <strong>{{ $sellerUser->bank_name }}</strong> (A/C: {{ $sellerUser->account_number }})
+                    </p>
+                @else
+                    <p class="text-amber-700 font-medium">
+                        ⚠️ Please configure your Bank Account or QR (eSewa / Khalti) in Settings so COD collections can be remitted to you automatically.
+                    </p>
+                @endif
             </div>
         </div>
     </div>

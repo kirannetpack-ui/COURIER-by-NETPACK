@@ -85,6 +85,14 @@ class PickupRequest extends Model
     {
         return $this->belongsTo(User::class, 'assigned_rider_id');
     }
+
+    /**
+     * Alias for rider
+     */
+    public function assignedRider()
+    {
+        return $this->belongsTo(User::class, 'assigned_rider_id');
+    }
     
     /**
      * Get the domestic partner handling this delivery

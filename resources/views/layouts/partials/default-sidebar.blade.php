@@ -1,5 +1,6 @@
 <!-- Default Sidebar -->
-<aside class="w-64 bg-gray-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0">
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none z-40 transition-transform duration-200 fixed lg:static top-0 left-0"
+       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
     <div class="p-4 border-b border-gray-700">
         <h2 class="text-xl font-bold text-teal-400">NetPack</h2>
         <p class="text-xs text-gray-400 mt-1">Welcome</p>

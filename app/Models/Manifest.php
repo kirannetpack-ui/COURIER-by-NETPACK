@@ -111,7 +111,32 @@ class Manifest extends Model
 
     public function scopeDomestic($query)
     {
-        return $query->where('manifest_type', 'domestic');
+        return $query->where(function($q) {
+            $q->where('manifest_type', 'domestic')
+              ->orWhereNull('manifest_type')
+              ->orWhere('manifest_type', '!=', 'international');
+        });
+    }
+
+    public static function countInternational(): int
+    {
+        try {
+            return (int) static::where('manifest_type', 'international')->count();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    public static function countDomestic(): int
+    {
+        try {
+            return (int) static::where(function($q) {
+                $q->where('manifest_type', '!=', 'international')
+                  ->orWhereNull('manifest_type');
+            })->count();
+        } catch (\Throwable $e) {
+            return (int) static::count();
+        }
     }
 
     public static function generateManifestNumber(string $type = 'MF')

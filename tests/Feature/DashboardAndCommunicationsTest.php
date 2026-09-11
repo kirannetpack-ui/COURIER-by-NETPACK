@@ -30,7 +30,7 @@ class DashboardAndCommunicationsTest extends TestCase
         $response->assertSee('NETPACK');
     }
 
-    public function test_superadmin_sidebar_contains_tracking_suite_and_all_service_portals()
+    public function test_superadmin_sidebar_contains_monitoring_suite_and_international_rate_feeding()
     {
         $admin = User::factory()->create([
             'name' => 'Super Admin',
@@ -42,25 +42,22 @@ class DashboardAndCommunicationsTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Tracking suite
+        // Monitoring suite
         $response->assertSee(route('tracking.page'));
         $response->assertSee(route('admin.shipments.index'));
-        $response->assertSee(route('tracking.update'));
-        $response->assertSee(route('hawb.scanner'));
         $response->assertSee(route('admin.riders.dashboard'));
 
-        // Service portals
-        $response->assertSee(route('international.dashboard'));
-        $response->assertSee(route('domestic.dashboard'));
-        $response->assertSee(route('ecommerce.dashboard'));
-        $response->assertSee(route('seller.dashboard'));
-        $response->assertSee(route('rider.dashboard'));
-        $response->assertSee(route('partner.dashboard'));
-        $response->assertSee(route('client.dashboard'));
-        $response->assertSee(route('overseas.dashboard'));
+        // International Rate Feeding
+        $response->assertSee(route('admin.international-rates.index'));
+        $response->assertSee(route('admin.international-rates.settings'));
 
-        // Communications hub
+        // Communications / Delay hub
         $response->assertSee(route('admin.communications'));
+
+        // Sub-portals are removed for Super Admin
+        $response->assertDontSee(route('seller.dashboard'));
+        $response->assertDontSee(route('rider.dashboard'));
+        $response->assertDontSee(route('overseas.dashboard'));
     }
 
     public function test_client_registration_accepts_client_entity()

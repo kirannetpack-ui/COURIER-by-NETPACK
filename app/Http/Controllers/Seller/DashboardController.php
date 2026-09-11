@@ -48,17 +48,17 @@ class DashboardController extends Controller
         $weekTransactions = $earnings['week']['count'] ?? 0;
         
         // =============================================
-        // PRODUCT STATISTICS
+        // SHIPMENT & DISPATCH STATISTICS
         // =============================================
-        $productStats = [
-            'total' => Product::where('user_id', $sellerId)->count(),
-            'active' => Product::where('user_id', $sellerId)->where('is_active', true)->count(),
-            'inactive' => Product::where('user_id', $sellerId)->where('is_active', false)->count(),
-            'low_stock' => Product::where('user_id', $sellerId)->where('stock_quantity', '<', 10)->count()
+        $shipmentStats = [
+            'total' => Shipment::where('seller_id', $sellerId)->count(),
+            'active' => Shipment::where('seller_id', $sellerId)->whereIn('status', ['pending', 'processing', 'in_transit', 'out_for_delivery'])->count(),
+            'delivered' => Shipment::where('seller_id', $sellerId)->where('status', 'delivered')->count(),
         ];
         
-        $totalProducts = $productStats['total'];
-        $activeProducts = $productStats['active'];
+        $productStats = ['total' => 0, 'active' => 0, 'inactive' => 0, 'low_stock' => 0];
+        $totalProducts = 0;
+        $activeProducts = 0;
         
         // =============================================
         // ORDER STATISTICS (Check if Order model exists)
@@ -119,16 +119,7 @@ class DashboardController extends Controller
         // =============================================
         $recentActivities = $this->getRecentActivities($sellerId);
         
-        // =============================================
-        // TOP SELLING PRODUCTS
-        // =============================================
-        $topProducts = Product::where('user_id', $sellerId)
-            ->withCount(['orders as total_sold' => function($query) {
-                $query->where('status', 'completed');
-            }])
-            ->orderBy('total_sold', 'desc')
-            ->limit(5)
-            ->get();
+        $topProducts = collect();
         
         return view('seller.dashboard', compact(
             'wallet',
@@ -143,6 +134,7 @@ class DashboardController extends Controller
             'totalProducts',
             'activeProducts',
             'orderStats',
+            'shipmentStats',
             'recentShipments',
             'recentTransactions',
             'chartLabels',

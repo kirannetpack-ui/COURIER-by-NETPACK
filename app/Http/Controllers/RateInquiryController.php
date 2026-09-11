@@ -35,6 +35,23 @@ class RateInquiryController extends Controller
         $initialCountry = $request->get('country', 'United States');
         $initialWeight = (float) $request->get('weight', 1.0);
         $initialPackaging = $request->get('packaging', 'none');
+        $initialPickupType = $request->get('pickup_location_type', 'inside_ktm');
+        $initialPickupCity = $request->get('pickup_city', 'Pokhara');
+
+        // Regional pickup hubs across Nepal
+        $regionalCities = [
+            'Pokhara' => 'Pokhara Depot (Gandaki)',
+            'Biratnagar' => 'Biratnagar / Itahari Hub (Koshi)',
+            'Birgunj' => 'Birgunj Gateway (Madhesh)',
+            'Butwal' => 'Butwal / Bhairahawa Hub (Lumbini)',
+            'Chitwan' => 'Chitwan / Narayangarh Depot (Bagmati)',
+            'Nepalgunj' => 'Nepalgunj Hub (Lumbini)',
+            'Dhangadhi' => 'Dhangadhi Depot (Sudurpashchim)',
+            'Surkhet' => 'Surkhet Depot (Karnali)',
+            'Hetauda' => 'Hetauda Depot (Bagmati)',
+            'Dharan' => 'Dharan Sub-Hub (Koshi)',
+            'Janakpur' => 'Janakpur Hub (Madhesh)',
+        ];
 
         // Pre-compute initial quote if country is specified
         $initialQuote = null;
@@ -45,7 +62,11 @@ class RateInquiryController extends Controller
                 null,
                 null,
                 null,
-                $initialPackaging
+                $initialPackaging,
+                null,
+                null,
+                $initialPickupType,
+                $initialPickupType === 'outside_ktm' ? $initialPickupCity : 'Kathmandu Valley'
             );
         }
 
@@ -58,6 +79,9 @@ class RateInquiryController extends Controller
             'initialCountry' => $initialCountry,
             'initialWeight' => $initialWeight,
             'initialPackaging' => $initialPackaging,
+            'initialPickupType' => $initialPickupType,
+            'initialPickupCity' => $initialPickupCity,
+            'regionalCities' => $regionalCities,
             'initialQuote' => $initialQuote,
         ]);
     }
@@ -76,6 +100,9 @@ class RateInquiryController extends Controller
             'packaging' => 'nullable|string',
             'service_type' => 'nullable|string|in:express,economy',
             'godown_rate_per_kg' => 'nullable|numeric|min:0',
+            'pickup_location_type' => 'nullable|string|in:inside_ktm,outside_ktm',
+            'pickup_city' => 'nullable|string|max:100',
+            'domestic_partner_id' => 'nullable|integer',
         ]);
 
         $manualGodown = (isset($validated['godown_rate_per_kg']) && is_numeric($validated['godown_rate_per_kg']))
@@ -90,7 +117,10 @@ class RateInquiryController extends Controller
             isset($validated['height']) ? (float)$validated['height'] : null,
             $validated['packaging'] ?? 'none',
             $validated['service_type'] ?? null,
-            $manualGodown
+            $manualGodown,
+            $validated['pickup_location_type'] ?? 'inside_ktm',
+            $validated['pickup_city'] ?? null,
+            isset($validated['domestic_partner_id']) ? (int)$validated['domestic_partner_id'] : null
         );
 
         return response()->json([

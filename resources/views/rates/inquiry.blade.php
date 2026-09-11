@@ -21,6 +21,10 @@ function rateInquiryDesk() {
         packagingCatalog: @json($packagingCatalog),
         serviceType: 'all',
         manualGodownRate: '',
+        pickupLocationType: @json($initialPickupType ?? 'inside_ktm'),
+        pickupCity: @json($initialPickupCity ?? 'Pokhara'),
+        customPickupCity: '',
+        regionalCities: @json($regionalCities),
         loading: false,
         quoteData: @json($initialQuote),
         errorMessage: '',
@@ -100,6 +104,10 @@ function rateInquiryDesk() {
             if (!this.country || this.weight <= 0) return;
             this.loading = true;
             this.errorMessage = '';
+
+            const effectivePickupCity = this.pickupLocationType === 'outside_ktm'
+                ? (this.pickupCity === 'other' ? this.customPickupCity.trim() : this.pickupCity)
+                : null;
             
             try {
                 const response = await fetch('{{ route('rates.calculate') }}', {
@@ -117,7 +125,9 @@ function rateInquiryDesk() {
                         height: this.useDimensions ? (parseFloat(this.height) || null) : null,
                         packaging: this.packaging,
                         service_type: this.serviceType === 'all' ? null : this.serviceType,
-                        godown_rate_per_kg: (this.manualGodownRate !== '' && this.manualGodownRate !== null && !isNaN(this.manualGodownRate)) ? parseFloat(this.manualGodownRate) : null
+                        godown_rate_per_kg: (this.manualGodownRate !== '' && this.manualGodownRate !== null && !isNaN(this.manualGodownRate)) ? parseFloat(this.manualGodownRate) : null,
+                        pickup_location_type: this.pickupLocationType,
+                        pickup_city: effectivePickupCity
                     })
                 });
 
@@ -136,6 +146,11 @@ function rateInquiryDesk() {
         },
 
         bookShipment(quote) {
+            const effectivePickupCity = this.pickupLocationType === 'outside_ktm'
+                ? (this.pickupCity === 'other' ? (this.customPickupCity.trim() || 'Regional Hub') : this.pickupCity)
+                : 'Kathmandu Valley';
+            const feederCharge = quote.itemized?.domestic_feeder_charge || 0;
+
             const params = new URLSearchParams({
                 shipment_type: 'international',
                 receiver_country: this.country,
@@ -143,7 +158,10 @@ function rateInquiryDesk() {
                 chargeable_weight: this.quoteData?.weight_info?.chargeable_weight || this.weight,
                 service_type: quote.service_type,
                 packaging: this.packaging,
-                quoted_rate: quote.itemized.total_cost
+                quoted_rate: quote.itemized.total_cost,
+                pickup_location_type: this.pickupLocationType,
+                pickup_city: effectivePickupCity,
+                domestic_feeder_charge: feederCharge
             });
             window.location.href = '{{ route('shipments.create') }}?' + params.toString();
         }
@@ -197,6 +215,81 @@ function rateInquiryDesk() {
 
             <!-- Form Controls -->
             <div class="space-y-4">
+
+                <!-- 0. Pickup Location & Regional Origin in Nepal -->
+                <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/90 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                            <i class="fas fa-location-dot text-teal-600 mr-1"></i> Pickup Origin (Nepal)
+                        </label>
+                        <span class="text-[10px] font-semibold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-full border border-teal-200"
+                              x-text="pickupLocationType === 'inside_ktm' ? 'Direct TIA Air Gateway' : 'Feeder Linehaul Added'">
+                        </span>
+                    </div>
+
+                    <!-- Origin Segmented Toggle -->
+                    <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-200/70 rounded-xl">
+                        <button type="button" 
+                                @click="pickupLocationType = 'inside_ktm'; fetchRates()"
+                                :class="pickupLocationType === 'inside_ktm' ? 'bg-white text-teal-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                                class="py-2 px-2.5 rounded-lg text-xs transition text-center flex items-center justify-center gap-1.5">
+                            <i class="fas fa-city text-[11px]" :class="pickupLocationType === 'inside_ktm' ? 'text-teal-600' : 'text-slate-400'"></i>
+                            <span>Inside Valley (KTM)</span>
+                        </button>
+                        <button type="button" 
+                                @click="pickupLocationType = 'outside_ktm'; fetchRates()"
+                                :class="pickupLocationType === 'outside_ktm' ? 'bg-white text-teal-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                                class="py-2 px-2.5 rounded-lg text-xs transition text-center flex items-center justify-center gap-1.5">
+                            <i class="fas fa-truck-moving text-[11px]" :class="pickupLocationType === 'outside_ktm' ? 'text-amber-600' : 'text-slate-400'"></i>
+                            <span>Outside Kathmandu</span>
+                        </button>
+                    </div>
+
+                    <!-- Outside Kathmandu: Regional Hub & Partner Feeder Select -->
+                    <div x-show="pickupLocationType === 'outside_ktm'" x-transition class="space-y-2 pt-1 border-t border-slate-200/60">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-bold text-slate-700">
+                                Select Regional Pickup Hub:
+                            </label>
+                            <span class="text-[9px] uppercase tracking-wider text-amber-700 bg-amber-100 font-bold px-1.5 py-0.5 rounded border border-amber-200">
+                                Domestic Linehaul
+                            </span>
+                        </div>
+
+                        <select x-model="pickupCity" @change="fetchRates()"
+                                class="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-slate-800 transition">
+                            @foreach($regionalCities as $cKey => $cLabel)
+                                <option value="{{ $cKey }}">{{ $cLabel }}</option>
+                            @endforeach
+                            <option value="other">Other District / Custom City...</option>
+                        </select>
+
+                        <!-- Custom City Input if 'other' is selected -->
+                        <div x-show="pickupCity === 'other'" class="mt-2">
+                            <input type="text" 
+                                   x-model="customPickupCity" 
+                                   @input.debounce.350ms="fetchRates()"
+                                   placeholder="Enter district or city name (e.g. Gorkha, Ilam, Tansen)..."
+                                   class="w-full text-xs px-3 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-slate-900">
+                            <p class="text-[10px] text-slate-500 mt-1">Our national partner network tariff will automatically calculate the domestic connection fee to TIA Kathmandu.</p>
+                        </div>
+
+                        <!-- Active Feeder Routing Notice -->
+                        <template x-if="quoteData && quoteData.domestic_feeder && quoteData.domestic_feeder.is_applicable">
+                            <div class="p-2 bg-amber-50 border border-amber-200/70 rounded-lg text-[11px] text-amber-900 flex items-start gap-2">
+                                <i class="fas fa-route text-amber-600 mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <span class="font-bold" x-text="quoteData.domestic_feeder.pickup_city + ' Depot ➔ KTM TIA Hub'"></span>
+                                    <span class="text-slate-600 block text-[10px]" x-text="quoteData.domestic_feeder.notice"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <p x-show="pickupLocationType === 'inside_ktm'" class="text-[10px] text-slate-500">
+                        Shipment picked up directly within Kathmandu, Lalitpur, or Bhaktapur for immediate TIA export clearance.
+                    </p>
+                </div>
                 
                 <!-- 1. Destination Country (Searchable Dynamic Combobox) -->
                 <div class="relative" @click.outside="showCountryDropdown = false">
@@ -522,6 +615,20 @@ function rateInquiryDesk() {
                         </div>
                         <span class="text-[9px] text-emerald-600 font-bold block">Included</span>
                     </div>
+
+                    <!-- Dynamic Feeder Linehaul Badge (if outside Kathmandu) -->
+                    <template x-if="quoteData?.domestic_feeder && quoteData.domestic_feeder.is_applicable">
+                        <div class="bg-amber-50 px-3 py-2 rounded-xl border border-amber-300 shadow-xs text-center flex-1 sm:flex-initial">
+                            <div class="flex items-center justify-center gap-1 text-[9px] uppercase font-extrabold text-amber-700 tracking-wider">
+                                <i class="fas fa-truck-ramp-box text-amber-600"></i>
+                                <span>Regional Feeder</span>
+                            </div>
+                            <div class="text-xs sm:text-sm font-black font-mono text-amber-900 mt-0.5">
+                                + Rs. <span x-text="quoteData.domestic_feeder.total_feeder_charge?.toLocaleString()"></span>
+                            </div>
+                            <span class="text-[9px] text-amber-700 font-bold block" x-text="quoteData.domestic_feeder.pickup_city + ' ➔ TIA'"></span>
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -608,6 +715,38 @@ function rateInquiryDesk() {
                                         </div>
                                     </div>
 
+                                    <!-- Domestic Feeder Linehaul (Outside Kathmandu Pickups) -->
+                                    <template x-if="q.itemized.domestic_feeder && q.itemized.domestic_feeder.is_applicable">
+                                        <div class="bg-amber-50/90 border border-amber-200/90 rounded-xl p-2.5 space-y-1.5 shadow-2xs">
+                                            <div class="flex justify-between items-center text-amber-900">
+                                                <span class="flex items-center gap-1.5 font-bold">
+                                                    <i class="fas fa-truck-moving text-amber-600 text-xs"></i>
+                                                    <span>Domestic Feeder Linehaul:</span>
+                                                </span>
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-[9px] uppercase font-extrabold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">Outside Valley</span>
+                                                    <span class="font-mono font-bold text-amber-900" x-text="'+ Rs. ' + q.itemized.domestic_feeder_charge.toLocaleString()"></span>
+                                                </div>
+                                            </div>
+                                            <div class="text-[10px] text-amber-800 flex flex-wrap items-center justify-between gap-1 border-t border-amber-200/70 pt-1.5">
+                                                <span class="flex items-center gap-1">
+                                                    <span class="font-bold" x-text="q.itemized.domestic_feeder.pickup_city"></span>
+                                                    <span>➔</span>
+                                                    <span class="font-bold">Kathmandu TIA Gateway</span>
+                                                </span>
+                                                <span class="text-amber-700 font-medium" x-text="'via ' + q.itemized.domestic_feeder.partner_name"></span>
+                                            </div>
+                                            <div class="text-[9px] font-mono text-amber-700/90 flex flex-wrap gap-x-2 pt-0.5">
+                                                <span>Base: Rs. <span x-text="q.itemized.domestic_feeder.base_rate"></span></span>
+                                                <span>&bull;</span>
+                                                <span>Weight (<span x-text="quoteData.weight_info.chargeable_weight + 'kg'"></span>): Rs. <span x-text="q.itemized.domestic_feeder.weight_charge"></span></span>
+                                                <template x-if="q.itemized.domestic_feeder.logistical_charge > 0">
+                                                    <span>&bull; Handling: Rs. <span x-text="q.itemized.domestic_feeder.logistical_charge"></span></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+
                                     <!-- Dynamic Packaging Material Fee -->
                                     <div class="flex justify-between items-center text-slate-600" x-show="q.itemized.packaging_fee > 0">
                                         <span class="flex items-center gap-1.5">
@@ -634,7 +773,7 @@ function rateInquiryDesk() {
                                         <p class="text-2xl sm:text-3xl font-black text-teal-700 font-mono mt-0.5">
                                             Rs. <span x-text="q.itemized.total_cost.toLocaleString()"></span>
                                         </p>
-                                        <span class="text-[10px] text-slate-400">Doorstep pickup, customs & terminal handling included</span>
+                                        <span class="text-[10px] text-slate-400" x-text="quoteData?.domestic_feeder?.is_applicable ? 'Regional feeder pickup, TIA customs & terminal handling included' : 'Doorstep pickup, customs & terminal handling included'"></span>
                                     </div>
 
                                     <!-- 1-CLICK ACCEPT & BOOK SHIPMENT ACTION -->

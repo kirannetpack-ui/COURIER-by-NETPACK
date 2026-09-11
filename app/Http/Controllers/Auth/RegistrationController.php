@@ -40,7 +40,26 @@ class RegistrationController extends Controller
                 ->withInput();
         }
 
-        $user = $this->create($request->all());
+        $data = $request->all();
+
+        // Handle uploaded KYC files
+        if ($request->hasFile('citizenship_front')) {
+            $data['citizenship_front_path'] = $request->file('citizenship_front')->store('kyc/citizenship', 'public');
+        }
+        if ($request->hasFile('citizenship_back')) {
+            $data['citizenship_back_path'] = $request->file('citizenship_back')->store('kyc/citizenship', 'public');
+        }
+        if ($request->hasFile('driving_license_doc')) {
+            $data['driving_license_doc_path'] = $request->file('driving_license_doc')->store('kyc/license', 'public');
+        }
+        if ($request->hasFile('vehicle_registration_doc')) {
+            $data['vehicle_registration_doc_path'] = $request->file('vehicle_registration_doc')->store('kyc/vehicle', 'public');
+        }
+        if ($request->hasFile('selfie_photo')) {
+            $data['selfie_photo_path'] = $request->file('selfie_photo')->store('kyc/selfies', 'public');
+        }
+
+        $user = $this->create($data);
 
         // Log the registration
         \Log::info('New user registered', [
@@ -132,6 +151,7 @@ class RegistrationController extends Controller
             'password' => Hash::make($data['password']),
             'phone' => $data['phone'],
             'user_type' => $data['user_type'],
+            'role' => in_array($data['user_type'] ?? '', ['rider', 'seller', 'partner', 'domestic_admin', 'international_admin', 'admin']) ? $data['user_type'] : 'customer',
             'verification_status' => 'pending',
             'registration_completed' => true,
             
@@ -164,7 +184,53 @@ class RegistrationController extends Controller
             $userData['rating'] = 5.00;
         }
 
-        return User::create($userData);
+        $user = User::create($userData);
+
+        // Automatically create detailed RiderProfile for riders
+        if ($data['user_type'] === 'rider') {
+            $riderCode = 'RDR-' . date('Y') . '-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+            $vehicleType = in_array($data['vehicle_type'] ?? '', ['motorcycle', 'scooter', 'bicycle', 'car', 'van']) 
+                ? $data['vehicle_type'] 
+                : (($data['vehicle_type'] ?? '') === 'bike' ? 'motorcycle' : 'motorcycle');
+
+            \App\Models\RiderProfile::create([
+                'user_id' => $user->id,
+                'rider_code' => $riderCode,
+                'full_name' => $user->name,
+                'mobile' => $user->phone ?? '',
+                'email' => $user->email,
+                'dob' => $user->dob,
+                'gender' => $user->gender,
+                'address' => $user->address,
+                'province' => $user->province,
+                'district' => $user->district,
+                'citizenship_number' => $data['citizenship_number'] ?? null,
+                'citizenship_front_path' => $data['citizenship_front_path'] ?? null,
+                'citizenship_back_path' => $data['citizenship_back_path'] ?? null,
+                'profile_photo_path' => $data['selfie_photo_path'] ?? null,
+                'selfie_photo_path' => $data['selfie_photo_path'] ?? null,
+                'verification_status' => 'pending',
+                'vehicle_type' => $vehicleType,
+                'vehicle_number' => $data['vehicle_registration_number'] ?? null,
+                'vehicle_registration_doc_path' => $data['vehicle_registration_doc_path'] ?? null,
+                'driving_license_number' => $data['license_number'] ?? null,
+                'driving_license_doc_path' => $data['driving_license_doc_path'] ?? null,
+                'has_other_platform_affiliation' => !empty($data['affiliation']) && $data['affiliation'] !== 'none',
+                'affiliation' => $data['affiliation'] ?? 'none',
+                'affiliation_reference_id' => $data['affiliation_reference_id'] ?? null,
+                'affiliation_notes' => $data['affiliation_notes'] ?? null,
+                'cod_level' => 'level_0',
+                'cod_limit' => 0.00,
+                'current_outstanding_cod' => 0.00,
+                'trust_score' => 100,
+                'badge_status' => 'new',
+                'rating' => 5.00,
+                'agreement_accepted' => true,
+                'agreement_accepted_at' => now(),
+            ]);
+        }
+
+        return $user;
     }
 
     /**

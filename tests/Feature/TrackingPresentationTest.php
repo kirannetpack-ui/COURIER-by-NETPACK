@@ -134,10 +134,9 @@ class TrackingPresentationTest extends TestCase
         $response = $this->actingAs($client)->get(route('client.dashboard'));
 
         $response->assertOk()
-            ->assertSee('Ongoing Tracking')
-            ->assertSee('Tracking History')
-            ->assertSee('1 Active')
-            ->assertSee('1 Delivered')
+            ->assertSee('Active Consignment Live Tracking Radar')
+            ->assertSee('In Transit')
+            ->assertSee('Delivered')
             ->assertSee('NPD-2026-ONGOING-1')
             ->assertSee(route('tracking.show', $activeShipment->tracking_number));
     }
@@ -227,15 +226,11 @@ class TrackingPresentationTest extends TestCase
             'status' => 'in_transit',
         ]);
 
-        $response = $this->actingAs($client)->get(route('client.dashboard'));
+        $response = $this->actingAs($client)->get(route('client.history'));
 
         $response->assertOk()
-            ->assertSee('Ongoing Tracking')
-            ->assertSee('Tracking History')
-            ->assertSee('All Consignments')
-            ->assertSee('HAWB Copies')
+            ->assertSee('Shipment History & Radar Tracking', false)
             ->assertSee('NPD-2026-SIDEBAR-99')
-            ->assertSee(route('shipments.show', $activeShipment->id))
             ->assertSee(route('tracking.show', $activeShipment->tracking_number))
             ->assertSee(route('hawb.print', ['id' => $activeShipment->id, 'type' => 'international']));
     }

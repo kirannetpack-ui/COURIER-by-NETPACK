@@ -59,7 +59,7 @@
 
                 <!-- Registration Form -->
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200/80">
-                    <form method="POST" action="{{ route('register.submit') }}">
+                    <form method="POST" action="{{ route('register.submit') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="user_type" value="{{ in_array($userType ?? 'client', ['client', 'customer']) ? 'client' : $userType }}">
 
@@ -200,39 +200,102 @@
                         </div>
                         @endif
 
-                        <!-- Rider Information -->
+                        <!-- Rider Information & KYC Verification -->
                         @if(isset($userType) && $userType === 'rider')
-                        <h3 class="text-lg font-semibold text-gray-700 mt-4 mb-3 border-b pb-2">Rider Information</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">License Number *</label>
-                                <input type="text" name="license_number" value="{{ old('license_number') }}" required 
-                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('license_number') border-red-500 @enderror">
-                                @error('license_number')
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
+                        <div class="mt-6 p-4 rounded-xl bg-teal-50/80 border border-teal-200">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-motorcycle text-teal-600 text-lg mt-0.5"></i>
+                                <div>
+                                    <h4 class="font-bold text-sm text-teal-900">Direct Rider Registration & Verification</h4>
+                                    <p class="text-xs text-teal-700 mt-0.5 leading-relaxed">
+                                        Any rider can register directly as an independent delivery service provider. Affiliation with Pathao, inDrive, or other apps is informational only and does not restrict your eligibility.
+                                    </p>
+                                </div>
                             </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3 border-b pb-2">Vehicle & License Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Vehicle Type *</label>
                                 <select name="vehicle_type" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('vehicle_type') border-red-500 @enderror">
                                     <option value="">Select Vehicle</option>
-                                    <option value="bike" {{ old('vehicle_type') === 'bike' ? 'selected' : '' }}>Bike</option>
+                                    <option value="motorcycle" {{ old('vehicle_type', 'motorcycle') === 'motorcycle' ? 'selected' : '' }}>Motorcycle</option>
                                     <option value="scooter" {{ old('vehicle_type') === 'scooter' ? 'selected' : '' }}>Scooter</option>
+                                    <option value="bicycle" {{ old('vehicle_type') === 'bicycle' ? 'selected' : '' }}>Bicycle</option>
                                     <option value="car" {{ old('vehicle_type') === 'car' ? 'selected' : '' }}>Car</option>
                                     <option value="van" {{ old('vehicle_type') === 'van' ? 'selected' : '' }}>Van</option>
-                                    <option value="truck" {{ old('vehicle_type') === 'truck' ? 'selected' : '' }}>Truck</option>
                                 </select>
                                 @error('vehicle_type')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">Vehicle Registration Number *</label>
-                                <input type="text" name="vehicle_registration_number" value="{{ old('vehicle_registration_number') }}" required 
+                                <label class="block text-sm font-medium mb-1">Vehicle Registration / Plate No. *</label>
+                                <input type="text" name="vehicle_registration_number" value="{{ old('vehicle_registration_number') }}" required placeholder="e.g. BA 99 PA 1234"
                                        class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('vehicle_registration_number') border-red-500 @enderror">
                                 @error('vehicle_registration_number')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Driving License Number *</label>
+                                <input type="text" name="license_number" value="{{ old('license_number') }}" required placeholder="e.g. 01-06-00012345"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 @error('license_number') border-red-500 @enderror">
+                                @error('license_number')
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Citizenship Number</label>
+                                <input type="text" name="citizenship_number" value="{{ old('citizenship_number') }}" placeholder="e.g. 27-01-78-12345"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3 border-b pb-2">Informational Platform Affiliation (Optional)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Also Work With Another Platform?</label>
+                                <select name="affiliation" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <option value="none" {{ old('affiliation') === 'none' ? 'selected' : '' }}>None (Full-Time Independent / NETPACK)</option>
+                                    <option value="pathao" {{ old('affiliation') === 'pathao' ? 'selected' : '' }}>Pathao</option>
+                                    <option value="indrive" {{ old('affiliation') === 'indrive' ? 'selected' : '' }}>inDrive</option>
+                                    <option value="parcel" {{ old('affiliation') === 'parcel' ? 'selected' : '' }}>Parcel</option>
+                                    <option value="courier_co" {{ old('affiliation') === 'courier_co' ? 'selected' : '' }}>Other Courier Company</option>
+                                    <option value="freelance" {{ old('affiliation') === 'freelance' ? 'selected' : '' }}>Independent Freelancer</option>
+                                    <option value="other" {{ old('affiliation') === 'other' ? 'selected' : '' }}>Other</option>
+                                </select>
+                                <p class="text-[11px] text-gray-500 mt-1">Informational only — helps us understand your delivery experience.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Affiliation Reference / ID (Optional)</label>
+                                <input type="text" name="affiliation_reference_id" value="{{ old('affiliation_reference_id') }}" placeholder="e.g. Pathao / inDrive ID"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3 border-b pb-2">Identity & Vehicle KYC Uploads (Optional during signup)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Driving License Photo</label>
+                                <input type="file" name="driving_license_doc" accept="image/*,.pdf" class="w-full text-xs text-slate-600 border rounded-lg p-2 bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-teal-600 file:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Vehicle Bluebook / Registration</label>
+                                <input type="file" name="vehicle_registration_doc" accept="image/*,.pdf" class="w-full text-xs text-slate-600 border rounded-lg p-2 bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-teal-600 file:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Citizenship Front</label>
+                                <input type="file" name="citizenship_front" accept="image/*,.pdf" class="w-full text-xs text-slate-600 border rounded-lg p-2 bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-teal-600 file:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Citizenship Back</label>
+                                <input type="file" name="citizenship_back" accept="image/*,.pdf" class="w-full text-xs text-slate-600 border rounded-lg p-2 bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-teal-600 file:text-white">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Rider Selfie / Profile Photo</label>
+                                <input type="file" name="selfie_photo" accept="image/*" class="w-full text-xs text-slate-600 border rounded-lg p-2 bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-teal-600 file:text-white">
                             </div>
                         </div>
                         @endif

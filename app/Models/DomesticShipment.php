@@ -150,6 +150,11 @@ class DomesticShipment extends Model
         return $this->hasMany(RiderDeliveryAssignment::class);
     }
 
+    public function rider()
+    {
+        return $this->belongsTo(User::class, 'rider_id');
+    }
+
     public function scopeByStatus($query, $status)
     {
         return $query->where('status', $status);

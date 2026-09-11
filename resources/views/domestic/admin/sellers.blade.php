@@ -38,8 +38,8 @@
                                 </td>
                                 <td class="py-3 px-4">{{ $seller->business_name ?? 'N/A' }}</td>
                                 <td class="py-3 px-4 text-sm">{{ $seller->email }}</td>
-                                <td class="py-3 px-4">{{ $seller->products->count() }}</td>
-                                <td class="py-3 px-4">{{ $seller->orders->count() }}</td>
+                                <td class="py-3 px-4">{{ $seller->products ? $seller->products->count() : 0 }}</td>
+                                <td class="py-3 px-4">{{ $seller->orders ? $seller->orders->count() : 0 }}</td>
                                 <td class="py-3 px-4">
                                     @if($seller->verification_status === 'approved')
                                         <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Active</span>

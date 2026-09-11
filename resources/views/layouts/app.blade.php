@@ -10,13 +10,13 @@
     @stack('styles')
 </head>
 <body>
-<div x-data="{ sidebarOpen: {{ auth()->check() ? 'true' : 'false' }} }" class="flex min-h-screen bg-gray-100">
-        <!-- Sidebar -->
-        @auth
-            @php
+<div x-data="{ sidebarOpen: true }" class="flex min-h-screen bg-gray-100 relative">
+        <!-- Sidebar: Always displayed for all users at all times -->
+        @php
+            $sidebar = 'layouts.partials.customer-sidebar';
+            
+            if (auth()->check()) {
                 $user = auth()->user();
-                $sidebar = 'layouts.partials.default-sidebar';
-                
                 // Determine sidebar based on user type and service scope
                 if ($user->isSuperAdmin() || $user->user_type === 'admin') {
                     $sidebar = 'layouts.partials.admin-sidebar';
@@ -45,12 +45,18 @@
                 } else {
                     $sidebar = 'layouts.partials.customer-sidebar';
                 }
-            @endphp
-            @include($sidebar)
-        @endauth
+            }
+        @endphp
+        @include($sidebar)
+
+        <!-- Mobile Backdrop Overlay -->
+        <div x-show="sidebarOpen" 
+             @click="sidebarOpen = false" 
+             class="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-xs lg:hidden"
+             style="display: none;"></div>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
+        <main class="flex-1 min-w-0 overflow-y-auto">
             <!-- Top Bar -->
             @include('layouts.partials.header')
 

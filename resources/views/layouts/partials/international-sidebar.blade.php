@@ -1,5 +1,6 @@
 <!-- International Service & Gateway Hubs Sidebar -->
-<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none" x-show="sidebarOpen" x-transition>
+<aside class="w-64 bg-slate-900 text-white flex-shrink-0 h-screen overflow-y-auto sticky top-0 custom-scrollbar select-none z-40 transition-transform duration-200 fixed lg:static top-0 left-0"
+       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
     <!-- Brand Header -->
     <div class="p-4 border-b border-slate-800 flex flex-col gap-2">
         <x-logo variant="white" size="sm" :href="route('international.dashboard')" />
@@ -86,7 +87,7 @@
                 <i class="fas fa-file-invoice-dollar w-4 text-center text-teal-400"></i>
                 <span>Flight Manifests</span>
                 <span class="ml-auto bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                    {{ \App\Models\Manifest::where('type', 'international')->count() }}
+                    {{ \App\Models\Manifest::countInternational() }}
                 </span>
             </a>
 

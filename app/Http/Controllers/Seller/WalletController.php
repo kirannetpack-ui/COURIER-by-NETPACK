@@ -25,16 +25,25 @@ class WalletController extends Controller
     {
         $sellerId = Auth::id();
         
+        $walletAttributes = [
+            'balance' => 0,
+            'pending_balance' => 0,
+            'total_earned' => 0,
+            'total_withdrawn' => 0,
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('wallets', 'user_type')) {
+            $walletAttributes['user_type'] = 'seller';
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('wallets', 'currency')) {
+            $walletAttributes['currency'] = 'NPR';
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('wallets', 'is_active')) {
+            $walletAttributes['is_active'] = true;
+        }
+
         $wallet = Wallet::firstOrCreate(
             ['user_id' => $sellerId],
-            [
-                'balance' => 0,
-                'pending_balance' => 0,
-                'total_earned' => 0,
-                'total_withdrawn' => 0,
-                'currency' => 'NPR',
-                'is_active' => true,
-            ]
+            $walletAttributes
         );
 
         // Payment methods

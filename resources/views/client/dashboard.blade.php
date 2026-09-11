@@ -19,21 +19,22 @@
                     <span>Welcome back, {{ Auth::user()->name }}!</span>
                 </h1>
                 <p class="text-xs text-slate-300 mt-1 max-w-xl">
-                    Manage pickup requests, calculate rates, track packages in real-time, and view proof-of-delivery receipts across Nepal and international destinations.
+                    Manage pickup inquiries, calculate real-time courier tariffs, track live consignments via GPS radar, and view proof-of-delivery receipts.
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1.5 bg-white/10 rounded-xl text-xs font-semibold border border-white/10 flex items-center gap-1.5">
-                    <i class="fas fa-shield-halved text-teal-400"></i>
-                    <span>Verified Client</span>
-                </span>
+                <a href="{{ route('client.inquiries') }}" 
+                   class="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    <span>New Shipment Inquiry</span>
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Quick Stats -->
+    <!-- Quick Metrics Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
+        <a href="{{ route('client.history', ['filter' => 'all']) }}" class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4 hover:border-teal-500/40 transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Consignments</p>
@@ -43,9 +44,9 @@
                     <i class="fas fa-boxes-stacked"></i>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
+        <a href="{{ route('client.history', ['filter' => 'active']) }}" class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4 hover:border-blue-500/40 transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Transit</p>
@@ -55,9 +56,9 @@
                     <i class="fas fa-truck-fast"></i>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
+        <a href="{{ route('client.history', ['filter' => 'delivered']) }}" class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4 hover:border-emerald-500/40 transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Delivered</p>
@@ -67,19 +68,58 @@
                     <i class="fas fa-circle-check"></i>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4">
+        <a href="{{ route('client.inquiries') }}" class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4 hover:border-amber-500/40 transition block">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Processing</p>
-                    <p class="text-2xl font-black text-amber-600 mt-1">{{ number_format($pending) }}</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Inquiries</p>
+                    <p class="text-2xl font-black text-amber-600 mt-1">{{ number_format($pendingInquiries) }}</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-truck-ramp-box"></i>
                 </div>
             </div>
-        </div>
+        </a>
+    </div>
+
+    <!-- 3 Direct Action Shortcuts -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="{{ route('rates.inquiry') }}" 
+           class="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-amber-500/50 hover:shadow-md transition flex items-center gap-4 group">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition flex-shrink-0">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition">Rate Calculator</h3>
+                <p class="text-xs text-slate-500 mt-0.5 truncate">Instant freight quotes for domestic & international</p>
+            </div>
+            <i class="fas fa-arrow-right text-slate-300 group-hover:text-amber-600 group-hover:translate-x-1 transition ml-auto"></i>
+        </a>
+
+        <a href="{{ route('client.inquiries') }}" 
+           class="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-teal-500/50 hover:shadow-md transition flex items-center gap-4 group">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl group-hover:scale-110 transition flex-shrink-0">
+                <i class="fas fa-truck-ramp-box"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="text-sm font-bold text-slate-900 group-hover:text-teal-700 transition">Shipment Inquiries</h3>
+                <p class="text-xs text-slate-500 mt-0.5 truncate">Book doorstep courier collection & track requests</p>
+            </div>
+            <i class="fas fa-arrow-right text-slate-300 group-hover:text-teal-600 group-hover:translate-x-1 transition ml-auto"></i>
+        </a>
+
+        <a href="{{ route('client.history') }}" 
+           class="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-emerald-500/50 hover:shadow-md transition flex items-center gap-4 group">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition flex-shrink-0">
+                <i class="fas fa-clock-rotate-left"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition">History & Tracking</h3>
+                <p class="text-xs text-slate-500 mt-0.5 truncate">Access HAWB copies & live radar tracking</p>
+            </div>
+            <i class="fas fa-arrow-right text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-1 transition ml-auto"></i>
+        </a>
     </div>
 
     <!-- ============================================================= -->
@@ -95,12 +135,12 @@
                 </span>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-sm font-black uppercase tracking-wider text-white">Active Consignment Live Tracking</h2>
+                        <h2 class="text-sm font-black uppercase tracking-wider text-white">Active Consignment Live Tracking Radar</h2>
                         <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                            REAL-TIME RADAR
+                            REAL-TIME TELEMETRY
                         </span>
                     </div>
-                    <p class="text-xs text-slate-300 mt-0.5">Live status, movement telemetry, and milestone tracking for ongoing consignments.</p>
+                    <p class="text-xs text-slate-300 mt-0.5">Live status, movement telemetry, and milestone tracking for your ongoing shipments.</p>
                 </div>
             </div>
 
@@ -112,17 +152,17 @@
                     <i class="fas fa-arrow-right text-[11px]"></i>
                 </a>
             @else
-                <a href="{{ route('tracking.page') }}" target="_blank"
-                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition border border-slate-700 flex-shrink-0">
-                    <i class="fas fa-search-location text-teal-400"></i>
-                    <span>Public Radar Lookup</span>
+                <a href="{{ route('client.inquiries') }}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs uppercase tracking-wider transition flex-shrink-0">
+                    <i class="fas fa-plus"></i>
+                    <span>Book New Consignment</span>
                 </a>
             @endif
         </div>
 
         @if(!empty($latestActiveShipment))
             <div class="p-6 space-y-6">
-                <!-- Top Consignment Summary Row (Clickable) -->
+                <!-- Top Consignment Summary Row -->
                 <a href="{{ route('tracking.show', $latestActiveShipment->tracking_number) }}" 
                    class="block p-4 rounded-xl bg-slate-50 hover:bg-teal-50/40 border border-slate-200/80 hover:border-teal-500/50 transition group">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -196,19 +236,17 @@
 
                 <div class="relative px-2">
                     <div class="grid grid-cols-5 gap-2 text-center relative">
-                        <!-- Connecting Progress Bar -->
                         <div class="absolute top-4 left-6 right-6 h-1 bg-slate-200 -z-0">
                             <div class="h-1 bg-gradient-to-r from-teal-500 to-blue-600 transition-all duration-500"
                                  style="width: {{ (($stepIndex - 1) / 4) * 100 }}%;"></div>
                         </div>
 
-                        <!-- Step 1: Booked / Manifested -->
+                        <!-- Step 1: Booked -->
                         <div class="flex flex-col items-center z-10">
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-xs {{ $stepIndex >= 1 ? 'bg-teal-600 text-white ring-4 ring-teal-100' : 'bg-slate-200 text-slate-500' }}">
                                 <i class="fas fa-file-invoice"></i>
                             </div>
                             <p class="text-[11px] font-bold text-slate-800 mt-2">Booked</p>
-                            <span class="text-[9px] text-slate-400 hidden sm:block">Intake Verified</span>
                         </div>
 
                         <!-- Step 2: Picked Up -->
@@ -217,7 +255,6 @@
                                 <i class="fas fa-box"></i>
                             </div>
                             <p class="text-[11px] font-bold text-slate-800 mt-2">Picked Up</p>
-                            <span class="text-[9px] text-slate-400 hidden sm:block">Origin Facility</span>
                         </div>
 
                         <!-- Step 3: In Transit -->
@@ -226,7 +263,6 @@
                                 <i class="fas fa-truck-fast"></i>
                             </div>
                             <p class="text-[11px] font-bold text-slate-800 mt-2">In Transit</p>
-                            <span class="text-[9px] text-slate-400 hidden sm:block">Corridor Movement</span>
                         </div>
 
                         <!-- Step 4: Out for Delivery -->
@@ -235,7 +271,6 @@
                                 <i class="fas fa-motorcycle"></i>
                             </div>
                             <p class="text-[11px] font-bold text-slate-800 mt-2">Out for Delivery</p>
-                            <span class="text-[9px] text-slate-400 hidden sm:block">Last-Mile Dispatch</span>
                         </div>
 
                         <!-- Step 5: Delivered -->
@@ -244,28 +279,27 @@
                                 <i class="fas fa-circle-check"></i>
                             </div>
                             <p class="text-[11px] font-bold text-slate-800 mt-2">Delivered</p>
-                            <span class="text-[9px] text-slate-400 hidden sm:block">Signed Receipt</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Current Location & Details Box -->
+                <!-- Telemetry Info Row -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100 text-xs">
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
                         <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                            <i class="fas fa-location-dot text-teal-600"></i> Current Telemetry Location
+                            <i class="fas fa-location-dot text-teal-600"></i> Current Location
                         </span>
                         <p class="font-bold text-slate-900 mt-1 text-xs">
-                            {{ $latestActiveShipment->current_location ?? ($latestActiveShipment->origin ?? 'Kathmandu Central Gateway') }}
+                            {{ $latestActiveShipment->current_location ?? ($latestActiveShipment->origin ?? 'Kathmandu Gateway') }}
                         </p>
                     </div>
 
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
                         <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                            <i class="fas fa-stopwatch text-blue-600"></i> Estimated Delivery Window
+                            <i class="fas fa-stopwatch text-blue-600"></i> Estimated Delivery
                         </span>
                         <p class="font-bold text-slate-900 mt-1 text-xs">
-                            {{ $latestActiveShipment->estimated_delivery ? \Carbon\Carbon::parse($latestActiveShipment->estimated_delivery)->format('M d, Y (h:i A)') : 'Standard Corridor (Within 24-48 hrs)' }}
+                            {{ $latestActiveShipment->estimated_delivery ? \Carbon\Carbon::parse($latestActiveShipment->estimated_delivery)->format('M d, Y (h:i A)') : 'Standard Corridor (24-48 hrs)' }}
                         </p>
                     </div>
 
@@ -279,251 +313,50 @@
                             </p>
                         </div>
                         <a href="{{ route('tracking.show', $latestActiveShipment->tracking_number) }}" 
-                           class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold text-[11px] transition shadow-xs flex items-center gap-1.5">
-                            <span>Inspect &rarr;</span>
+                           class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold text-[11px] transition shadow-xs">
+                            Track &rarr;
                         </a>
                     </div>
                 </div>
-
-                <!-- If Multiple Active Shipments, List Other Active Ones -->
-                @if($activeShipments->count() > 1)
-                    <div class="pt-3 border-t border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fas fa-boxes-stacked text-teal-600"></i> Other Active Shipments Moving ({{ $activeShipments->count() - 1 }} More)
-                        </p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                            @foreach($activeShipments->skip(1)->take(3) as $other)
-                                <a href="{{ route('tracking.show', $other->tracking_number) }}" 
-                                   class="p-2.5 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50/40 transition flex items-center justify-between gap-2 group">
-                                    <div class="min-w-0">
-                                        <p class="font-mono font-bold text-xs text-slate-900 group-hover:text-teal-700 truncate">
-                                            {{ $other->tracking_number }}
-                                        </p>
-                                        <p class="text-[10px] text-slate-500 truncate mt-0.5">
-                                            &rarr; {{ $other->destination ?? 'Destination' }}
-                                        </p>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 group-hover:bg-teal-600 group-hover:text-white transition flex-shrink-0">
-                                        {{ str_replace('_', ' ', $other->status) }}
-                                    </span>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
             </div>
         @else
-            <!-- Standby Empty State When No Active Consignment is Moving -->
-            <div class="p-8 text-center space-y-4">
-                <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-xs border border-emerald-100">
+            <!-- Standby State -->
+            <div class="p-8 text-center space-y-3">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
                     <i class="fas fa-circle-check"></i>
                 </div>
-                <div class="max-w-md mx-auto">
+                <div>
                     <h3 class="text-sm font-bold text-slate-900">All Consignments Up to Date</h3>
-                    <p class="text-xs text-slate-500 mt-1">
-                        You have no active shipments currently moving in transit. When you book a new parcel pickup or dispatch a package, its real-time radar telemetry will stream here automatically.
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        You have no active shipments moving in transit right now. Book a new parcel pickup or check completed shipments.
                     </p>
                 </div>
-                <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <a href="{{ route('domestic.pickup.create') }}" 
-                       class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-xs transition flex items-center gap-2">
+                <div class="flex items-center justify-center gap-3 pt-2">
+                    <a href="{{ route('client.inquiries') }}" 
+                       class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                         <i class="fas fa-plus"></i>
-                        <span>Book New Pickup</span>
+                        <span>Book Pickup</span>
                     </a>
-                    <a href="{{ route('shipments.index', ['status' => 'delivered']) }}" 
-                       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                        <i class="fas fa-clock-rotate-left text-blue-600"></i>
-                        <span>View Tracking History ({{ $delivered }} Delivered)</span>
+                    <a href="{{ route('client.history', ['filter' => 'delivered']) }}" 
+                       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                        View Delivered History
                     </a>
                 </div>
             </div>
         @endif
     </div>
 
-    <!-- ============================================================= -->
-    <!-- CLIENT FORM WORKBENCH: EMBEDDED OPERATIONAL FORMS -->
-    <!-- ============================================================= -->
-    <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden" x-data="{ clientTab: 'pickup' }">
-        <div class="border-b border-slate-200 bg-slate-50/60 px-5 pt-3 flex flex-wrap gap-2">
-            <button type="button" 
-                    @click="clientTab = 'pickup'" 
-                    :class="clientTab === 'pickup' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
-                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
-                <i class="fas fa-truck-ramp-box text-teal-600"></i>
-                <span>Book Instant Package Pickup</span>
-            </button>
-
-            <button type="button" 
-                    @click="clientTab = 'track'" 
-                    :class="clientTab === 'track' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
-                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
-                <i class="fas fa-radar text-blue-600"></i>
-                <span>Live Consignment Radar</span>
-            </button>
-
-            <button type="button" 
-                    @click="clientTab = 'quote'" 
-                    :class="clientTab === 'quote' ? 'border-teal-600 text-teal-800 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium'"
-                    class="px-4 py-2.5 text-xs rounded-t-xl border-b-2 transition flex items-center gap-2">
-                <i class="fas fa-calculator text-amber-600"></i>
-                <span>Quick Rate Estimator</span>
-            </button>
-        </div>
-
-        <!-- TAB 1: Instant Package Pickup Request Form -->
-        <div x-show="clientTab === 'pickup'" class="p-6 space-y-5">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900">Request Doorstep Courier Pickup</h3>
-                    <p class="text-xs text-slate-500">Our nearest dispatch rider will collect your consignment and issue an on-site receipt.</p>
-                </div>
-                <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
-                    Doorstep Service
-                </span>
-            </div>
-
-            <form action="{{ route('domestic.pickup.store') }}" method="POST" class="space-y-4">
-                @csrf
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pickup Address & Landmark *</label>
-                        <input type="text" name="pickup_address" required 
-                               value="{{ Auth::user()->address }}"
-                               placeholder="e.g. Ward 4, Baluwatar, Near Prime Minister House" 
-                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contact Phone *</label>
-                        <input type="text" name="phone" required 
-                               value="{{ Auth::user()->phone }}"
-                               placeholder="e.g. 9841000000" 
-                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none font-mono">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Package Category *</label>
-                        <select name="package_type" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 outline-none">
-                            <option value="document">Legal / Business Documents</option>
-                            <option value="parcel" selected>Standard Parcel / Goods</option>
-                            <option value="fragile">Fragile Electronics / Glassware</option>
-                            <option value="grocery">Grocery & Food Parcel</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Estimated Weight (KG) *</label>
-                        <input type="number" step="0.5" min="0.1" name="estimated_weight" value="1.0" required 
-                               class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none font-mono">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Preferred Pickup Window *</label>
-                        <select name="pickup_slot" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 outline-none">
-                            <option value="morning">Morning (09:00 AM - 12:00 PM)</option>
-                            <option value="afternoon" selected>Afternoon (12:00 PM - 03:00 PM)</option>
-                            <option value="evening">Evening (03:00 PM - 07:00 PM)</option>
-                            <option value="flash">⚡ Urgent Flash (Within 60 Minutes)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pickup Notes / Delivery Instructions</label>
-                    <input type="text" name="instructions" placeholder="e.g. Ring doorbell at gate 2, call upon arrival" 
-                           class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
-                </div>
-
-                <div class="flex items-center justify-between pt-2">
-                    <span class="text-xs text-slate-500">
-                        <i class="fas fa-shield-check text-teal-600 mr-1"></i> Complimentary insurance up to Rs. 10,000 included.
-                    </span>
-                    <button type="submit" 
-                            class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-xs transition flex items-center gap-2">
-                        <i class="fas fa-paper-plane"></i>
-                        <span>Confirm Pickup Request</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- TAB 2: Live Consignment Radar Lookup -->
-        <div x-show="clientTab === 'track'" class="p-6 space-y-5" style="display: none;">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900">Track Consignment / HAWB</h3>
-                    <p class="text-xs text-slate-500">Search any active or completed domestic/international shipment for real-time status.</p>
-                </div>
-            </div>
-
-            <form action="{{ route('tracking.search') }}" method="GET" class="max-w-xl space-y-4">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" name="tracking" placeholder="Enter HAWB / AWB Number (e.g. NP-DOM-98214)..." required
-                           class="w-full pl-10 pr-24 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-mono">
-                    <button type="submit" class="absolute right-1.5 top-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold uppercase rounded-lg shadow-xs transition">
-                        Radar Search
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- TAB 3: Quick Rate Estimator -->
-        <div x-show="clientTab === 'quote'" class="p-6 space-y-5" style="display: none;"
-             x-data="{
-                dest: 'inside_valley',
-                weight: 1,
-                get cost() {
-                    if (this.dest === 'inside_valley') return 100 + (Math.max(0, this.weight - 1) * 50);
-                    if (this.dest === 'outside_valley') return 180 + (Math.max(0, this.weight - 1) * 80);
-                    return 2200 + (Math.max(0, this.weight - 1) * 900);
-                }
-             }">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900">Instant Freight Rate Estimator</h3>
-                    <p class="text-xs text-slate-500">Transparent pricing for Kathmandu Valley, Inter-district, and Global destinations.</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Destination Zone</label>
-                    <select x-model="dest" class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-teal-500 outline-none">
-                        <option value="inside_valley">Inside Kathmandu Valley (Kathmandu, Lalitpur, Bhaktapur)</option>
-                        <option value="outside_valley">Major Cities Outside Valley (Pokhara, Biratnagar, Chitwan, etc.)</option>
-                        <option value="international">International Air Courier (Worldwide 220+ Countries)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gross Weight (KG)</label>
-                    <input type="number" step="0.5" min="0.5" x-model="weight" 
-                           class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 font-mono">
-                </div>
-
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-center">
-                    <span class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Estimated Cost</span>
-                    <p class="text-2xl font-black text-teal-700 mt-0.5">Rs. <span x-text="cost.toLocaleString()"></span></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- RECENT CONSIGNMENTS & ACCOUNT SUMMARY -->
+    <!-- Bottom Row: Recent Consignments & Profile Card -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent Shipments -->
+        <!-- Recent Shipments List -->
         <div class="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
                     <i class="fas fa-boxes text-teal-600"></i>
-                    <span>My Recent Consignments</span>
+                    <span>Recent Consignments</span>
                 </h3>
-                <a href="{{ route('shipments.index') }}" class="text-xs font-semibold text-teal-700 hover:underline">
-                    View All &rarr;
+                <a href="{{ route('client.history') }}" class="text-xs font-bold text-teal-700 hover:underline">
+                    View Full History &rarr;
                 </a>
             </div>
 
@@ -534,7 +367,7 @@
                             <div>
                                 <a href="{{ route('tracking.show', $shipment->tracking_number) }}"
                                    class="font-mono font-bold text-xs text-slate-900 hover:text-teal-700 flex items-center gap-1.5">
-                                    <span>{{ $shipment->tracking_number ?? 'N/A' }}</span>
+                                    <span>{{ $shipment->tracking_number }}</span>
                                     <i class="fas fa-arrow-up-right-from-square text-[9px] text-teal-600"></i>
                                 </a>
                                 <p class="text-[11px] text-slate-500 mt-0.5">
@@ -552,50 +385,47 @@
                 </div>
             @else
                 <div class="text-center py-8 text-slate-400">
-                    <i class="fas fa-inbox text-3xl mb-2 block"></i>
-                    <p class="text-xs">No shipments found in your account yet.</p>
+                    <i class="fas fa-inbox text-2xl mb-1.5 block"></i>
+                    <p class="text-xs">No consignments recorded yet.</p>
                 </div>
             @endif
         </div>
 
-        <!-- Client Account Card -->
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
-            <h3 class="font-bold text-sm text-slate-900 mb-3 flex items-center gap-2">
-                <i class="fas fa-id-card text-blue-600"></i>
-                <span>Client Account Overview</span>
-            </h3>
+        <!-- Client Account & Address Card -->
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 flex flex-col justify-between">
+            <div>
+                <h3 class="font-bold text-sm text-slate-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-id-card text-teal-600"></i>
+                    <span>Account Profile</span>
+                </h3>
 
-            <div class="space-y-2.5 text-xs">
-                <div class="flex justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Account Name:</span>
-                    <span class="font-bold text-slate-800">{{ Auth::user()->name }}</span>
-                </div>
-                <div class="flex justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Email:</span>
-                    <span class="font-medium text-slate-800">{{ Auth::user()->email }}</span>
-                </div>
-                <div class="flex justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Contact Phone:</span>
-                    <span class="font-medium text-slate-800 font-mono">{{ Auth::user()->phone ?? 'Not provided' }}</span>
-                </div>
-                <div class="flex justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Entity Classification:</span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
-                        Client Account
-                    </span>
-                </div>
-                <div class="flex justify-between py-1.5">
-                    <span class="text-slate-500">Verification:</span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {{ Auth::user()->verification_status ?? 'Approved' }}
-                    </span>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-slate-100">
+                        <span class="text-slate-500">Name:</span>
+                        <span class="font-bold text-slate-800">{{ Auth::user()->name }}</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100">
+                        <span class="text-slate-500">Email:</span>
+                        <span class="font-medium text-slate-800 truncate max-w-[150px]">{{ Auth::user()->email }}</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100">
+                        <span class="text-slate-500">Phone:</span>
+                        <span class="font-medium text-slate-800 font-mono">{{ Auth::user()->phone ?? 'Not set' }}</span>
+                    </div>
+                    <div class="py-1.5">
+                        <span class="text-slate-500 block mb-0.5">Pickup Address:</span>
+                        <span class="font-medium text-slate-800 block text-[11px]">
+                            {{ Auth::user()->address ?? Auth::user()->permanent_address ?? 'No address saved yet' }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <div class="mt-4 pt-3 border-t border-slate-100">
-                <a href="{{ route('profile') }}" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5">
-                    <i class="fas fa-pen-to-square"></i>
-                    <span>Edit Profile & Saved Addresses</span>
+                <a href="{{ route('profile') }}" 
+                   class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-pen-to-square text-teal-600"></i>
+                    <span>Manage Profile & Addresses</span>
                 </a>
             </div>
         </div>

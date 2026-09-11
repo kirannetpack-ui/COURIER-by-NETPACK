@@ -111,6 +111,9 @@ use App\Http\Controllers\Seller\SettingsController as SellerSettingsController;
 use App\Http\Controllers\Seller\SupportController as SellerSupportController;
 use App\Http\Controllers\Seller\WalletController as SellerWalletController;
 use App\Http\Controllers\Seller\WithdrawController as SellerWithdrawController;
+use App\Http\Controllers\Domestic\EcommerceRiderController;
+use App\Http\Controllers\Rider\RiderDeliveryDeskController;
+use App\Http\Controllers\Seller\EcommerceBookingController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TrackingController;
 // =============================================
@@ -492,15 +495,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
 Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->group(function () {
     Route::get('/dashboard', [SellerDashboardController::class, 'index'])->name('dashboard');
 
-    // Products
-    Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');
-    Route::get('/products/create', [SellerProductController::class, 'create'])->name('products.create');
-    Route::post('/products', [SellerProductController::class, 'store'])->name('products.store');
-    Route::get('/products/{product}', [SellerProductController::class, 'show'])->name('products.show');
-    Route::get('/products/{product}/edit', [SellerProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{product}', [SellerProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [SellerProductController::class, 'destroy'])->name('products.destroy');
-    Route::post('/products/{product}/toggle-status', [SellerProductController::class, 'toggleStatus'])->name('products.toggle-status');
+    // Rate Inquiry & Calculator
+    Route::get('/rates', fn () => redirect()->route('rates.inquiry'))->name('rates');
+
+    // Products (Removed from Seller Portal - clean redirects)
+    Route::get('/products', fn () => redirect()->route('seller.dashboard'))->name('products.index');
+    Route::get('/products/create', fn () => redirect()->route('seller.dashboard'))->name('products.create');
+    Route::any('/products/{any?}', fn () => redirect()->route('seller.dashboard'))->where('any', '.*');
 
     // Orders
     Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders');
@@ -552,6 +553,14 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
     Route::put('/settings/password', [SellerSettingsController::class, 'updatePassword'])->name('settings.update-password');
     Route::put('/settings/bank', [SellerSettingsController::class, 'updateBank'])->name('settings.update-bank');
     Route::put('/settings/notifications', [SellerSettingsController::class, 'updateNotifications'])->name('settings.update-notifications');
+
+    // E-Commerce Deliveries (Direct Rider Same-Day & Multi-Leg Courier)
+    Route::get('/ecommerce', [EcommerceBookingController::class, 'index'])->name('ecommerce.index');
+    Route::get('/ecommerce/direct', [EcommerceBookingController::class, 'createDirect'])->name('ecommerce.direct');
+    Route::post('/ecommerce/direct', [EcommerceBookingController::class, 'storeDirect'])->name('ecommerce.direct.store');
+    Route::get('/ecommerce/multileg', [EcommerceBookingController::class, 'createMultiLeg'])->name('ecommerce.multileg');
+    Route::post('/ecommerce/multileg', [EcommerceBookingController::class, 'storeMultiLeg'])->name('ecommerce.multileg.store');
+    Route::get('/ecommerce/{id}', [EcommerceBookingController::class, 'show'])->name('ecommerce.show');
 });
 
 // =============================================
@@ -559,18 +568,18 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
 // =============================================
 Route::prefix('client')->name('client.')->middleware(['auth', 'role:client,customer'])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/wallet', function () {
-        return view('client.wallet');
-    })->name('wallet');
-    Route::get('/feedback', function () {
-        return view('client.feedback');
-    })->name('feedback');
-    Route::get('/support', function () {
-        return view('client.support');
-    })->name('support');
-    Route::get('/settings', function () {
-        return view('client.settings');
-    })->name('settings');
+    Route::get('/inquiries', [ClientDashboardController::class, 'inquiries'])->name('inquiries');
+    Route::post('/inquiries', [ClientDashboardController::class, 'storeInquiry'])->name('inquiries.store');
+    Route::get('/history', [ClientDashboardController::class, 'history'])->name('history');
+    Route::get('/rates', function () {
+        return redirect()->route('rates.inquiry');
+    })->name('rates');
+    
+    // Legacy client redirects
+    Route::get('/wallet', fn () => redirect()->route('client.dashboard'))->name('wallet');
+    Route::get('/feedback', fn () => redirect()->route('client.dashboard'))->name('feedback');
+    Route::get('/support', fn () => redirect()->route('client.dashboard'))->name('support');
+    Route::get('/settings', fn () => redirect()->route('profile'))->name('settings');
 });
 
 // =============================================
@@ -643,6 +652,18 @@ Route::prefix('rider')->name('rider.')->middleware(['auth', 'role:rider'])->grou
 
     // Location
     Route::post('/update-location', [LocationController::class, 'update'])->name('update-location');
+
+    // Live Delivery Desk & Available Jobs
+    Route::get('/delivery/available', [RiderDeliveryDeskController::class, 'availableJobs'])->name('delivery.available');
+    Route::post('/delivery/accept/{id}', [RiderDeliveryDeskController::class, 'acceptJob'])->name('delivery.accept');
+    Route::get('/delivery/my', [RiderDeliveryDeskController::class, 'myDeliveries'])->name('delivery.my');
+    Route::get('/delivery/show/{id}', [RiderDeliveryDeskController::class, 'show'])->name('delivery.show');
+    Route::post('/delivery/{id}/arrive', [RiderDeliveryDeskController::class, 'arrivePickup'])->name('delivery.arrive');
+    Route::post('/delivery/{id}/verify-pickup', [RiderDeliveryDeskController::class, 'verifyPickup'])->name('delivery.verify-pickup');
+    Route::post('/delivery/{id}/complete', [RiderDeliveryDeskController::class, 'completeDelivery'])->name('delivery.complete');
+    Route::post('/delivery/{id}/fail', [RiderDeliveryDeskController::class, 'failDelivery'])->name('delivery.fail');
+    Route::get('/cod/desk', [RiderDeliveryDeskController::class, 'codLedger'])->name('delivery.cod');
+    Route::post('/cod/deposit', [RiderDeliveryDeskController::class, 'depositCod'])->name('delivery.deposit');
 });
 
 // =============================================
@@ -660,6 +681,17 @@ Route::prefix('domestic/ecommerce')->name('domestic.ecommerce.')->middleware(['a
     Route::get('/products', [DomesticEcommerceController::class, 'products'])->name('products');
     Route::get('/products/{id}', [DomesticEcommerceController::class, 'showProduct'])->name('products.show');
     Route::get('/analytics', [DomesticEcommerceController::class, 'analytics'])->name('analytics');
+
+    // Direct Rider Network Management, KYC & COD Settlement (under E-Commerce Delivery)
+    Route::get('/riders', [EcommerceRiderController::class, 'index'])->name('riders.index');
+    Route::get('/riders/rates', [EcommerceRiderController::class, 'rateRules'])->name('riders.rates');
+    Route::post('/riders/rates', [EcommerceRiderController::class, 'updateRateRules'])->name('riders.rates.update');
+    Route::get('/riders/cod-ledger', [EcommerceRiderController::class, 'codLedger'])->name('riders.cod');
+    Route::post('/riders/cod-ledger/{id}/approve', [EcommerceRiderController::class, 'approveDeposit'])->name('riders.cod.approve');
+    Route::get('/riders/{id}', [EcommerceRiderController::class, 'show'])->name('riders.show');
+    Route::post('/riders/{id}/verify', [EcommerceRiderController::class, 'verify'])->name('riders.verify');
+    Route::post('/riders/{id}/reject', [EcommerceRiderController::class, 'reject'])->name('riders.reject');
+    Route::post('/riders/{id}/suspend', [EcommerceRiderController::class, 'suspend'])->name('riders.suspend');
 });
 
 // =============================================
@@ -678,6 +710,7 @@ Route::prefix('domestic')->name('domestic.')->middleware(['auth', 'role:domestic
     Route::get('/partners/{id}/edit', [DomesticAdminController::class, 'editPartner'])->name('partners.edit');
     Route::put('/partners/{id}', [DomesticAdminController::class, 'updatePartner'])->name('partners.update');
     Route::delete('/partners/{id}', [DomesticAdminController::class, 'deletePartner'])->name('partners.delete');
+    Route::delete('/partners/{id}/destroy', [DomesticAdminController::class, 'deletePartner'])->name('partners.destroy');
 
     // Rates
     Route::get('/rates', [DomesticAdminController::class, 'rates'])->name('rates');
@@ -685,7 +718,8 @@ Route::prefix('domestic')->name('domestic.')->middleware(['auth', 'role:domestic
     Route::post('/rates', [DomesticAdminController::class, 'storeRate'])->name('rates.store');
     Route::get('/rates/{id}/edit', [DomesticAdminController::class, 'editRate'])->name('rates.edit');
     Route::put('/rates/{id}', [DomesticAdminController::class, 'updateRate'])->name('rates.update');
-    Route::delete('/rates/{id}', [DomesticAdminController::class, 'deleteRate'])->name('rates.delete');
+    Route::delete('/rates/{id}', [DomesticAdminController::class, 'deleteRate'])->name('rates.destroy');
+    Route::delete('/rates/{id}/delete', [DomesticAdminController::class, 'deleteRate'])->name('rates.delete');
 
     // Zones
     Route::get('/zones', [DomesticAdminController::class, 'zones'])->name('zones');
@@ -693,7 +727,8 @@ Route::prefix('domestic')->name('domestic.')->middleware(['auth', 'role:domestic
     Route::post('/zones', [DomesticAdminController::class, 'storeZone'])->name('zones.store');
     Route::get('/zones/{id}/edit', [DomesticAdminController::class, 'editZone'])->name('zones.edit');
     Route::put('/zones/{id}', [DomesticAdminController::class, 'updateZone'])->name('zones.update');
-    Route::delete('/zones/{id}', [DomesticAdminController::class, 'deleteZone'])->name('zones.delete');
+    Route::delete('/zones/{id}', [DomesticAdminController::class, 'deleteZone'])->name('zones.destroy');
+    Route::delete('/zones/{id}/delete', [DomesticAdminController::class, 'deleteZone'])->name('zones.delete');
 
     // Shipments
     Route::get('/shipments', [DomesticAdminController::class, 'shipments'])->name('shipments');

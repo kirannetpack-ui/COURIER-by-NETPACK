@@ -183,6 +183,145 @@ class InternationalRateService
     }
 
     /**
+     * Calculate Domestic Feeder Linehaul Charge from Outside Kathmandu Valley to Kathmandu Hub.
+     *
+     * Determined by active Domestic Partner tariff rates or provincial distance grids.
+     */
+    public function calculateDomesticFeederCharge(
+        float $weight,
+        string $pickupLocationType = 'inside_ktm',
+        ?string $pickupCity = null,
+        ?int $partnerId = null,
+        string $serviceType = 'standard'
+    ): array {
+        if ($pickupLocationType !== 'outside_ktm' || empty($pickupCity) || strcasecmp(trim($pickupCity), 'Kathmandu') === 0 || strcasecmp(trim($pickupCity), 'Kathmandu Valley') === 0) {
+            return [
+                'is_applicable' => false,
+                'pickup_location_type' => 'inside_ktm',
+                'pickup_city' => 'Kathmandu Valley',
+                'destination_city' => 'Kathmandu (TIA Central Cargo Gateway)',
+                'additional_charge' => 0.0,
+                'total_feeder_charge' => 0.0,
+                'partner_name' => 'Kathmandu Central Gateway (Direct Drop / Local Courier)',
+                'notice' => 'Direct drop or local courier at Kathmandu TIA Cargo Terminal (No inter-district linehaul surcharge).',
+            ];
+        }
+
+        $pickupCity = trim($pickupCity);
+
+        // 1. Check for active DomesticRate from database matching origin and destination Kathmandu
+        try {
+            $rateQuery = \App\Models\DomesticRate::active()
+                ->where(function ($q) use ($pickupCity) {
+                    $q->where('origin_city', 'LIKE', "%{$pickupCity}%")
+                      ->orWhereHas('originZone', function ($zq) use ($pickupCity) {
+                          $zq->where('zone_name', 'LIKE', "%{$pickupCity}%")
+                             ->orWhereJsonContains('districts', $pickupCity);
+                      });
+                })
+                ->where(function ($q) {
+                    $q->where('destination_city', 'LIKE', '%Kathmandu%')
+                      ->orWhereHas('destinationZone', function ($zq) {
+                          $zq->where('zone_name', 'LIKE', '%Kathmandu%');
+                      });
+                });
+
+            if ($partnerId) {
+                $rateQuery->where('partner_id', $partnerId);
+            }
+
+            $domesticRate = $rateQuery->first();
+
+            if ($domesticRate) {
+                $calc = $domesticRate->calculateRate($weight);
+                $partner = $domesticRate->partner;
+                $partnerName = $partner ? ($partner->company_name ?? $partner->name) : 'Authorized Domestic Logistics Partner';
+
+                return [
+                    'is_applicable' => true,
+                    'pickup_location_type' => 'outside_ktm',
+                    'pickup_city' => $pickupCity,
+                    'destination_city' => 'Kathmandu (TIA Air Cargo Gateway)',
+                    'partner_id' => $domesticRate->partner_id,
+                    'partner_name' => $partnerName,
+                    'rate_id' => $domesticRate->id,
+                    'service_name' => $domesticRate->service_name ?? 'Domestic Inter-District Linehaul',
+                    'base_rate' => (float) $calc['base_rate'],
+                    'per_kg_rate' => (float) ($calc['breakdown']['per_kg_rate'] ?? $domesticRate->per_kg_rate),
+                    'weight_charge' => (float) $calc['weight_charge'],
+                    'logistical_charge' => (float) $calc['logistical_charge'],
+                    'additional_charge' => (float) $calc['additional_charge'],
+                    'total_feeder_charge' => (float) $calc['total'],
+                    'estimated_days' => $domesticRate->estimated_days ?? 2,
+                    'source' => 'partner_rate_matrix',
+                    'notice' => "Provided by {$partnerName} from {$pickupCity} to Kathmandu Central Air Cargo Gateway.",
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Fallback to regional grid if query encounters issue
+        }
+
+        // 2. Fallback Standard Regional Linehaul Grid based on city/region
+        $regionalGrid = [
+            'pokhara' => ['base' => 150.0, 'per_kg' => 35.0, 'logistical' => 50.0, 'days' => 1, 'partner' => 'Pokhara Depot Logistics Partner (Gandaki)'],
+            'chitwan' => ['base' => 140.0, 'per_kg' => 30.0, 'logistical' => 40.0, 'days' => 1, 'partner' => 'Bharatpur Express Logistics Partner (Bagmati)'],
+            'narayangarh' => ['base' => 140.0, 'per_kg' => 30.0, 'logistical' => 40.0, 'days' => 1, 'partner' => 'Bharatpur Express Logistics Partner (Bagmati)'],
+            'bharatpur' => ['base' => 140.0, 'per_kg' => 30.0, 'logistical' => 40.0, 'days' => 1, 'partner' => 'Bharatpur Express Logistics Partner (Bagmati)'],
+            'hetauda' => ['base' => 150.0, 'per_kg' => 30.0, 'logistical' => 40.0, 'days' => 1, 'partner' => 'Makwanpur Surface Cargo Partner'],
+            'birgunj' => ['base' => 160.0, 'per_kg' => 35.0, 'logistical' => 50.0, 'days' => 1, 'partner' => 'Birgunj Border Gateway Logistics (Madhesh)'],
+            'butwal' => ['base' => 170.0, 'per_kg' => 38.0, 'logistical' => 50.0, 'days' => 2, 'partner' => 'Butwal Inter-District Cargo Partner (Lumbini)'],
+            'bhairahawa' => ['base' => 170.0, 'per_kg' => 38.0, 'logistical' => 50.0, 'days' => 2, 'partner' => 'Butwal Inter-District Cargo Partner (Lumbini)'],
+            'biratnagar' => ['base' => 180.0, 'per_kg' => 40.0, 'logistical' => 60.0, 'days' => 2, 'partner' => 'Biratnagar Linehaul Hub Partner (Koshi)'],
+            'itahari' => ['base' => 180.0, 'per_kg' => 40.0, 'logistical' => 60.0, 'days' => 2, 'partner' => 'Biratnagar Linehaul Hub Partner (Koshi)'],
+            'dharan' => ['base' => 190.0, 'per_kg' => 42.0, 'logistical' => 60.0, 'days' => 2, 'partner' => 'Koshi Provincial Transport Partner'],
+            'janakpur' => ['base' => 180.0, 'per_kg' => 40.0, 'logistical' => 50.0, 'days' => 2, 'partner' => 'Mithila Regional Express Partner'],
+            'nepalgunj' => ['base' => 220.0, 'per_kg' => 45.0, 'logistical' => 70.0, 'days' => 2, 'partner' => 'Western Nepal Freight Hub Partner (Lumbini)'],
+            'surkhet' => ['base' => 260.0, 'per_kg' => 55.0, 'logistical' => 75.0, 'days' => 3, 'partner' => 'Karnali Regional Depot Partner (Karnali)'],
+            'dhangadhi' => ['base' => 280.0, 'per_kg' => 60.0, 'logistical' => 80.0, 'days' => 3, 'partner' => 'Sudurpashchim Gateway Partner (Sudurpashchim)'],
+        ];
+
+        $lookupKey = strtolower(preg_replace('/[^a-zA-Z]/', '', $pickupCity));
+        $matchedTier = null;
+        foreach ($regionalGrid as $key => $tier) {
+            if (str_contains($lookupKey, $key) || str_contains($key, $lookupKey)) {
+                $matchedTier = $tier;
+                break;
+            }
+        }
+
+        if (!$matchedTier) {
+            $matchedTier = ['base' => 200.0, 'per_kg' => 45.0, 'logistical' => 60.0, 'days' => 2, 'partner' => 'Nepal National Domestic Partner Network'];
+        }
+
+        $baseRate = (float) $matchedTier['base'];
+        $perKg = (float) $matchedTier['per_kg'];
+        $weightCharge = round($perKg * $weight, 2);
+        $logistical = (float) $matchedTier['logistical'];
+        $total = round($baseRate + $weightCharge + $logistical, 2);
+        $partnerName = $matchedTier['partner'];
+
+        return [
+            'is_applicable' => true,
+            'pickup_location_type' => 'outside_ktm',
+            'pickup_city' => $pickupCity,
+            'destination_city' => 'Kathmandu (TIA Air Cargo Gateway)',
+            'partner_id' => null,
+            'partner_name' => $partnerName,
+            'rate_id' => null,
+            'service_name' => 'Inter-District Feeder Linehaul',
+            'base_rate' => $baseRate,
+            'per_kg_rate' => $perKg,
+            'weight_charge' => $weightCharge,
+            'logistical_charge' => $logistical,
+            'additional_charge' => 0.0,
+            'total_feeder_charge' => $total,
+            'estimated_days' => $matchedTier['days'],
+            'source' => 'domestic_partner_grid',
+            'notice' => "Provided by {$partnerName} for linehaul pickup from {$pickupCity} to Kathmandu Central Air Cargo Hub.",
+        ];
+    }
+
+    /**
      * Generate Comprehensive Rate Quotation.
      */
     public function quote(
@@ -193,10 +332,22 @@ class InternationalRateService
         ?float $height = null,
         string $packaging = 'none',
         ?string $serviceType = null,
-        ?float $manualGodownRatePerKg = null
+        ?float $manualGodownRatePerKg = null,
+        string $pickupLocationType = 'inside_ktm',
+        ?string $pickupCity = null,
+        ?int $domesticPartnerId = null
     ): array {
         $weightInfo = $this->calculateWeight($grossWeight, $length, $width, $height);
         $chargeableWeight = $weightInfo['chargeable_weight'];
+
+        // Compute domestic feeder linehaul charge if picked up outside Kathmandu Valley
+        $domesticFeeder = $this->calculateDomesticFeederCharge(
+            $chargeableWeight,
+            $pickupLocationType,
+            $pickupCity,
+            $domesticPartnerId
+        );
+        $domesticFeederCharge = $domesticFeeder['is_applicable'] ? (float)$domesticFeeder['total_feeder_charge'] : 0.0;
 
         // Get packaging details dynamically from active database catalog
         $packagingCatalog = $this->getPackagingCatalog();
@@ -272,7 +423,8 @@ class InternationalRateService
             $fuelSurcharge = $fuelPercent > 0 ? round(($baseFreight * $fuelPercent) / 100, 2) : 0.0;
             $docFee = (float) $rate->doc_fee;
 
-            $total = round($baseFreight + $customsClearance + $godownCharge + $packagingFee + $fuelSurcharge + $docFee, 2);
+            // Total includes base freight + customs + godown + packaging + fuel + doc + domestic feeder linehaul
+            $total = round($baseFreight + $customsClearance + $godownCharge + $packagingFee + $fuelSurcharge + $docFee + $domesticFeederCharge, 2);
 
             $hubName = $rate->hub ? $rate->hub->hub_name : 'Direct Express Air (Nepal Origin)';
             $hubCode = $rate->hub ? $rate->hub->hub_code : 'KTM-DIR';
@@ -298,6 +450,8 @@ class InternationalRateService
                     'packaging_fee' => $packagingFee,
                     'fuel_surcharge' => $fuelSurcharge,
                     'doc_fee' => $docFee,
+                    'domestic_feeder_charge' => $domesticFeederCharge,
+                    'domestic_feeder' => $domesticFeeder,
                     'total_cost' => $total,
                 ],
                 'packaging_selected' => $packagingInfo,
@@ -315,6 +469,7 @@ class InternationalRateService
             'country' => $country,
             'weight_info' => $weightInfo,
             'packaging' => $packagingInfo,
+            'domestic_feeder' => $domesticFeeder,
             'global_tariff_inclusions' => [
                 'customs_clearance' => $defaultCustoms,
                 'customs_notice' => $customsNotice,

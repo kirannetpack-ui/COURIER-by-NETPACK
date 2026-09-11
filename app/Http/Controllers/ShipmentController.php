@@ -26,7 +26,7 @@ class ShipmentController extends Controller
     // ROLE-BASED FILTERING
     // =============================================
     
-    if ($user->isSuperAdmin()) {
+    if ($user->isSuperAdmin() || $user->user_type === 'admin') {
         // Super Admin: See ALL shipments
         // No filter needed
         
@@ -51,9 +51,17 @@ class ShipmentController extends Controller
         $query->where('partner_id', $user->id);
         
     } elseif ($user->isCustomer() || $user->user_type === 'client') {
-        // Customer: See only their own shipments
-        $query->where('customer_id', $user->id);
+        // Client / Customer: See strictly their own shipments
+        $query->where(function ($q) use ($user) {
+            $q->where('customer_id', $user->id)
+              ->orWhere(function ($sub) use ($user) {
+                  $sub->where('seller_id', $user->id)->whereNull('customer_id');
+              });
+        });
     }
+
+    // Role-scoped base query for accurate user statistics
+    $scopedBase = clone $query;
     
     // Search filter
     if ($request->has('search') && $request->search) {
@@ -82,12 +90,13 @@ class ShipmentController extends Controller
     
     $shipments = $query->orderBy('created_at', 'desc')->paginate(20);
     
+    // Calculate user-scoped statistics
     $stats = [
-        'total' => Shipment::count(),
-        'pending' => Shipment::where('status', 'pending')->count(),
-        'in_transit' => Shipment::whereIn('status', ['picked_up', 'in_transit', 'out_for_delivery'])->count(),
-        'delivered' => Shipment::where('status', 'delivered')->count(),
-        'cancelled' => Shipment::where('status', 'cancelled')->count(),
+        'total' => (clone $scopedBase)->count(),
+        'pending' => (clone $scopedBase)->where('status', 'pending')->count(),
+        'in_transit' => (clone $scopedBase)->whereIn('status', ['picked_up', 'in_transit', 'out_for_delivery'])->count(),
+        'delivered' => (clone $scopedBase)->where('status', 'delivered')->count(),
+        'cancelled' => (clone $scopedBase)->where('status', 'cancelled')->count(),
     ];
     
     return view('shipments.index', compact('shipments', 'stats'));

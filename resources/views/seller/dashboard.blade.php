@@ -19,28 +19,28 @@
                     </span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                    Welcome back, {{ Auth::user()->name }}!
+                    Welcome back, {{ Auth::user()->business_name ?? Auth::user()->name }}!
                 </h1>
                 <p class="text-sm text-slate-300 max-w-xl">
-                    Dispatch customer parcels across Nepal, track live rider deliveries with GPS telemetry, and manage your digital wallet settlements seamlessly.
+                    Dispatch customer parcels across local riders, domestic Nepal provinces, and international air cargo with live radar telemetry.
                 </p>
             </div>
 
             <!-- Fast Action Booking CTA Buttons -->
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 <a href="{{ route('seller.orders.create') }}" 
-                   class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/40 transition transform hover:-translate-y-0.5">
-                    <i class="fas fa-plus-circle text-base"></i>
-                    <span>Book / Create Order</span>
+                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 transition transform hover:-translate-y-0.5">
+                    <i class="fas fa-plus-circle text-sm"></i>
+                    <span>Book Shipment</span>
                 </a>
-                <a href="{{ route('seller.shipments.create') }}" 
-                   class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition">
-                    <i class="fas fa-box text-base text-teal-400"></i>
-                    <span>Courier Parcel</span>
+                <a href="{{ route('rates.inquiry') }}" target="_blank"
+                   class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-semibold text-xs border border-slate-700 transition">
+                    <i class="fas fa-calculator text-sm"></i>
+                    <span>Rate Calculator</span>
                 </a>
                 <a href="{{ route('tracking.page') }}" target="_blank"
-                   class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-700 transition">
-                    <i class="fas fa-satellite-dish text-base text-emerald-400"></i>
+                   class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
+                    <i class="fas fa-satellite-dish text-sm text-emerald-400"></i>
                     <span>Radar Map</span>
                 </a>
             </div>
@@ -49,7 +49,7 @@
 
     <!-- Core KPI Stat Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total Orders -->
+        <!-- 1. Total E-Commerce Orders -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition">
             <div class="flex items-center justify-between">
                 <div>
@@ -70,7 +70,28 @@
             </div>
         </div>
 
-        <!-- Total Earnings -->
+        <!-- 2. Active Shipments Radar -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Courier & Cargo</p>
+                    <p class="text-2xl sm:text-3xl font-black text-indigo-600 mt-1">{{ number_format($shipmentStats['total'] ?? 0) }}</p>
+                    <div class="flex items-center gap-2 mt-2 text-[11px]">
+                        <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                            {{ $shipmentStats['active'] ?? 0 }} In Transit
+                        </span>
+                        <span class="text-slate-400">
+                            {{ $shipmentStats['delivered'] ?? 0 }} Delivered
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="fas fa-truck-fast"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Total Revenue / Sales -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition">
             <div class="flex items-center justify-between">
                 <div>
@@ -86,14 +107,14 @@
             </div>
         </div>
 
-        <!-- Digital Wallet Balance -->
+        <!-- 4. Available Wallet Balance -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Available Wallet</p>
                     <p class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Rs. {{ number_format($balance ?? 0, 2) }}</p>
                     <div class="flex items-center gap-2 mt-2 text-[11px]">
-                        <a href="{{ route('seller.withdraw') }}" class="font-bold text-emerald-600 hover:text-emerald-700 hover:underline">
+                        <a href="{{ route('seller.withdraw') }}" class="font-bold text-teal-600 hover:text-teal-700 hover:underline">
                             Request Payout &rarr;
                         </a>
                     </div>
@@ -103,78 +124,101 @@
                 </div>
             </div>
         </div>
-
-        <!-- Products in Catalog -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500/40 transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Product Catalog</p>
-                    <p class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{{ number_format($totalProducts ?? 0) }}</p>
-                    <p class="text-[11px] text-slate-500 mt-2 font-medium">
-                        <span class="text-emerald-600 font-bold">{{ $activeProducts ?? 0 }} Active</span> • {{ $productStats['low_stock'] ?? 0 }} Low Stock
-                    </p>
-                </div>
-                <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl flex-shrink-0">
-                    <i class="fas fa-box-open"></i>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Quick Operations Navigation -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="{{ route('seller.orders.create') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-sm transition flex items-center gap-4 group">
-            <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
-                <i class="fas fa-plus"></i>
-            </div>
+    <!-- 3-TIER GLOBAL SHIPMENT DISPATCH CHANNELS -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
-                <p class="font-bold text-slate-800 text-sm">Book Order</p>
-                <p class="text-xs text-slate-400">Instant customer dispatch</p>
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fas fa-paper-plane text-emerald-600"></i>
+                    <span>Global Shipment Booking Channels</span>
+                </h3>
+                <p class="text-xs text-slate-500">Select delivery mode or calculate live rates before booking</p>
             </div>
-        </a>
+            <a href="{{ route('rates.inquiry') }}" target="_blank" class="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1">
+                <i class="fas fa-calculator"></i>
+                <span>Check All Tariff Rates &rarr;</span>
+            </a>
+        </div>
 
-        <a href="{{ route('seller.orders') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-500 hover:shadow-sm transition flex items-center gap-4 group">
-            <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
-                <i class="fas fa-list-check"></i>
-            </div>
-            <div>
-                <p class="font-bold text-slate-800 text-sm">Manage Orders</p>
-                <p class="text-xs text-slate-400">{{ $orderStats['pending'] ?? 0 }} awaiting fulfillment</p>
-            </div>
-        </a>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Tier 1: Rider Delivery (Local City E-Commerce) -->
+            <a href="{{ route('seller.orders.create') }}?channel=rider" 
+               class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-500 transition group block">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800">
+                        Intra-City
+                    </span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm group-hover:text-emerald-700 transition">Rider Delivery</h4>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Same-day city motorbike delivery with live GPS telemetry and Cash on Delivery (COD) collection.
+                </p>
+                <div class="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold text-emerald-600">
+                    <span>Book Rider Dispatch</span>
+                    <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition"></i>
+                </div>
+            </a>
 
-        <a href="{{ route('seller.products.create') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-purple-500 hover:shadow-sm transition flex items-center gap-4 group">
-            <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
-                <i class="fas fa-tag"></i>
-            </div>
-            <div>
-                <p class="font-bold text-slate-800 text-sm">Add Product</p>
-                <p class="text-xs text-slate-400">Create new item</p>
-            </div>
-        </a>
+            <!-- Tier 2: Domestic Courier (Nepal Inter-District) -->
+            <a href="{{ route('seller.orders.create') }}?channel=domestic" 
+               class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-teal-50/30 hover:border-teal-500 transition group block">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                        <i class="fas fa-truck-fast"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-teal-100 text-teal-800">
+                        7 Provinces
+                    </span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm group-hover:text-teal-700 transition">Domestic Courier</h4>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Inter-district road & air courier across Nepal's 77 districts with branch depot drop and doorstep delivery.
+                </p>
+                <div class="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold text-teal-600">
+                    <span>Book Domestic Courier</span>
+                    <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition"></i>
+                </div>
+            </a>
 
-        <a href="{{ route('seller.wallet') }}" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-teal-500 hover:shadow-sm transition flex items-center gap-4 group">
-            <div class="w-11 h-11 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
-                <i class="fas fa-building-columns"></i>
-            </div>
-            <div>
-                <p class="font-bold text-slate-800 text-sm">Wallet & Payout</p>
-                <p class="text-xs text-slate-400">COD settlements & balance</p>
-            </div>
-        </a>
+            <!-- Tier 3: International Air Cargo (Global Export) -->
+            <a href="{{ route('rates.inquiry') }}" target="_blank" 
+               class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-sky-50/30 hover:border-sky-500 transition group block">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                        <i class="fas fa-plane-departure"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-100 text-sky-800">
+                        Worldwide
+                    </span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm group-hover:text-sky-700 transition">International Air Cargo</h4>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Global air freight to Dubai, UK, Australia, USA & beyond with export customs clearance and HAWBs.
+                </p>
+                <div class="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold text-sky-600">
+                    <span>Quote & Book Air Cargo</span>
+                    <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition"></i>
+                </div>
+            </a>
+        </div>
     </div>
 
     <!-- Live Order & Shipments Stream -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent E-Commerce Orders -->
+        <!-- Recent Orders & Consignments -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Recent Orders & Dispatch Status</h3>
-                    <p class="text-xs text-slate-500">Live order fulfillment with riders and couriers</p>
+                    <h3 class="font-bold text-slate-900 text-base">Recent Dispatches & Orders</h3>
+                    <p class="text-xs text-slate-500">Live order fulfillment with riders, regional depots, and cargo hubs</p>
                 </div>
                 <a href="{{ route('seller.orders') }}" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline">
-                    View All Orders &rarr;
+                    View Registry &rarr;
                 </a>
             </div>
 
@@ -204,11 +248,17 @@
                                                    ($order->status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-700')) }}">
                                                 {{ str_replace('_', ' ', $order->status) }}
                                             </span>
+                                            @if($order->payment_method === 'cod')
+                                                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800">COD</span>
+                                            @endif
                                         </div>
                                         <p class="text-xs text-slate-500 mt-0.5">
                                             <i class="fas fa-user text-[10px] mr-1 text-slate-400"></i> {{ $order->customer_name ?? $order->client?->name ?? 'Customer' }}
                                             @if($order->customer_phone)
                                                 • {{ $order->customer_phone }}
+                                            @endif
+                                            @if($order->shipping_address)
+                                                • <span class="text-slate-400">{{ Str::limit($order->shipping_address, 25) }}</span>
                                             @endif
                                         </p>
                                     </div>
@@ -232,22 +282,22 @@
                         <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-3 text-xl">
                             <i class="fas fa-cart-arrow-down"></i>
                         </div>
-                        <h4 class="font-bold text-slate-800 text-sm">No Orders Yet</h4>
-                        <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">Start by booking your first customer order with door-to-door rider pickup and delivery.</p>
+                        <h4 class="font-bold text-slate-800 text-sm">No Dispatches Yet</h4>
+                        <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">Start by booking your first customer dispatch via rider, domestic courier, or international air cargo.</p>
                         <a href="{{ route('seller.orders.create') }}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition">
-                            Book First Order
+                            Book First Shipment
                         </a>
                     </div>
                 @endif
             </div>
         </div>
 
-        <!-- Right Side: Wallet Payouts & Fast Links -->
+        <!-- Right Side: Wallet & COD Payout Settlement Info -->
         <div class="space-y-6">
             <!-- Digital Settlement Card -->
             <div class="bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl p-6 text-white border border-slate-800 shadow-md space-y-4">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Merchant Wallet</span>
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Merchant Wallet & COD</span>
                     <i class="fas fa-shield-halved text-slate-500"></i>
                 </div>
                 <div>
@@ -255,7 +305,7 @@
                     <p class="text-2xl font-black font-mono text-white mt-0.5">Rs. {{ number_format($balance ?? 0, 2) }}</p>
                 </div>
                 <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-                    <span class="text-slate-400">Pending Clearance</span>
+                    <span class="text-slate-400">Pending COD Clearance</span>
                     <span class="font-mono font-bold text-amber-400">Rs. {{ number_format($pendingBalance ?? 0, 2) }}</span>
                 </div>
                 <a href="{{ route('seller.withdraw') }}" class="block w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-center font-bold text-xs transition shadow-md shadow-emerald-950">
@@ -263,26 +313,33 @@
                 </a>
             </div>
 
-            <!-- Top Products Widget -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="font-bold text-slate-900 text-sm">Top Products</h4>
-                    <a href="{{ route('seller.products.index') }}" class="text-xs text-emerald-600 font-bold hover:underline">All &rarr;</a>
+            <!-- COD Remittance Account Details Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900 text-sm">COD Settlement Account</h4>
+                    <a href="{{ route('seller.settings') }}" class="text-xs text-emerald-600 font-bold hover:underline">Edit &rarr;</a>
                 </div>
-                <div class="space-y-3">
-                    @forelse($topProducts ?? [] as $product)
-                        <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
-                            <div class="min-w-0 pr-2">
-                                <p class="font-bold text-slate-800 truncate">{{ $product->name }}</p>
-                                <p class="text-[10px] text-slate-400">Rs. {{ number_format($product->price, 2) }}</p>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold font-mono text-[10px] flex-shrink-0">
-                                {{ $product->total_sold ?? 0 }} sold
-                            </span>
-                        </div>
-                    @empty
-                        <p class="text-xs text-slate-400 py-3 text-center">No products cataloged yet.</p>
-                    @endforelse
+                @php
+                    $sellerUser = Auth::user();
+                @endphp
+                @if($sellerUser->bank_name || $sellerUser->account_number)
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                        <p class="font-bold text-slate-800">{{ $sellerUser->bank_name ?? 'Bank Account' }}</p>
+                        <p class="font-mono text-slate-600">A/C: {{ $sellerUser->account_number ?? '••••••••' }}</p>
+                        <p class="text-[11px] text-slate-500">Holder: {{ $sellerUser->account_holder_name ?? $sellerUser->name }}</p>
+                    </div>
+                @else
+                    <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
+                        <p class="font-bold"><i class="fas fa-triangle-exclamation mr-1"></i> No Bank / QR Linked</p>
+                        <p class="text-[11px] text-amber-700">Add your bank account, Banking QR, eSewa or Khalti details to receive automatic COD settlements.</p>
+                        <a href="{{ route('seller.settings') }}" class="inline-block mt-1 font-bold text-amber-900 underline text-[11px]">
+                            Set Payout Account &rarr;
+                        </a>
+                    </div>
+                @endif
+                <div class="text-[11px] text-slate-400">
+                    <i class="fas fa-lock text-[10px] text-emerald-600 mr-1"></i>
+                    <span>All COD collections settled directly to your verified account.</span>
                 </div>
             </div>
         </div>
