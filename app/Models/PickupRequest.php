@@ -50,6 +50,25 @@ class PickupRequest extends Model
         'estimated_weight_kg' => 'decimal:2',
         'actual_weight_kg' => 'decimal:2'
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($pickup) {
+            if (empty($pickup->tracking_number)) {
+                try {
+                    $pickup->tracking_number = app(\App\Services\TrackingNumberService::class)->tracking('domestic');
+                } catch (\Throwable $e) {
+                    $pickup->tracking_number = 'NPD-' . date('Y') . '-' . str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT) . '-0';
+                }
+            }
+        });
+
+        static::created(function ($pickup) {
+            if (empty($pickup->status_history)) {
+                app(\App\Services\AutomatedTrackingService::class)->recordPickupScheduled($pickup);
+            }
+        });
+    }
     
     /**
      * Get the seller who created this pickup request

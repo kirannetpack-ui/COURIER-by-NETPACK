@@ -329,6 +329,13 @@ class ShipmentController extends Controller
 
         $shipment->save();
 
+        // Automatically initialize booking milestone in tracking history
+        app(\App\Services\AutomatedTrackingService::class)->recordBookingPlaced(
+            $shipment,
+            $shipment->sender_city ?: 'Kathmandu Gateway',
+            Auth::user()
+        );
+
         return redirect()->route('tracking.show', $shipment->tracking_number)
             ->with('success', 'Shipment created successfully! Tracking number: ' . $shipment->tracking_number);
     }

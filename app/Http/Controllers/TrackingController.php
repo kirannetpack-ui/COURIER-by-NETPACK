@@ -5,15 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Shipment;
 use App\Models\DomesticShipment;
 use App\Models\Order;
+use App\Models\MAWB;
+use App\Models\PickupRequest;
 use App\Models\TrackingLocation;
 use App\Services\ShipmentScanService;
+use App\Services\AutomatedTrackingService;
+use App\Services\CarrierTrackingSyncService;
 use Illuminate\Http\Request;
 
 class TrackingController extends Controller
 {
-    public function __construct(private readonly ShipmentScanService $scanService)
-    {
-        $this->middleware('auth')->only(['getLiveLocation', 'getOrderLiveLocation', 'updateLocation', 'updateStatus']);
+    public function __construct(
+        private readonly ShipmentScanService $scanService,
+        private readonly AutomatedTrackingService $automatedTracking,
+        private readonly CarrierTrackingSyncService $carrierSyncService
+    ) {
+        $this->middleware('auth')->only(['getLiveLocation', 'getOrderLiveLocation', 'updateLocation', 'updateStatus', 'syncCarrier']);
     }
 
     /**
@@ -32,34 +39,59 @@ class TrackingController extends Controller
         $trackingNumber = $request->get('tracking');
         
         if ($trackingNumber) {
-            return redirect()->route('tracking.show', $trackingNumber);
+            return redirect()->route('tracking.show', trim($trackingNumber));
         }
         
         return redirect()->route('tracking.page');
     }
 
     /**
-     * Show tracking details for a shipment
+     * Show tracking details for a shipment (Universal Multi-Identifier Search)
      */
     public function show($trackingNumber)
     {
-        // 1. Try to find in Shipment table (by tracking_number OR hawb_number)
-        $trackingNumber = strtoupper(trim($trackingNumber));
-        $shipment = Shipment::where('tracking_number', $trackingNumber)
-            ->orWhere('hawb_number', $trackingNumber)
+        $rawNumber = trim($trackingNumber);
+        $trackingNumberUpper = strtoupper($rawNumber);
+        $cleanNumber = strtoupper(preg_replace('/[^A-Z0-9]/', '', $rawNumber));
+
+        // 1. Try to find in Shipment table (by tracking_number, hawb_number, or last_mile_tracking_number)
+        $shipment = Shipment::where('tracking_number', $trackingNumberUpper)
+            ->orWhere('hawb_number', $trackingNumberUpper)
+            ->orWhere('last_mile_tracking_number', $rawNumber)
+            ->orWhere('last_mile_tracking_number', $trackingNumberUpper)
+            ->orWhereRaw("REPLACE(REPLACE(tracking_number, '-', ''), ' ', '') = ?", [$cleanNumber])
+            ->orWhereRaw("REPLACE(REPLACE(hawb_number, '-', ''), ' ', '') = ?", [$cleanNumber])
+            ->with(['hub', 'currentAgency', 'lastMileCarrier', 'mawb'])
             ->first();
 
+        // 2. Check if entered code matches a Master Air Waybill (MAWB)
         if (!$shipment) {
-            // 2. Try domestic shipments
-            $domesticShipment = DomesticShipment::where('tracking_number', $trackingNumber)->first();
+            $mawb = MAWB::where('mawb_number', $rawNumber)
+                ->orWhere('mawb_number', $trackingNumberUpper)
+                ->first();
+            if ($mawb) {
+                $shipment = Shipment::where('mawb_id', $mawb->id)
+                    ->orWhere('mawb_number', $mawb->mawb_number)
+                    ->latest()
+                    ->with(['hub', 'currentAgency', 'lastMileCarrier', 'mawb'])
+                    ->first();
+            }
+        }
+
+        if (!$shipment) {
+            // 3. Try domestic shipments
+            $domesticShipment = DomesticShipment::where('tracking_number', $trackingNumberUpper)
+                ->orWhereRaw("REPLACE(REPLACE(tracking_number, '-', ''), ' ', '') = ?", [$cleanNumber])
+                ->with(['trackingEvents', 'domesticRate'])
+                ->first();
             if ($domesticShipment) {
                 return view('tracking.domestic', ['shipment' => $domesticShipment]);
             }
 
-            // 3. E-commerce and rider deliveries (by tracking_number OR order_number)
-            // exact rider coordinates are only exposed to authorized users.
-            $order = Order::where('tracking_number', $trackingNumber)
-                ->orWhere('order_number', $trackingNumber)
+            // 4. E-commerce and rider deliveries (by tracking_number OR order_number)
+            $order = Order::where('tracking_number', $trackingNumberUpper)
+                ->orWhere('order_number', $trackingNumberUpper)
+                ->orWhereRaw("REPLACE(REPLACE(tracking_number, '-', ''), ' ', '') = ?", [$cleanNumber])
                 ->with('rider')
                 ->first();
             if ($order) {
@@ -67,25 +99,162 @@ class TrackingController extends Controller
 
                 return view('tracking.order', compact('order', 'canViewLive'));
             }
-            
+
+            // 5. Pickup Request lookup
+            $pickup = PickupRequest::where('tracking_number', $trackingNumberUpper)
+                ->orWhere('order_reference', $rawNumber)
+                ->first();
+            if ($pickup) {
+                if ($pickup->order_id) {
+                    $order = Order::find($pickup->order_id);
+                    if ($order) {
+                        $canViewLive = $this->canViewOrderLiveLocation(request()->user(), $order);
+                        return view('tracking.order', compact('order', 'canViewLive'));
+                    }
+                }
+                return view('domestic.pickup.show', ['pickupRequest' => $pickup]);
+            }
+
             // Not found
-            return view('tracking.not-found', ['trackingNumber' => $trackingNumber]);
+            return view('tracking.not-found', ['trackingNumber' => $rawNumber]);
         }
 
-        // Add tracking history if empty
-        if (!$shipment->tracking_history) {
-            $shipment->tracking_history = [
-                [
-                    'status' => $shipment->status,
-                    'status_label' => $this->getStatusLabel($shipment->status),
-                    'description' => $this->getStatusDescription($shipment->status),
-                    'time' => $shipment->created_at->toDateTimeString(),
-                    'location' => $shipment->sender_city ?? 'Nepal',
-                ]
-            ];
+        // Auto-seed initial structured booking milestone if tracking history is empty
+        if (empty($shipment->tracking_history)) {
+            $this->automatedTracking->recordBookingPlaced($shipment);
+            $shipment->refresh();
         }
 
-        return view('tracking.public', compact('shipment'));
+        $routeCoordinates = $this->resolveFlightRouteCoordinates($shipment);
+
+        return view('tracking.public', compact('shipment', 'routeCoordinates'));
+    }
+
+    /**
+     * Subscribe customer/consignee for automated tracking milestone alerts (Email/SMS)
+     */
+    public function subscribe(Request $request)
+    {
+        $request->validate([
+            'tracking_number' => 'required|string',
+            'email' => 'nullable|email|required_without:phone',
+            'phone' => 'nullable|string|required_without:email|max:25',
+        ]);
+
+        $sub = $this->automatedTracking->subscribe(
+            $request->tracking_number,
+            $request->email,
+            $request->phone
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'You have successfully subscribed to automated tracking notifications.',
+                'data' => $sub,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'You have successfully subscribed to real-time milestone alerts for this consignment.');
+    }
+
+    /**
+     * Trigger on-demand sync with global last-mile delivery carrier
+     */
+    public function syncCarrier(Request $request, $shipmentId)
+    {
+        $shipment = Shipment::findOrFail($shipmentId);
+        $this->authorizeTrackingView($request->user(), $shipment);
+
+        $res = $this->carrierSyncService->syncShipment($shipment, $request->user());
+
+        if ($request->wantsJson()) {
+            return response()->json($res);
+        }
+
+        return redirect()->back()->with($res['success'] ? 'success' : 'error', $res['message']);
+    }
+
+    /**
+     * Resolve coordinate markers for interactive flight path and hub telemetry map
+     */
+    private function resolveFlightRouteCoordinates(Shipment $shipment): array
+    {
+        // Origin: Kathmandu Tribhuvan International Gateway (KTM)
+        $origin = [
+            'name' => 'Kathmandu Gateway (KTM)',
+            'city' => $shipment->sender_city ?: 'Kathmandu',
+            'country' => 'Nepal',
+            'iata' => 'KTM',
+            'lat' => 27.7172,
+            'lng' => 85.3240,
+        ];
+
+        // Known Global Hub Gateways
+        $hubDictionary = [
+            'DXB' => ['lat' => 25.2532, 'lng' => 55.3657, 'city' => 'Dubai', 'country' => 'UAE'],
+            'DOH' => ['lat' => 25.2731, 'lng' => 51.6081, 'city' => 'Doha', 'country' => 'Qatar'],
+            'LHR' => ['lat' => 51.4700, 'lng' => -0.4543, 'city' => 'London', 'country' => 'United Kingdom'],
+            'FRA' => ['lat' => 50.0379, 'lng' => 8.5622, 'city' => 'Frankfurt', 'country' => 'Germany'],
+            'JFK' => ['lat' => 40.6413, 'lng' => -73.7781, 'city' => 'New York', 'country' => 'USA'],
+            'ORD' => ['lat' => 41.9742, 'lng' => -87.9073, 'city' => 'Chicago', 'country' => 'USA'],
+            'SYD' => ['lat' => -33.9399, 'lng' => 151.1753, 'city' => 'Sydney', 'country' => 'Australia'],
+            'DEL' => ['lat' => 28.5562, 'lng' => 77.1000, 'city' => 'New Delhi', 'country' => 'India'],
+            'SIN' => ['lat' => 1.3644, 'lng' => 103.9915, 'city' => 'Singapore', 'country' => 'Singapore'],
+            'NRT' => ['lat' => 35.7720, 'lng' => 140.3929, 'city' => 'Tokyo', 'country' => 'Japan'],
+        ];
+
+        // Resolve Hub
+        $hubCode = strtoupper($shipment->hub?->hub_code ?? 'DXB');
+        $hubLat = (float) ($shipment->hub?->latitude ?? ($hubDictionary[$hubCode]['lat'] ?? 25.2532));
+        $hubLng = (float) ($shipment->hub?->longitude ?? ($hubDictionary[$hubCode]['lng'] ?? 55.3657));
+
+        $hub = [
+            'name' => $shipment->hub?->hub_name ?? "{$hubCode} Global Hub",
+            'city' => $shipment->hub?->city ?? ($hubDictionary[$hubCode]['city'] ?? 'Transit Hub'),
+            'country' => $shipment->hub?->country ?? ($hubDictionary[$hubCode]['country'] ?? 'Global Gateway'),
+            'iata' => $hubCode,
+            'lat' => $hubLat,
+            'lng' => $hubLng,
+        ];
+
+        // Resolve Destination Coordinates
+        $destCountry = strtoupper(trim($shipment->receiver_country ?? ''));
+        $countryCoordinates = [
+            'UNITED STATES' => ['lat' => 38.8951, 'lng' => -77.0364],
+            'USA' => ['lat' => 40.7128, 'lng' => -74.0060],
+            'US' => ['lat' => 40.7128, 'lng' => -74.0060],
+            'UNITED KINGDOM' => ['lat' => 51.5074, 'lng' => -0.1278],
+            'UK' => ['lat' => 51.5074, 'lng' => -0.1278],
+            'GB' => ['lat' => 51.5074, 'lng' => -0.1278],
+            'AUSTRALIA' => ['lat' => -33.8688, 'lng' => 151.2093],
+            'AU' => ['lat' => -33.8688, 'lng' => 151.2093],
+            'CANADA' => ['lat' => 43.6532, 'lng' => -79.3832],
+            'CA' => ['lat' => 43.6532, 'lng' => -79.3832],
+            'GERMANY' => ['lat' => 52.5200, 'lng' => 13.4050],
+            'FRANCE' => ['lat' => 48.8566, 'lng' => 2.3522],
+            'JAPAN' => ['lat' => 35.6762, 'lng' => 139.6503],
+            'UNITED ARAB EMIRATES' => ['lat' => 25.2048, 'lng' => 55.2708],
+            'UAE' => ['lat' => 25.2048, 'lng' => 55.2708],
+            'INDIA' => ['lat' => 28.6139, 'lng' => 77.2090],
+        ];
+
+        $destLat = (float) ($shipment->receiver_lat ?? ($countryCoordinates[$destCountry]['lat'] ?? 40.7128));
+        $destLng = (float) ($shipment->receiver_lng ?? ($countryCoordinates[$destCountry]['lng'] ?? -74.0060));
+
+        $destination = [
+            'name' => $shipment->receiver_city ?: 'Destination City',
+            'city' => $shipment->receiver_city ?: 'Destination',
+            'country' => $shipment->receiver_country ?: 'Destination Port',
+            'lat' => $destLat,
+            'lng' => $destLng,
+        ];
+
+        return [
+            'origin' => $origin,
+            'hub' => $hub,
+            'destination' => $destination,
+        ];
     }
 
     /**

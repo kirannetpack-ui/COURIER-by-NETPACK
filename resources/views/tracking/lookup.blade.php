@@ -1,31 +1,31 @@
 @extends('layouts.public')
 
-@section('title', 'Track Shipment & Air Waybill - COURIER with NETPACK')
+@section('title', 'Universal Cargo & Parcel Tracking - COURIER with NETPACK')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-8">
     <!-- Header Hero Card -->
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-800 p-8 md:p-12 text-white shadow-2xl">
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-900 p-8 md:p-12 text-white shadow-2xl border border-teal-800/40">
         <div class="relative z-10 max-w-2xl mx-auto text-center space-y-4">
             <span class="inline-flex items-center gap-2 rounded-full bg-teal-500/20 px-4 py-1.5 text-xs font-semibold text-teal-300 backdrop-blur border border-teal-400/30">
-                <i class="fas fa-satellite-dish"></i> Live Logistics Intelligence · Nepal to Worldwide
+                <i class="fas fa-satellite-dish"></i> World-Class Automated Tracking &middot; International & Domestic
             </span>
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
-                Track & Trace Your Shipment
+                Track & Trace Any Consignment
             </h1>
             <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Enter your Tracking Number, regional House Air Waybill (HAWB), or E-Commerce Order ID for real-time milestone tracking.
+                Universal search across NETPACK Tracking Numbers, Regional HAWBs, Airline MAWBs, Global Delivery Carriers, Domestic Shipments, and Scheduled Pickups.
             </p>
 
-            <!-- Search Form -->
-            <form method="GET" action="{{ route('tracking.search') }}" class="pt-4 max-w-xl mx-auto" id="trackingForm">
+            <!-- Universal Search Form -->
+            <form method="GET" action="{{ route('tracking.search') }}" class="pt-4 max-w-xl mx-auto" id="trackingForm" onsubmit="saveSearchHistory()">
                 <div class="relative flex flex-col sm:flex-row gap-2 bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-inner">
                     <div class="relative flex-1">
                         <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-teal-300">
                             <i class="fas fa-barcode text-lg"></i>
                         </span>
                         <input type="text" name="tracking" id="trackingInput"
-                               placeholder="e.g. NPI-2026-000001-4 or USNP-2026-001"
+                               placeholder="e.g. NPI-2026-000001-4, USNP-2026-001, or 176-12345678"
                                class="w-full pl-11 pr-4 py-3.5 bg-white text-slate-900 font-mono font-semibold rounded-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 uppercase text-sm md:text-base tracking-wide"
                                required
                                autocomplete="off"
@@ -55,85 +55,91 @@
                     NPE-2026-000001-6 (Ecom)
                 </button>
             </div>
+
+            <!-- Recent Searches Section (Loaded from LocalStorage) -->
+            <div id="recentSearchesContainer" class="pt-3 hidden">
+                <span class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Recent Inquiries:</span>
+                <div id="recentSearchesList" class="flex flex-wrap items-center justify-center gap-1.5 mt-1.5"></div>
+            </div>
         </div>
 
-        <!-- Background Ambient Glow -->
+        <!-- Ambient Glow -->
         <div class="absolute -bottom-16 -right-16 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -top-16 -left-16 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
     </div>
 
-    <!-- 3 Core Services Info Cards -->
+    <!-- 4 Supported Multi-Identifier Columns -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- International -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="h-10 w-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg">
+        <!-- International Service -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="h-10 w-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg shrink-0">
                     <i class="fas fa-plane-departure"></i>
                 </span>
                 <div>
-                    <h3 class="font-bold text-slate-900">International Air Cargo</h3>
-                    <p class="text-xs text-slate-500">Air Waybill Tracking</p>
+                    <h3 class="font-bold text-slate-900 text-sm">International Hub & Agency</h3>
+                    <p class="text-xs text-slate-500">IATA Air Freight & HAWB</p>
                 </div>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                Track global air freight and express courier dispatches from Nepal to USA, UK, Europe, Australia, and 50+ countries with automated HAWB records and customs clearance status.
+                Automated multi-stage tracking from Tribhuvan Airport (KTM) through overseas transit hubs (DXB, LHR, FRA, JFK) with live customs clearance and FedEx/DHL last-mile synchronization.
             </p>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-700">
-                <span>Format: NPI-... / HAWB</span>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-700 font-mono">
+                <span>NPI-... / HAWB / MAWB</span>
                 <i class="fas fa-arrow-right"></i>
             </div>
         </div>
 
-        <!-- Domestic -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="h-10 w-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg">
+        <!-- Domestic Service -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="h-10 w-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shrink-0">
                     <i class="fas fa-truck-fast"></i>
                 </span>
                 <div>
-                    <h3 class="font-bold text-slate-900">Domestic Express</h3>
+                    <h3 class="font-bold text-slate-900 text-sm">Domestic Express Fleet</h3>
                     <p class="text-xs text-slate-500">All 7 Provinces & 77 Districts</p>
                 </div>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                Real-time visibility across Flash, Same-Day Kathmandu Valley delivery, Standard inter-city transport, and remote Himalayan district deliveries with verified proof of delivery.
+                Automated highway fleet tracking, bag dispatch scans between Nepal district sorting hubs, ward-level rider allocation, and verified digital proof of delivery.
             </p>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-teal-700">
-                <span>Format: NPD-YYYY-XXXXXX-C</span>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-teal-700 font-mono">
+                <span>NPD-YYYY-XXXXXX-C</span>
                 <i class="fas fa-arrow-right"></i>
             </div>
         </div>
 
-        <!-- E-Commerce -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
-                    <i class="fas fa-motorcycle"></i>
+        <!-- Pickups & E-Commerce -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:border-teal-500/40 hover:shadow-md transition space-y-3">
+            <div class="flex items-center gap-3">
+                <span class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shrink-0">
+                    <i class="fas fa-box-check"></i>
                 </span>
                 <div>
-                    <h3 class="font-bold text-slate-900">E-Commerce & Riders</h3>
-                    <p class="text-xs text-slate-500">Last-Mile Fulfillment & COD</p>
+                    <h3 class="font-bold text-slate-900 text-sm">Pickups & E-Commerce</h3>
+                    <p class="text-xs text-slate-500">Live Collection & Courier Dispatch</p>
                 </div>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                Uber-style real-time rider GPS tracking for active parcels, milestone steppers, instant Cash on Delivery (COD) accounting, and verified delivery confirmations.
+                Automated tracking from scheduled pickup window, courier dispatch, physical sender collection, sorting depot intake, and live rider GPS delivery.
             </p>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-indigo-700">
-                <span>Format: NPE-... / ORD-...</span>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-indigo-700 font-mono">
+                <span>NPE-... / PICKUP-...</span>
                 <i class="fas fa-arrow-right"></i>
             </div>
         </div>
     </div>
 
     <!-- Security & Privacy Guarantee -->
-    <div class="bg-slate-100 rounded-2xl p-6 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row items-center gap-4">
-        <span class="h-10 w-10 shrink-0 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-lg">
+    <div class="bg-slate-100 rounded-3xl p-6 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row items-center gap-4">
+        <span class="h-10 w-10 shrink-0 rounded-2xl bg-slate-200 text-slate-700 flex items-center justify-center text-lg">
             <i class="fas fa-shield-halved"></i>
         </span>
         <div class="space-y-1">
-            <p class="font-bold text-slate-800">Privacy-First Tracking Protection</p>
+            <p class="font-bold text-slate-800">Privacy-Safe Enterprise Telemetry</p>
             <p class="leading-relaxed">
-                In compliance with strict data protection guidelines, public tracking displays verified operational milestones, departure hubs, and destination cities without exposing sender/receiver telephone numbers, full personal street addresses, or private financial records.
+                In compliance with international data privacy laws, public tracking displays verified operational milestones, departure hubs, airline flight corridors, and destination cities without exposing private telephone numbers, full personal street addresses, or private invoices.
             </p>
         </div>
     </div>
@@ -146,6 +152,37 @@ function fillTracking(number) {
     input.value = number;
     input.focus();
 }
+
+function saveSearchHistory() {
+    const val = document.getElementById('trackingInput').value.trim();
+    if (!val) return;
+    try {
+        let recents = JSON.parse(localStorage.getItem('netpack_recent_tracks') || '[]');
+        recents = recents.filter(x => x.toUpperCase() !== val.toUpperCase());
+        recents.unshift(val.toUpperCase());
+        if (recents.length > 5) recents.pop();
+        localStorage.setItem('netpack_recent_tracks', JSON.stringify(recents));
+    } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const recents = JSON.parse(localStorage.getItem('netpack_recent_tracks') || '[]');
+        if (recents.length > 0) {
+            const container = document.getElementById('recentSearchesContainer');
+            const list = document.getElementById('recentSearchesList');
+            recents.forEach(num => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-2.5 py-0.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 font-mono text-[11px] border border-teal-500/30 transition';
+                btn.textContent = num;
+                btn.onclick = () => fillTracking(num);
+                list.appendChild(btn);
+            });
+            container.classList.remove('hidden');
+        }
+    } catch(e) {}
+});
 </script>
 @endpush
 @endsection

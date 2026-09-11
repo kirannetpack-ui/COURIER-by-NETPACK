@@ -117,6 +117,8 @@ class MAWBController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        $previousStatus = $mawb->status;
+
         $mawb->update([
             'mawb_number' => trim($validated['mawb_number']),
             'airline_name' => $validated['airline_name'],
@@ -130,8 +132,21 @@ class MAWBController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
+        // Automated Tracking Cascade to all attached consignments
+        $cascadeInfo = '';
+        if ($validated['status'] !== $previousStatus && in_array($validated['status'], ['in_transit', 'cleared', 'completed'])) {
+            $cascadeRes = app(\App\Services\AutomatedTrackingService::class)->cascadeMawbMilestone(
+                $mawb,
+                $validated['status'],
+                null,
+                $validated['notes'] ?? null,
+                Auth::user()
+            );
+            $cascadeInfo = " Automatically cascaded milestone to {$cascadeRes['updated_count']} consignments.";
+        }
+
         return redirect()->route('international.mawbs.index')
-            ->with('success', "MAWB #{$mawb->mawb_number} updated successfully.");
+            ->with('success', "MAWB #{$mawb->mawb_number} updated successfully.{$cascadeInfo}");
     }
 
     public function destroy($id)

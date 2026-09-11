@@ -830,6 +830,19 @@ public function showUploadForm($shipmentId)
             };
             $bag->update(['status' => $status, 'current_location' => $location]);
             $bag->manifest->addTrackingLog($status, "Bag {$bag->bag_number} scanned ({$status}) at {$location}.", $location, $bag->id);
+
+            // Automated tracking cascade to enclosed shipments
+            try {
+                $domesticRouteService = app(\App\Services\DomesticRouteAutomationService::class);
+                if ($request->action === 'arrival') {
+                    $domesticRouteService->handleBagReceived($bag, $bag->manifest, $location, $request->user());
+                } elseif ($request->action === 'dispatch') {
+                    $domesticRouteService->handleBagDispatched($bag, $bag->manifest, null, $request->user());
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Bag scan domestic cascade error: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'type' => 'bag',
@@ -855,10 +868,35 @@ public function showUploadForm($shipmentId)
                     'dispatch' => 'out_for_delivery',
                     'delivery' => 'delivered',
                 ];
-                $domShipment->update([
-                    'status' => $statusMap[$request->action],
-                    'current_location' => $location,
-                ]);
+                $newStatus = $statusMap[$request->action];
+                $domRouteService = app(\App\Services\DomesticRouteAutomationService::class);
+
+                if ($request->action === 'dispatch') {
+                    $domRouteService->handleRiderOutForDelivery($domShipment, $request->user(), $location);
+                } elseif ($request->action === 'delivery') {
+                    $domRouteService->handleDeliveryCompleted($domShipment, null, null, $request->user());
+                } else {
+                    $domShipment->update([
+                        'status' => $newStatus,
+                    ]);
+                    $domShipment->trackingEvents()->create([
+                        'status' => $newStatus,
+                        'location' => $location,
+                        'description' => "Consignment arrived and processed at {$location} by {$operatorName}.",
+                        'event_time' => now(),
+                    ]);
+                    $history = $domShipment->tracking_history ?? [];
+                    $history[] = [
+                        'event_code' => $newStatus,
+                        'status' => $newStatus,
+                        'status_label' => \App\Models\DomesticShipment::STATUS_LABELS[$newStatus] ?? ucfirst($newStatus),
+                        'description' => "Consignment arrived and processed at {$location} by {$operatorName}.",
+                        'location' => $location,
+                        'time' => now()->toIso8601String(),
+                    ];
+                    $domShipment->update(['tracking_history' => $history]);
+                }
+
                 return response()->json([
                     'success' => true,
                     'type' => 'shipment',

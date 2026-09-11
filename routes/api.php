@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CarrierWebhookController;
+use App\Http\Controllers\Api\PublicTrackingApiController;
 use App\Http\Controllers\Api\RateCalculationController;
 use App\Http\Controllers\Api\SurchargeCheckController;
 use App\Http\Controllers\Api\SystemHealthController;
@@ -24,6 +26,15 @@ Route::get('/health', [SystemHealthController::class, 'health'])
 Route::get('/readiness', [SystemHealthController::class, 'readiness'])
     ->middleware('throttle:30,1')
     ->name('api.readiness');
+
+// Public Privacy-Safe Tracking API
+Route::get('/v1/track/{trackingNumber}', [PublicTrackingApiController::class, 'track'])
+    ->middleware('throttle:60,1')
+    ->name('api.v1.track');
+
+// Global Last-Mile Carrier Tracking Webhooks
+Route::post('/webhooks/carrier-tracking/{carrier}', [CarrierWebhookController::class, 'handle'])
+    ->name('api.webhooks.carrier');
 
 Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');

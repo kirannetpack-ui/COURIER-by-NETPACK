@@ -187,21 +187,78 @@ class HAWBController extends Controller
     }
 
 
-/**
- * Show HAWB in print popup
- */
-public function printPopup($id, $type = 'international')
-{
-    $shipment = $this->findShipment($id, $type);
-    abort_unless($this->canView(auth()->user(), $shipment), 403);
-    $qrCode = $this->generateQRCode($shipment->tracking_number);
+    /**
+     * Show HAWB in print popup
+     */
+    public function printPopup($id, $type = 'international')
+    {
+        $shipment = $this->findShipment($id, $type);
+        if (auth()->check()) {
+            abort_unless($this->canView(auth()->user(), $shipment), 403);
+        }
+        $qrCode = $this->generateQRCode($shipment->tracking_number);
 
-    if ($shipment instanceof DomesticShipment || ($shipment instanceof Shipment && $shipment->shipment_type === 'domestic')) {
-        $type = 'domestic';
+        if ($shipment instanceof DomesticShipment || ($shipment instanceof Shipment && $shipment->shipment_type === 'domestic')) {
+            $type = 'domestic';
+        }
+
+        return view('hawb.print-popup', compact('shipment', 'qrCode', 'type'));
     }
 
-    return view('hawb.print-popup', compact('shipment', 'qrCode', 'type'));
-}
+    /**
+     * Universal Public HAWB View & Print for Tracking Shipments
+     */
+    public function publicPrint(string $identifier, Request $request)
+    {
+        [$shipment, $type] = $this->findByTracking($identifier);
+
+        if (!$shipment) {
+            abort(404, "Consignment with tracking or HAWB number '{$identifier}' was not found.");
+        }
+
+        // Auto-assign regional HAWB number if empty on international consignment
+        if ($shipment instanceof Shipment && empty($shipment->hawb_number) && $shipment->shipment_type !== 'domestic') {
+            try {
+                $shipment->hawb_number = app(\App\Services\TrackingNumberService::class)->internationalHawb($shipment->receiver_country);
+                $shipment->saveQuietly();
+            } catch (\Throwable $e) {
+                // Ignore silent generation failure
+            }
+        }
+
+        $isDomestic = $type === 'domestic'
+            || ($shipment instanceof DomesticShipment)
+            || ($shipment instanceof Shipment && $shipment->shipment_type === 'domestic');
+
+        $qrCode = $this->generateQRCode($shipment->tracking_number);
+
+        // Single-slip popup format if requested
+        if ($request->query('format') === 'popup') {
+            $type = $isDomestic ? 'domestic' : 'international';
+            return view('hawb.print-popup', compact('shipment', 'qrCode', 'type'));
+        }
+
+        return $isDomestic
+            ? view('hawb.domestic', compact('shipment', 'qrCode'))
+            : view('hawb.international', compact('shipment', 'qrCode'));
+    }
+
+    /**
+     * Public Single-Slip HAWB Print Format
+     */
+    public function publicPrintPopup(string $identifier, Request $request)
+    {
+        $request->merge(['format' => 'popup']);
+        return $this->publicPrint($identifier, $request);
+    }
+
+    /**
+     * Public HAWB Download
+     */
+    public function publicDownload(string $identifier, Request $request)
+    {
+        return $this->publicPrint($identifier, $request);
+    }
 
     private function findShipment($id, string &$type = 'international')
     {
@@ -242,20 +299,52 @@ public function printPopup($id, $type = 'international')
     private function findByTracking(string $trackingNumber): array
     {
         $trackingNumber = trim($trackingNumber);
-        $shipment = Shipment::where('tracking_number', $trackingNumber)
+
+        // 1. Direct Shipment lookup (by tracking, HAWB, or last-mile carrier)
+        $shipment = Shipment::with(['customer', 'seller', 'rider', 'overseasPartner'])
+            ->where('tracking_number', $trackingNumber)
             ->orWhere('hawb_number', $trackingNumber)
+            ->orWhere('last_mile_tracking_number', $trackingNumber)
             ->first();
+
         if ($shipment) {
-            return [$shipment, 'international'];
+            $type = $shipment->shipment_type === 'domestic' ? 'domestic' : 'international';
+            return [$shipment, $type];
         }
 
-        $shipment = DomesticShipment::where('tracking_number', $trackingNumber)->first();
+        // 2. DomesticShipment lookup
+        $domestic = DomesticShipment::with(['client', 'partner'])
+            ->where('tracking_number', $trackingNumber)
+            ->first();
 
-        return [$shipment, $shipment ? 'domestic' : null];
+        if ($domestic) {
+            return [$domestic, 'domestic'];
+        }
+
+        // 3. Fallback: Lookup by numeric ID
+        if (ctype_digit($trackingNumber)) {
+            $shipment = Shipment::with(['customer', 'seller', 'rider', 'overseasPartner'])->find($trackingNumber);
+            if ($shipment) {
+                $type = $shipment->shipment_type === 'domestic' ? 'domestic' : 'international';
+                return [$shipment, $type];
+            }
+
+            $domestic = DomesticShipment::with(['client', 'partner'])->find($trackingNumber);
+            if ($domestic) {
+                return [$domestic, 'domestic'];
+            }
+        }
+
+        return [null, null];
     }
 
     private function canView(?User $user, $shipment): bool
     {
+        // Public tracking routes and public print views are globally accessible
+        if (request()->routeIs('tracking.hawb.*') || request()->has('public')) {
+            return true;
+        }
+
         if (!$user) {
             return false;
         }

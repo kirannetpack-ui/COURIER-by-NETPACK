@@ -178,6 +178,11 @@ Route::get('/track/search', function (Request $request) {
 
 Route::get('/track/{trackingNumber}', [TrackingController::class, 'show'])->name('tracking.show');
 Route::get('/tracking/{tracking_number}', [TrackingController::class, 'show'])->name('tracking.public');
+Route::get('/tracking/{tracking_number}/hawb', [HAWBController::class, 'publicPrint'])->name('tracking.hawb.print');
+Route::get('/tracking/{tracking_number}/hawb/print', [HAWBController::class, 'publicPrintPopup'])->name('tracking.hawb.popup');
+Route::get('/tracking/{tracking_number}/hawb/download', [HAWBController::class, 'publicDownload'])->name('tracking.hawb.download');
+Route::post('/track/subscribe', [TrackingController::class, 'subscribe'])->name('tracking.subscribe');
+Route::post('/tracking/sync-carrier/{shipment}', [TrackingController::class, 'syncCarrier'])->name('tracking.sync-carrier');
 
 // =============================================
 // RATE INQUIRY & TARIFF CALCULATOR (Public & Clients)
