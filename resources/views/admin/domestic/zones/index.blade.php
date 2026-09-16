@@ -51,14 +51,14 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-4">
-                                    @if($zone->is_active)
-                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Active</span>
-                                    @else
-                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Inactive</span>
-                                    @endif
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium {{ $zone->approval_status === 'approved' ? 'bg-green-100 text-green-800' : ($zone->approval_status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800') }}">{{ ucfirst($zone->approval_status ?? ($zone->is_active ? 'approved' : 'pending')) }}</span>
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex gap-2">
+                                        @if($zone->approval_status === 'pending')
+                                            <form method="POST" action="{{ route('admin.domestic.zones.approve', $zone) }}">@csrf<button title="Approve" class="text-green-700"><i class="fas fa-check"></i></button></form>
+                                            <form method="POST" action="{{ route('admin.domestic.zones.reject', $zone) }}" class="flex gap-1">@csrf<input name="rejection_reason" minlength="5" required placeholder="Reason" class="w-28 rounded border-gray-300 text-xs"><button title="Reject" class="text-red-700"><i class="fas fa-ban"></i></button></form>
+                                        @endif
                                         <a href="{{ route('admin.domestic.zones.edit', $zone->id) }}" class="text-teal-600 hover:text-teal-800">
                                             <i class="fas fa-edit"></i>
                                         </a>

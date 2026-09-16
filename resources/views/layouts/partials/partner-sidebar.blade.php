@@ -110,13 +110,15 @@
         <!-- ============================================== -->
         <div class="pt-2">
             <p class="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest px-3 mb-1">Coverage & Rates</p>
+
+            <a href="{{ route('partner.shipment-legs.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.shipment-legs*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"><i class="fas fa-route w-4 text-center text-amber-300"></i><span>Assigned Route Legs</span></a>
             
             <!-- Delivery Zones -->
             <a href="{{ route('partner.zones.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('partner.zones*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fas fa-map-location-dot w-4 text-center text-blue-400"></i>
                 <span>Delivery Zones</span>
                 @php
-                    $zoneCount = \App\Models\DeliveryZone::where('partner_id', auth()->id())->count();
+                    $zoneCount = \App\Models\DeliveryZone::where('partner_user_id', auth()->id())->count();
                 @endphp
                 @if($zoneCount > 0)
                     <span class="ml-auto bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-mono px-1.5 py-0.5 rounded">

@@ -13,6 +13,7 @@ class DomesticShipment extends Model
         'tracking_number',
         'client_id',
         'partner_id',
+        'partner_user_id',
         'domestic_rate_id',
         'sender_name',
         'sender_email',
@@ -132,7 +133,12 @@ class DomesticShipment extends Model
 
     public function partner()
     {
-        return $this->belongsTo(User::class, 'partner_id');
+        return $this->belongsTo(User::class, 'partner_user_id');
+    }
+
+    public function legacyPartner()
+    {
+        return $this->belongsTo(DomesticPartner::class, 'partner_id');
     }
 
     public function domesticRate()

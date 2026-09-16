@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DomesticPickupController as AdminDomesticPickupCo
 // MAIN CONTROLLERS
 // =============================================
 use App\Http\Controllers\Admin\DomesticRateController;
+use App\Http\Controllers\Admin\DomesticPartnerAssignmentController;
 use App\Http\Controllers\Admin\DomesticShipmentController;
 use App\Http\Controllers\Admin\LogisticsServiceController;
 use App\Http\Controllers\Admin\OverseasPartnerController;
@@ -74,6 +75,8 @@ use App\Http\Controllers\Overseas\TransitPointController;
 use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
 use App\Http\Controllers\Partner\DeliveryController as PartnerDeliveryController;
 use App\Http\Controllers\Partner\RateController as PartnerRateController;
+use App\Http\Controllers\Partner\DomesticRateSubmissionController;
+use App\Http\Controllers\Partner\ShipmentLegController;
 use App\Http\Controllers\Partner\ScanController as PartnerScanController;
 use App\Http\Controllers\Partner\StaffController as PartnerStaffController;
 use App\Http\Controllers\Partner\ZoneController as PartnerZoneController;
@@ -115,6 +118,7 @@ use App\Http\Controllers\Domestic\EcommerceRiderController;
 use App\Http\Controllers\Rider\RiderDeliveryDeskController;
 use App\Http\Controllers\Seller\EcommerceBookingController;
 use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\DomesticQuoteController;
 use App\Http\Controllers\TrackingController;
 // =============================================
 // INTERNATIONAL CONTROLLERS
@@ -197,6 +201,7 @@ Route::post('/rates/calculate', [RateInquiryController::class, 'calculate'])->na
 // AUTH PROTECTED ROUTES
 // =============================================
 Route::middleware(['auth'])->group(function () {
+    Route::post('/domestic/quote', [DomesticQuoteController::class, 'store'])->name('domestic.quote');
 
     // =============================================
     // PROFILE ROUTES
@@ -403,13 +408,22 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/rates', [DomesticRateController::class, 'store'])->name('rates.store');
         Route::get('/rates/{id}/edit', [DomesticRateController::class, 'edit'])->name('rates.edit');
         Route::put('/rates/{id}', [DomesticRateController::class, 'update'])->name('rates.update');
+        Route::post('/rates/{rate}/approve', [DomesticRateController::class, 'approve'])->name('rates.approve');
+        Route::post('/rates/{rate}/reject', [DomesticRateController::class, 'reject'])->name('rates.reject');
         Route::delete('/rates/{id}', [DomesticRateController::class, 'destroy'])->name('rates.destroy');
+
+        Route::get('/assignments', [DomesticPartnerAssignmentController::class, 'index'])->name('assignments');
+        Route::post('/assignments', [DomesticPartnerAssignmentController::class, 'store'])->name('assignments.store');
+        Route::put('/assignments/{assignment}', [DomesticPartnerAssignmentController::class, 'update'])->name('assignments.update');
+        Route::delete('/assignments/{assignment}', [DomesticPartnerAssignmentController::class, 'destroy'])->name('assignments.destroy');
 
         Route::get('/zones', [DeliveryZoneController::class, 'index'])->name('zones');
         Route::get('/zones/create', [DeliveryZoneController::class, 'create'])->name('zones.create');
         Route::post('/zones', [DeliveryZoneController::class, 'store'])->name('zones.store');
         Route::get('/zones/{id}/edit', [DeliveryZoneController::class, 'edit'])->name('zones.edit');
         Route::put('/zones/{id}', [DeliveryZoneController::class, 'update'])->name('zones.update');
+        Route::post('/zones/{zone}/approve', [DeliveryZoneController::class, 'approve'])->name('zones.approve');
+        Route::post('/zones/{zone}/reject', [DeliveryZoneController::class, 'reject'])->name('zones.reject');
         Route::delete('/zones/{id}', [DeliveryZoneController::class, 'destroy'])->name('zones.destroy');
 
         Route::get('/shipments', [DomesticShipmentController::class, 'index'])->name('shipments');
@@ -776,9 +790,16 @@ Route::prefix('partner')->name('partner.')->middleware(['auth', 'role:partner'])
     Route::resource('/zones', PartnerZoneController::class);
 
     // Rates
-    Route::get('/rates', [PartnerRateController::class, 'index'])->name('rates.index');
-    Route::get('/rates/{id}/edit', [PartnerRateController::class, 'edit'])->name('rates.edit');
-    Route::put('/rates/{id}', [PartnerRateController::class, 'update'])->name('rates.update');
+    Route::get('/rates', [DomesticRateSubmissionController::class, 'index'])->name('rates.index');
+    Route::get('/rates/create', [DomesticRateSubmissionController::class, 'create'])->name('rates.create');
+    Route::post('/rates', [DomesticRateSubmissionController::class, 'store'])->name('rates.store');
+    Route::get('/rates/{id}/edit', [DomesticRateSubmissionController::class, 'edit'])->name('rates.edit');
+    Route::put('/rates/{id}', [DomesticRateSubmissionController::class, 'update'])->name('rates.update');
+
+    Route::get('/shipment-legs', [ShipmentLegController::class, 'index'])->name('shipment-legs.index');
+    Route::patch('/shipment-legs/{leg}/status', [ShipmentLegController::class, 'updateStatus'])->name('shipment-legs.status');
+    Route::get('/shipment-legs/{leg}/alternatives', [ShipmentLegController::class, 'alternatives'])->name('shipment-legs.alternatives');
+    Route::post('/shipment-legs/{leg}/reassign', [ShipmentLegController::class, 'reassign'])->name('shipment-legs.reassign');
 
     // Scan
     Route::get('/scan', [PartnerScanController::class, 'scan'])->name('scan');

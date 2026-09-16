@@ -556,6 +556,10 @@ private function authorizeTrackingView($user, Shipment $shipment): void
         return;
     }
 
+    if ($this->isPartnerAssociated($user, $shipment)) {
+        return;
+    }
+
     abort(403, 'You are not authorized to view this live location.');
 }
 
@@ -596,8 +600,12 @@ private function authorizeLocationUpdate($user, Shipment $shipment): void
 
 private function isPartnerAssociated($user, Shipment $shipment): bool
 {
-    return $user->user_type === 'overseas'
-        && (int) $shipment->overseas_partner_id === (int) $user->id;
+    if ($user->user_type === 'overseas') {
+        return (int) $shipment->overseas_partner_id === (int) $user->id;
+    }
+
+    return $user->user_type === 'partner'
+        && $shipment->legs()->where('partner_id', $user->id)->exists();
 }
 
 }

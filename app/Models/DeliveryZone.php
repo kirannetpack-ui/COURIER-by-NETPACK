@@ -11,16 +11,25 @@ class DeliveryZone extends Model
 
     protected $fillable = [
         'partner_id',
+        'partner_user_id',
         'admin_id',
         'zone_name',
         'zone_code',
         'zone_type',
+        'province',
+        'district',
         'districts',
         'municipalities',
         'wards',
         'postal_codes',
         'description',
         'is_active',
+        'approval_status',
+        'approved_at',
+        'rejection_reason',
+        'approval_status',
+        'approved_at',
+        'rejection_reason',
         // Rate fields for each service
         'flash_base_rate',
         'flash_per_kg_rate',
@@ -45,6 +54,8 @@ class DeliveryZone extends Model
         'wards' => 'array',
         'postal_codes' => 'array',
         'is_active' => 'boolean',
+        'approved_at' => 'datetime',
+        'approved_at' => 'datetime',
         'flash_base_rate' => 'decimal:2',
         'flash_per_kg_rate' => 'decimal:2',
         'same_day_base_rate' => 'decimal:2',
@@ -61,7 +72,12 @@ class DeliveryZone extends Model
      */
     public function partner()
     {
-        return $this->belongsTo(User::class, 'partner_id');
+        return $this->belongsTo(User::class, 'partner_user_id');
+    }
+
+    public function legacyPartner()
+    {
+        return $this->belongsTo(DomesticPartner::class, 'partner_id');
     }
 
 /**
@@ -77,7 +93,7 @@ public function admin()
  */
 public function scopePartnerZones($query, $partnerId)
 {
-    return $query->where('partner_id', $partnerId);
+    return $query->where('partner_user_id', $partnerId);
 }
 
 /**
@@ -168,119 +184,5 @@ public function scopeAdminZones($query)
     {
         return $query->where('zone_type', $type);
     }
-
-/**
- * Boot the model
- */
-protected static function booted()
-{
-    static::updated(function ($zone) {
-        // Check if rates were changed
-        $rateFields = [
-            'flash_base_rate', 'flash_per_kg_rate', 'flash_estimated_hours',
-            'same_day_base_rate', 'same_day_per_kg_rate', 'same_day_estimated_hours',
-            'standard_base_rate', 'standard_per_kg_rate', 'standard_estimated_hours',
-            'himalayan_base_rate', 'himalayan_per_kg_rate', 'himalayan_estimated_hours',
-        ];
-        
-        $changes = [];
-        foreach ($rateFields as $field) {
-            if ($zone->isDirty($field)) {
-                $changes[$field] = [
-                    'old' => $zone->getOriginal($field),
-                    'new' => $zone->$field
-                ];
-            }
-        }
-        
-        if (!empty($changes)) {
-            $zone->notifyAdminAboutRateChange($changes);
-        }
-    });
-}
-
-/**
- * Notify admins about rate changes
- */
-public function notifyAdminAboutRateChange($changes)
-{
-    $admins = \App\Models\User::whereIn('user_type', ['admin', 'super_admin', 'domestic_admin'])->get();
-    
-    $partner = $this->partner;
-    $message = "📋 RATE CHANGE NOTIFICATION\n\n";
-    $message .= "Partner: {$partner->name} ({$partner->email})\n";
-    $message .= "Zone: {$this->zone_name}\n";
-    $message .= "Zone Code: {$this->zone_code}\n\n";
-    $message .= "Changes made:\n";
-    
-    $fieldLabels = [
-        'flash_base_rate' => 'Flash Base Rate',
-        'flash_per_kg_rate' => 'Flash Per KG Rate',
-        'flash_estimated_hours' => 'Flash Estimated Hours',
-        'same_day_base_rate' => 'Same Day Base Rate',
-        'same_day_per_kg_rate' => 'Same Day Per KG Rate',
-        'same_day_estimated_hours' => 'Same Day Estimated Hours',
-        'standard_base_rate' => 'Standard Base Rate',
-        'standard_per_kg_rate' => 'Standard Per KG Rate',
-        'standard_estimated_hours' => 'Standard Estimated Hours',
-        'himalayan_base_rate' => 'Himalayan Base Rate',
-        'himalayan_per_kg_rate' => 'Himalayan Per KG Rate',
-        'himalayan_estimated_hours' => 'Himalayan Estimated Hours',
-    ];
-    
-    foreach ($changes as $field => $values) {
-        $label = $fieldLabels[$field] ?? $field;
-        $oldValue = $values['old'] ?? 'N/A';
-        $newValue = $values['new'] ?? 'N/A';
-        $message .= "  • {$label}: {$oldValue} → {$newValue}\n";
-    }
-    
-    $message .= "\nReviewed at: " . now()->format('Y-m-d H:i:s');
-    
-    // Log the notification
-    foreach ($admins as $admin) {
-        \App\Models\ReminderLog::create([
-            'pickup_request_id' => null,
-            'reminder_id' => null,
-            'reminder_type' => 'admin_alert',
-            'sent_to' => $admin->email,
-            'message' => $message,
-            'channel' => 'email',
-            'status' => 'sent',
-            'sent_at' => now(),
-            'metadata' => [
-                'zone_id' => $this->id,
-                'partner_id' => $this->partner_id,
-                'changes' => $changes,
-            ]
-        ]);
-    }
-    
-    // Also send email notification
-    $this->sendRateChangeEmail($admins, $message);
-}
-
-/**
- * Send rate change email to admins
- */
-private function sendRateChangeEmail($admins, $message)
-{
-    try {
-        foreach ($admins as $admin) {
-            // You can implement actual email sending here
-            // Mail::to($admin->email)->send(new RateChangeNotification($message));
-            Log::info('Rate change notification sent to admin', [
-                'admin_email' => $admin->email,
-                'zone_id' => $this->id,
-                'partner_id' => $this->partner_id
-            ]);
-        }
-    } catch (\Exception $e) {
-        Log::error('Failed to send rate change email', [
-            'error' => $e->getMessage(),
-            'zone_id' => $this->id
-        ]);
-    }
-}
 
 }

@@ -211,6 +211,11 @@ public function overseasPartner()
     return $this->belongsTo(User::class, 'overseas_partner_id');
 }
 
+public function legs()
+{
+    return $this->hasMany(ShipmentLeg::class)->orderBy('sequence');
+}
+
 
     // Get status badge class
     public function getStatusBadgeAttribute()

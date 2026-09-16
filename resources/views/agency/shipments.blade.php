@@ -1,6 +1,6 @@
 @extends('layouts.agency')
 
-@section('title', 'Agency Shipments | COURIER by NETPACK')
+@section('title', 'Agency Shipments | COURIER with NETPACK')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 space-y-6">

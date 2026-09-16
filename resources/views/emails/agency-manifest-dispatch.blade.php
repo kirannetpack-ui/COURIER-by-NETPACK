@@ -175,7 +175,7 @@
                     <tr>
                         <td style="padding: 24px 36px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; line-height: 1.6; text-align: center;">
                             <div>
-                                <strong>COURIER by NETPACK International Freight Operations</strong> &middot; Kathmandu Central Hub, Nepal
+                                <strong>COURIER with NETPACK International Freight Operations</strong> &middot; Kathmandu Central Hub, Nepal
                             </div>
                             <div style="margin-top: 4px;">
                                 Pre-defined Agency Recipient List: {{ implode(', ', $agency->getAllNotificationEmails()) }}

@@ -6,9 +6,16 @@ use App\Models\Agency;
 use App\Models\LastMileCarrier;
 use App\Models\OverseasHub;
 use App\Models\Shipment;
+use App\Models\DeliveryZone;
+use App\Models\PickupRequest;
+use App\Models\LogisticsService;
 use App\Models\User;
+use App\Notifications\DomesticPickupAssignedNotification;
+use App\Services\DomesticOperationsNotificationService;
+use App\Services\DomesticRateQuoteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ShipmentController extends Controller
@@ -47,8 +54,8 @@ class ShipmentController extends Controller
         $query->where('rider_id', $user->id);
         
     } elseif ($user->isPartner()) {
-        // Partner: See shipments assigned to their zone
-        $query->where('partner_id', $user->id);
+        // Partner: canonical assignment is recorded per shipment leg.
+        $query->whereHas('legs', fn ($legs) => $legs->where('partner_id', $user->id));
         
     } elseif ($user->isCustomer() || $user->user_type === 'client') {
         // Client / Customer: See strictly their own shipments
@@ -111,8 +118,16 @@ class ShipmentController extends Controller
         $hubs = OverseasHub::active()->with('agencies')->orderBy('sort_order')->get();
         $agencies = Agency::where('is_active', true)->get();
         $carriers = LastMileCarrier::active()->orderBy('sort_order')->get();
+        $domesticZones = DeliveryZone::active()
+            ->where(function ($query) {
+                $query->where('approval_status', 'approved')->orWhereNull('approval_status');
+            })
+            ->orderByRaw("CASE WHEN zone_name LIKE '%Kathmandu%' THEN 0 ELSE 1 END")
+            ->orderBy('zone_name')
+            ->get();
+        $domesticServices = LogisticsService::active()->category('domestic')->orderBy('sort_order')->get();
 
-        return view('shipments.create', compact('hubs', 'agencies', 'carriers'));
+        return view('shipments.create', compact('hubs', 'agencies', 'carriers', 'domesticZones', 'domesticServices'));
     }
 
     /**
@@ -131,6 +146,8 @@ class ShipmentController extends Controller
             'pickup_address.*' => 'required|string',
             'weight' => 'required|numeric|min:0.1',
             'description' => 'nullable|string',
+            'origin_zone_id' => 'required_if:shipment_type,domestic|nullable|exists:delivery_zones,id',
+            'destination_zone_id' => 'required_if:shipment_type,domestic|nullable|different:origin_zone_id|exists:delivery_zones,id',
         ]);
 
         // International specific validation
@@ -172,8 +189,31 @@ class ShipmentController extends Controller
             ? $this->generateHAWBNumber($request->receiver_country)
             : null;
 
-        // Calculate rate
-        $rate = $this->calculateRate($request);
+        $domesticPlan = null;
+        if ($request->shipment_type === 'domestic') {
+            $domesticPlan = app(DomesticRateQuoteService::class)->quote(
+                (int) $request->origin_zone_id,
+                (int) $request->destination_zone_id,
+                (string) $request->service_type,
+                (float) $request->weight,
+                null,
+                $request->boolean('is_cod')
+            );
+        } elseif ($request->shipment_type === 'international' && $request->filled(['origin_zone_id', 'destination_zone_id'])) {
+            // International bookings include the domestic first-mile movement to the selected gateway.
+            $domesticPlan = app(DomesticRateQuoteService::class)->quote(
+                (int) $request->origin_zone_id,
+                (int) $request->destination_zone_id,
+                'standard',
+                (float) $request->weight
+            );
+        }
+
+        // Customer price is derived from approved partner cost plus the admin margin.
+        $rate = $this->calculateRate($request) + (float) ($domesticPlan['customer_price'] ?? 0);
+
+        DB::beginTransaction();
+        try {
 
         $shipment = new Shipment();
         $shipment->hawb_number = $hawbNumber;
@@ -345,8 +385,22 @@ class ShipmentController extends Controller
             Auth::user()
         );
 
+        if ($domesticPlan) {
+            $this->persistDomesticPlan($shipment, $domesticPlan, $request);
+        }
+
+        DB::commit();
+
         return redirect()->route('tracking.show', $shipment->tracking_number)
             ->with('success', 'Shipment created successfully! Tracking number: ' . $shipment->tracking_number);
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+            report($exception);
+
+            return back()->withInput()->withErrors([
+                'shipment' => 'The shipment could not be booked safely. No charge was recorded. Please try again or contact operations.',
+            ]);
+        }
     }
 
     /**
@@ -528,18 +582,8 @@ class ShipmentController extends Controller
         $service = $request->service_type ?? 'standard';
 
         if ($type === 'domestic') {
-            switch($service) {
-                case 'flash':
-                    return 150 + ($weight * 50);
-                case 'same_day':
-                    return 100 + ($weight * 30);
-                case 'standard':
-                    return 75 + ($weight * 20);
-                case 'himalayan':
-                    return 120 + ($weight * 40);
-                default:
-                    return 75 + ($weight * 20);
-            }
+            // Domestic pricing comes exclusively from approved partner rates.
+            return 0;
         } elseif ($type === 'international') {
             try {
                 $quote = app(\App\Services\InternationalRateService::class)->quote(
@@ -568,6 +612,73 @@ class ShipmentController extends Controller
         } else {
             // E-commerce
             return 100 + ($weight * 25);
+        }
+    }
+
+    private function persistDomesticPlan(Shipment $shipment, array $plan, Request $request): void
+    {
+        $createdLegs = collect($plan['legs'])->values()->map(function (array $legData, int $index) use ($shipment, $plan, $request) {
+            $rate = $legData['rate'];
+
+            return $shipment->legs()->create([
+                'sequence' => $index + 1,
+                'leg_type' => $rate->rate_type,
+                'partner_id' => $rate->partner_id,
+                'domestic_rate_id' => $rate->id,
+                'origin_zone_id' => $rate->origin_zone_id,
+                'destination_zone_id' => $rate->destination_zone_id,
+                'origin_name' => $rate->originZone?->zone_name ?? $rate->origin_city,
+                'destination_name' => $rate->destinationZone?->zone_name ?? $rate->destination_city,
+                'status' => 'assigned',
+                'assignment_source' => $legData['assignment_source'],
+                'selected_by' => $request->user()->id,
+                'partner_cost' => $legData['partner_cost'],
+                'markup_amount' => $legData['markup_amount'],
+                'customer_price' => $legData['customer_price'],
+                'currency' => $plan['currency'],
+                'metadata' => ['quote_expires_at' => $plan['expires_at'], 'breakdown' => $legData['breakdown']],
+            ]);
+        });
+
+        $firstLeg = $createdLegs->first();
+        if ($firstLeg) {
+            $origin = $plan['origin_zone'];
+            $destination = $plan['destination_zone'];
+            PickupRequest::create([
+                'seller_id' => $shipment->customer_id,
+                'shipment_id' => $shipment->id,
+                'partner_user_id' => $firstLeg->partner_id,
+                'pickup_address' => $request->pickup_address[0],
+                'pickup_ward_no' => 'N/A',
+                'pickup_municipality' => $origin->zone_name,
+                'pickup_district' => $origin->district ?: ($origin->districts[0] ?? $origin->zone_name),
+                'pickup_province' => $origin->province ?: 'Not specified',
+                'delivery_address' => $shipment->receiver_address,
+                'delivery_ward_no' => 'N/A',
+                'delivery_municipality' => $destination->zone_name,
+                'delivery_district' => $destination->district ?: ($destination->districts[0] ?? $destination->zone_name),
+                'delivery_province' => $destination->province ?: 'Not specified',
+                'scheduled_pickup_time' => now(),
+                'items_description' => $shipment->description ?: 'Parcel shipment',
+                'estimated_weight_kg' => $shipment->chargeable_weight,
+                'service_tier' => in_array($shipment->service_type, ['flash', 'same_day', 'standard', 'himalayan'], true) ? $shipment->service_type : 'standard',
+                'status' => 'assigned',
+                'calculated_price' => $plan['customer_price'],
+                'tracking_number' => $shipment->tracking_number,
+            ]);
+        }
+
+        $notifiedPartners = [];
+        foreach ($createdLegs as $leg) {
+            if ($leg->partner && ! in_array($leg->partner_id, $notifiedPartners, true)) {
+                $leg->partner->notify(new DomesticPickupAssignedNotification($shipment, $leg));
+                $notifiedPartners[] = $leg->partner_id;
+            }
+        }
+
+        if ($firstLeg) {
+            app(DomesticOperationsNotificationService::class)
+                ->notify(new DomesticPickupAssignedNotification($shipment, $firstLeg));
         }
     }
 }

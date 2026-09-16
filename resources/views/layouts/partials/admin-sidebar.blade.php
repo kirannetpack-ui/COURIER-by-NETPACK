@@ -86,6 +86,14 @@
             </a>
         </div>
 
+        <div class="pt-3">
+            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-3 mb-1">Domestic Network</p>
+            <a href="{{ route('admin.domestic.rates') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.rates*') ? 'bg-purple-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"><i class="fas fa-money-bill-wave w-4 text-center text-emerald-400"></i><span>Domestic Rates</span></a>
+            <a href="{{ route('admin.domestic.zones') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.zones*') ? 'bg-purple-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"><i class="fas fa-map-location-dot w-4 text-center text-blue-400"></i><span>Delivery Territories</span></a>
+            <a href="{{ route('admin.domestic.assignments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.assignments*') ? 'bg-purple-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"><i class="fas fa-route w-4 text-center text-amber-400"></i><span>Partner Routing</span></a>
+            <a href="{{ route('admin.domestic.shipments') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg transition {{ request()->routeIs('admin.domestic.shipments*') ? 'bg-purple-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"><i class="fas fa-truck-ramp-box w-4 text-center text-teal-400"></i><span>Domestic Shipments</span></a>
+        </div>
+
         <!-- ============================================== -->
         <!-- INTERNATIONAL RATES FEEDING (Super Admin Task) -->
         <!-- ============================================== -->

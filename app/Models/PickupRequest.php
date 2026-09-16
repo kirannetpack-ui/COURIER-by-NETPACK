@@ -9,7 +9,7 @@ class PickupRequest extends Model
     protected $table = 'pickup_requests';
     
     protected $fillable = [
-        'seller_id', 'order_id', 'assigned_rider_id', 'partner_id', 'partner_staff_id',
+        'seller_id', 'order_id', 'shipment_id', 'assigned_rider_id', 'partner_id', 'partner_user_id', 'partner_staff_id',
         'pickup_address', 'pickup_ward_no', 'pickup_municipality', 'pickup_district', 'pickup_province',
         'pickup_city', 'pickup_latitude', 'pickup_longitude',
         'delivery_address', 'delivery_ward_no', 'delivery_municipality', 'delivery_district', 'delivery_province',
@@ -100,6 +100,16 @@ class PickupRequest extends Model
     public function partner()
     {
         return $this->belongsTo(DomesticPartner::class, 'partner_id');
+    }
+
+    public function partnerUser()
+    {
+        return $this->belongsTo(User::class, 'partner_user_id');
+    }
+
+    public function shipment()
+    {
+        return $this->belongsTo(Shipment::class);
     }
     
     /**

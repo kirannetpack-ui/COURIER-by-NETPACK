@@ -14,6 +14,7 @@ class DomesticRate extends Model
         'origin_zone_id',
         'destination_zone_id',
         'service_type',
+        'rate_type',
         'service_name',
         'base_rate',
         'per_kg_rate',
@@ -35,6 +36,20 @@ class DomesticRate extends Model
         'is_active',
         'effective_from',
         'effective_to',
+        'approval_status',
+        'submitted_by',
+        'approved_by',
+        'submitted_at',
+        'approved_at',
+        'rejection_reason',
+        'pickup_charge',
+        'origin_handling_charge',
+        'destination_handling_charge',
+        'remote_area_surcharge',
+        'cod_charge',
+        'admin_margin_type',
+        'admin_margin_value',
+        'is_default_destination',
     ];
 
     protected $casts = [
@@ -52,6 +67,15 @@ class DomesticRate extends Model
         'is_active' => 'boolean',
         'effective_from' => 'date',
         'effective_to' => 'date',
+        'submitted_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'pickup_charge' => 'decimal:2',
+        'origin_handling_charge' => 'decimal:2',
+        'destination_handling_charge' => 'decimal:2',
+        'remote_area_surcharge' => 'decimal:2',
+        'cod_charge' => 'decimal:2',
+        'admin_margin_value' => 'decimal:2',
+        'is_default_destination' => 'boolean',
     ];
 
     // Service type constants
@@ -118,7 +142,10 @@ class DomesticRate extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-                     ->whereDate('effective_from', '<=', now())
+                     ->where('approval_status', 'approved')
+                     ->where(function ($query) {
+                         $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', now());
+                     })
                      ->where(function($q) {
                          $q->whereDate('effective_to', '>=', now())
                            ->orWhereNull('effective_to');
@@ -192,7 +219,14 @@ class DomesticRate extends Model
         $distanceCharge = $distance ? ($this->per_km_rate * $distance) : 0;
         
         $subtotal = $baseRate + $weightCharge + $distanceCharge;
-        $total = $subtotal + $this->logistical_charge + $this->additional_charge;
+        $total = $subtotal
+            + $this->logistical_charge
+            + $this->additional_charge
+            + $this->pickup_charge
+            + $this->origin_handling_charge
+            + $this->destination_handling_charge
+            + $this->remote_area_surcharge
+            + $this->cod_charge;
         
         return [
             'base_rate' => $baseRate,
@@ -200,6 +234,11 @@ class DomesticRate extends Model
             'distance_charge' => $distanceCharge,
             'logistical_charge' => $this->logistical_charge,
             'additional_charge' => $this->additional_charge,
+            'pickup_charge' => $this->pickup_charge,
+            'origin_handling_charge' => $this->origin_handling_charge,
+            'destination_handling_charge' => $this->destination_handling_charge,
+            'remote_area_surcharge' => $this->remote_area_surcharge,
+            'cod_charge' => $this->cod_charge,
             'subtotal' => $subtotal,
             'total' => $total,
             'breakdown' => [
@@ -209,6 +248,24 @@ class DomesticRate extends Model
                 'per_km_rate' => $this->per_km_rate,
                 'minimum_rate' => $this->minimum_rate,
             ],
+        ];
+    }
+
+    public function events()
+    {
+        return $this->hasMany(DomesticRateEvent::class);
+    }
+
+    public function customerPrice(float $partnerCost): array
+    {
+        $margin = $this->admin_margin_type === 'fixed'
+            ? (float) $this->admin_margin_value
+            : $partnerCost * ((float) $this->admin_margin_value / 100);
+
+        return [
+            'partner_cost' => round($partnerCost, 2),
+            'markup_amount' => round($margin, 2),
+            'customer_price' => round($partnerCost + $margin, 2),
         ];
     }
 

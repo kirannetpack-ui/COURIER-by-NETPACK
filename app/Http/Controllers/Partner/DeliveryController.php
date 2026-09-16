@@ -8,7 +8,7 @@ use App\Models\Shipment;
 use App\Models\User;
 use App\Models\ReminderLog;
 use App\Models\DeliveryReminder;
-use App\Events\ShipmentStatusChanged;
+use App\Notifications\ShipmentMilestoneNotification;
 use App\Services\ReminderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,8 +33,7 @@ class DeliveryController extends Controller
         $user = Auth::user();
         
         if ($user->user_type === 'partner') {
-            $dp = \App\Models\DomesticPartner::where('email', $user->email)->first();
-            return $dp ? $dp->id : $user->id;
+            return $user->id;
         }
         
         if ($user->user_type === 'partner_staff' && $user->partner_id) {
@@ -52,17 +51,17 @@ class DeliveryController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $deliveries = PickupRequest::where('partner_id', $partnerId)
+        $deliveries = PickupRequest::where('partner_user_id', $partnerId)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         
         $stats = [
-            'total' => PickupRequest::where('partner_id', $partnerId)->count(),
-            'pending' => PickupRequest::where('partner_id', $partnerId)->where('status', 'pending')->count(),
-            'in_transit' => PickupRequest::where('partner_id', $partnerId)->whereIn('status', ['picked_up', 'in_transit'])->count(),
-            'out_for_delivery' => PickupRequest::where('partner_id', $partnerId)->where('status', 'out_for_delivery')->count(),
-            'delivered' => PickupRequest::where('partner_id', $partnerId)->where('status', 'delivered')->count(),
-            'delayed' => PickupRequest::where('partner_id', $partnerId)->where('is_delayed', true)->count(),
+            'total' => PickupRequest::where('partner_user_id', $partnerId)->count(),
+            'pending' => PickupRequest::where('partner_user_id', $partnerId)->where('status', 'pending')->count(),
+            'in_transit' => PickupRequest::where('partner_user_id', $partnerId)->whereIn('status', ['picked_up', 'in_transit'])->count(),
+            'out_for_delivery' => PickupRequest::where('partner_user_id', $partnerId)->where('status', 'out_for_delivery')->count(),
+            'delivered' => PickupRequest::where('partner_user_id', $partnerId)->where('status', 'delivered')->count(),
+            'delayed' => PickupRequest::where('partner_user_id', $partnerId)->where('is_delayed', true)->count(),
         ];
         
         return view('partner.deliveries.index', compact('deliveries', 'stats'));
@@ -76,7 +75,7 @@ class DeliveryController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $delivery = PickupRequest::where('partner_id', $partnerId)
+        $delivery = PickupRequest::where('partner_user_id', $partnerId)
             ->where('id', $id)
             ->firstOrFail();
         
@@ -102,7 +101,7 @@ class DeliveryController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $delivery = PickupRequest::where('partner_id', $partnerId)
+        $delivery = PickupRequest::where('partner_user_id', $partnerId)
             ->where('id', $id)
             ->firstOrFail();
         
@@ -127,7 +126,7 @@ class DeliveryController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $delivery = PickupRequest::where('partner_id', $partnerId)
+        $delivery = PickupRequest::where('partner_user_id', $partnerId)
             ->where('id', $id)
             ->firstOrFail();
         
@@ -200,6 +199,18 @@ class DeliveryController extends Controller
         
         $oldStatus = $delivery->status;
         $newStatus = $request->status;
+
+        $allowed = [
+            'pending' => ['picked_up', 'cancelled'],
+            'assigned' => ['picked_up', 'cancelled'],
+            'picked_up' => ['in_transit'],
+            'in_transit' => ['out_for_delivery'],
+            'out_for_delivery' => ['delivered', 'failed_delivery'],
+            'failed_delivery' => ['out_for_delivery', 'cancelled'],
+        ];
+        if (! in_array($newStatus, $allowed[$oldStatus] ?? [], true)) {
+            return back()->withErrors(['status' => "{$oldStatus} cannot move directly to {$newStatus}."]);
+        }
         
         $updateData = [
             'status' => $newStatus,
@@ -284,11 +295,12 @@ class DeliveryController extends Controller
         $shipment->tracking_history = $history;
         $shipment->save();
         
-        try {
-            broadcast(new ShipmentStatusChanged($shipment, $oldStatus, $newStatus, $note));
-        } catch (\Exception $e) {
-            Log::warning('Broadcast failed: ' . $e->getMessage());
-        }
+        $shipment->customer?->notify(new ShipmentMilestoneNotification([
+            'tracking_number' => $shipment->tracking_number,
+            'status' => $newStatus,
+            'message' => $note ?? 'Shipment '.str_replace('_', ' ', $newStatus).'.',
+            'location' => $location ?? 'Partner Hub',
+        ]));
     }
 
     /**
@@ -307,7 +319,7 @@ class DeliveryController extends Controller
         $partnerId = $this->getPartnerId();
         
         // Find delivery by tracking number
-        $delivery = PickupRequest::where('partner_id', $partnerId)
+        $delivery = PickupRequest::where('partner_user_id', $partnerId)
             ->where('tracking_number', $request->tracking_number)
             ->first();
         
@@ -329,6 +341,10 @@ class DeliveryController extends Controller
         // Update delivery status
         $oldStatus = $delivery->status;
         $newStatus = $request->status;
+        $allowed = ['assigned' => ['picked_up'], 'pending' => ['picked_up'], 'picked_up' => ['in_transit'], 'in_transit' => ['out_for_delivery'], 'out_for_delivery' => ['delivered']];
+        if (! in_array($newStatus, $allowed[$oldStatus] ?? [], true)) {
+            return response()->json(['success' => false, 'message' => "{$oldStatus} cannot move directly to {$newStatus}."], 422);
+        }
         
         $updateData = ['status' => $newStatus];
         if ($newStatus === 'picked_up') {
@@ -380,7 +396,7 @@ class DeliveryController extends Controller
         $partnerId = $this->getPartnerId();
         
         // Get delayed deliveries
-        $delayedDeliveries = PickupRequest::where('partner_id', $partnerId)
+        $delayedDeliveries = PickupRequest::where('partner_user_id', $partnerId)
             ->where('is_delayed', true)
             ->where('status', '!=', 'delivered')
             ->where('status', '!=', 'cancelled')
@@ -388,7 +404,7 @@ class DeliveryController extends Controller
             ->get();
         
         // Get deliveries approaching deadline
-        $deadlineApproaching = PickupRequest::where('partner_id', $partnerId)
+        $deadlineApproaching = PickupRequest::where('partner_user_id', $partnerId)
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->where('is_delayed', false)
             ->get()
@@ -399,7 +415,7 @@ class DeliveryController extends Controller
         // Get recent reminder logs for this partner (including manifest reminders)
         $recentReminders = ReminderLog::where(function($query) use ($partnerId) {
                 $query->whereHas('pickupRequest', function($q) use ($partnerId) {
-                    $q->where('partner_id', $partnerId);
+                    $q->where('partner_user_id', $partnerId);
                 })
                 ->orWhere(function($q) use ($partnerId) {
                     $q->where('reminder_type', 'partner')
@@ -417,7 +433,7 @@ class DeliveryController extends Controller
             ->where('scheduled_at', '<=', now())
             ->where(function($query) use ($partnerId) {
                 $query->whereHas('pickupRequest', function($q) use ($partnerId) {
-                    $q->where('partner_id', $partnerId);
+                    $q->where('partner_user_id', $partnerId);
                 })
                 ->orWhereHas('manifest', function($q) use ($partnerId) {
                     $q->where('partner_id', $partnerId);
@@ -454,7 +470,7 @@ class DeliveryController extends Controller
     
     $partnerId = $this->getPartnerId();
     
-    $query = PickupRequest::where('partner_id', $partnerId);
+    $query = PickupRequest::where('partner_user_id', $partnerId);
     
     // Apply filters if provided
     if ($request->filled('status')) {

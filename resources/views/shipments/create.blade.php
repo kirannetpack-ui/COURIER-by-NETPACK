@@ -130,11 +130,12 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Service Type <span class="text-red-500">*</span></label>
-                                <select name="service_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                    <option value="flash">⚡ FLASH (1-2 Hours)</option>
-                                    <option value="same_day">🕐 SAME DAY (4-6 Hours)</option>
-                                    <option value="standard" selected>🚚 STANDARD (1-2 Days)</option>
-                                    <option value="himalayan">🏔️ HIMALAYAN (2-4 Days)</option>
+                                <select id="domestic_service_type" onchange="syncServiceType()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    @forelse($domesticServices as $service)
+                                        <option value="{{ $service->code }}" @selected(old('service_type', 'standard') === $service->code)>{{ $service->name }} — {{ $service->transit_display }}</option>
+                                    @empty
+                                        <option value="flash">⚡ FLASH</option><option value="same_day">🕐 SAME DAY</option><option value="standard" selected>🚚 STANDARD</option><option value="himalayan">🏔️ HIMALAYAN</option>
+                                    @endforelse
                                 </select>
                             </div>
                             <div>
@@ -155,7 +156,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Service Type <span class="text-red-500">*</span></label>
-                                    <select name="service_type" id="intl_service_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold">
+                                    <select id="international_service_type" onchange="syncServiceType()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold">
                                         <option value="express" {{ request('service_type') === 'express' ? 'selected' : '' }}>⚡ Priority Express Service (3–4 Working Days)</option>
                                         <option value="economy" {{ request('service_type', 'economy') === 'economy' && request('service_type') !== 'express' ? 'selected' : '' }}>🌍 Economy Air Cargo Service (6–8 Working Days)</option>
                                     </select>
@@ -191,7 +192,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Service Type</label>
-                                <select name="service_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <select id="ecommerce_service_type" onchange="syncServiceType()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                                     <option value="ecommerce">🛒 E-Commerce Delivery</option>
                                 </select>
                             </div>
@@ -209,6 +210,17 @@
 
                 <!-- Hidden field for shipment type -->
                 <input type="hidden" name="shipment_type" id="shipment_type" value="domestic">
+                <input type="hidden" name="service_type" id="service_type_input" value="standard">
+
+                <div id="domestic-route-zones" class="mt-6 rounded-xl border border-teal-100 bg-teal-50/60 p-4">
+                    <h3 class="font-semibold text-slate-800">Pickup + inter-zone logistics route</h3>
+                    <p class="mt-1 text-xs text-slate-600">Kathmandu is the default gateway when configured, but you may select any approved district/province destination.</p>
+                    <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div><label class="block text-sm font-medium mb-1">Origin service territory <span class="text-red-500">*</span></label><select name="origin_zone_id" id="origin_zone_id" required class="w-full rounded-lg border px-3 py-2"><option value="">Select origin</option>@foreach($domesticZones as $zone)<option value="{{ $zone->id }}" @selected(old('origin_zone_id') == $zone->id)>{{ $zone->zone_name }}{{ $zone->district ? ' — '.$zone->district : '' }}</option>@endforeach</select></div>
+                        <div><label class="block text-sm font-medium mb-1">Destination territory / gateway <span class="text-red-500">*</span></label><select name="destination_zone_id" id="destination_zone_id" required class="w-full rounded-lg border px-3 py-2"><option value="">Select destination</option>@foreach($domesticZones as $zone)<option value="{{ $zone->id }}" @selected(old('destination_zone_id') == $zone->id)>{{ $zone->zone_name }}{{ str_contains(strtolower($zone->zone_name), 'kathmandu') ? ' — default gateway' : '' }}</option>@endforeach</select></div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap items-center gap-3"><button type="button" onclick="requestDomesticQuote()" class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Check approved rate</button><div id="domestic-quote-result" class="text-sm text-slate-700" aria-live="polite"></div></div>
+                </div>
 
                 <!-- ============================================= -->
                 <!-- PICKUP POINTS -->
@@ -479,6 +491,17 @@
         
         // Update shipment type
         document.getElementById('shipment_type').value = tab;
+        syncServiceType();
+
+        const routeZones = document.getElementById('domestic-route-zones');
+        const originZone = document.getElementById('origin_zone_id');
+        const destinationZone = document.getElementById('destination_zone_id');
+        const usesPartnerRoute = tab === 'domestic' || tab === 'international';
+        routeZones.classList.toggle('hidden', !usesPartnerRoute);
+        originZone.disabled = !usesPartnerRoute;
+        destinationZone.disabled = !usesPartnerRoute;
+        originZone.required = tab === 'domestic';
+        destinationZone.required = tab === 'domestic';
         
         // Show/hide delivery sections
         if (tab === 'international') {
@@ -487,6 +510,32 @@
         } else {
             document.getElementById('delivery-multiple').classList.remove('hidden');
             document.getElementById('delivery-international').classList.add('hidden');
+        }
+    }
+
+    function syncServiceType() {
+        const tab = document.getElementById('shipment_type')?.value || 'domestic';
+        const source = document.getElementById(`${tab}_service_type`);
+        if (source) document.getElementById('service_type_input').value = source.value;
+    }
+
+    async function requestDomesticQuote() {
+        const result = document.getElementById('domestic-quote-result');
+        const weight = document.querySelector('input[name="weight"]')?.value;
+        const shipmentType = document.getElementById('shipment_type').value;
+        result.textContent = 'Checking approved partner rates…';
+        try {
+            const response = await fetch('{{ route('domestic.quote') }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
+                body: JSON.stringify({origin_zone_id: document.getElementById('origin_zone_id').value, destination_zone_id: document.getElementById('destination_zone_id').value, service_type: shipmentType === 'international' ? 'standard' : document.getElementById('service_type_input').value, weight: weight})
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(Object.values(payload.errors || {}).flat()[0] || payload.message || 'No approved rate is available.');
+            const eta = payload.estimated_hours ? ` · estimated ${payload.estimated_hours} hours` : '';
+            result.innerHTML = `<strong>${payload.currency} ${Number(payload.customer_price).toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>${eta} · valid for 24 hours`;
+        } catch (error) {
+            result.textContent = error.message;
         }
     }
 
@@ -820,9 +869,10 @@
 
         const prefillServiceType = '{{ request('service_type') }}';
         if (prefillServiceType) {
-            const intlSelect = document.getElementById('intl_service_type');
+            const intlSelect = document.getElementById('international_service_type');
             if (intlSelect) {
                 intlSelect.value = prefillServiceType;
+                syncServiceType();
             }
         }
 

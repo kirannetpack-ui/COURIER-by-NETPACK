@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\DeliveryZone;
 use App\Models\User;
 use App\Models\ReminderLog;
+use App\Notifications\DomesticZoneSubmittedNotification;
+use App\Services\DomesticOperationsNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -38,7 +40,7 @@ class ZoneController extends Controller
         $partnerId = $this->getPartnerId();
         $partner = $this->getPartner();
         
-        $zones = DeliveryZone::where('partner_id', $partnerId)
+        $zones = DeliveryZone::where('partner_user_id', $partnerId)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         
@@ -84,7 +86,7 @@ class ZoneController extends Controller
     }
 
     $request->validate([
-        'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,NULL,id,partner_id,' . $partnerId,
+        'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,NULL,id,partner_user_id,' . $partnerId,
         'municipalities' => 'nullable|string',
         'wards' => 'nullable|string',
         'description' => 'nullable|string',
@@ -106,7 +108,10 @@ class ZoneController extends Controller
 
     // Partner's zone uses their district
     $zone = DeliveryZone::create([
-        'partner_id' => $partnerId,
+        'partner_user_id' => $partnerId,
+        'partner_id' => null,
+        'province' => $partner->province,
+        'district' => $partner->district,
         'zone_name' => $request->zone_name,
         'zone_code' => $zoneCode,
         'zone_type' => 'partner', // Fixed type for partner zones
@@ -114,7 +119,7 @@ class ZoneController extends Controller
         'municipalities' => $request->municipalities ? explode(',', $request->municipalities) : [],
         'wards' => $request->wards ? explode(',', $request->wards) : [],
         'description' => $request->description,
-        'is_active' => true,
+        'is_active' => false,
         'approval_status' => 'pending',
         'flash_base_rate' => $request->flash_base_rate ?? 0,
         'flash_per_kg_rate' => $request->flash_per_kg_rate ?? 0,
@@ -131,7 +136,7 @@ class ZoneController extends Controller
     ]);
 
     // Notify admins about new zone
-    $this->notifyAdminAboutNewZone($zone);
+    app(DomesticOperationsNotificationService::class)->notify(new DomesticZoneSubmittedNotification($zone->load('partner'), 'created'));
 
     return redirect()->route('partner.zones.index')
         ->with('success', 'Zone created successfully! Admin has been notified for approval.');
@@ -145,7 +150,7 @@ class ZoneController extends Controller
         $partnerId = $this->getPartnerId();
         $partner = $this->getPartner();
         
-        $zone = DeliveryZone::where('partner_id', $partnerId)->findOrFail($id);
+        $zone = DeliveryZone::where('partner_user_id', $partnerId)->findOrFail($id);
         
         $services = [
             'flash' => [
@@ -181,7 +186,7 @@ class ZoneController extends Controller
         $partnerId = $this->getPartnerId();
         $partner = $this->getPartner();
         
-        $zone = DeliveryZone::where('partner_id', $partnerId)->findOrFail($id);
+        $zone = DeliveryZone::where('partner_user_id', $partnerId)->findOrFail($id);
         $districts = $this->getNepalDistricts();
         
         $services = [
@@ -201,11 +206,11 @@ class ZoneController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $zone = DeliveryZone::where('partner_id', $partnerId)->findOrFail($id);
+        $zone = DeliveryZone::where('partner_user_id', $partnerId)->findOrFail($id);
 
         $request->validate([
-            'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,' . $id . ',id,partner_id,' . $partnerId,
-            'zone_type' => 'required|string|in:urban,semi_urban,rural,hilly,himalayan',
+            'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,' . $id . ',id,partner_user_id,' . $partnerId,
+            'zone_type' => 'required|string|in:partner,urban,semi_urban,rural,hilly,himalayan',
             'districts' => 'required|array|min:1',
             'districts.*' => 'string',
             'municipalities' => 'nullable|string',
@@ -237,6 +242,7 @@ class ZoneController extends Controller
             'wards' => $request->wards ? explode(',', $request->wards) : [],
             'description' => $request->description,
             'approval_status' => 'pending', // Reset to pending for admin review
+            'is_active' => false,
             'flash_base_rate' => $request->flash_base_rate ?? 0,
             'flash_per_kg_rate' => $request->flash_per_kg_rate ?? 0,
             'flash_estimated_hours' => $request->flash_estimated_hours ?? null,
@@ -255,7 +261,7 @@ class ZoneController extends Controller
 
         // Notify admins about changes
         if (!empty($rateChanges) || !empty($zoneChanges)) {
-            $this->notifyAdminAboutZoneUpdate($zone, $rateChanges, $zoneChanges);
+            app(DomesticOperationsNotificationService::class)->notify(new DomesticZoneSubmittedNotification($zone->load('partner'), 'updated'));
         }
 
         return redirect()->route('partner.zones.index')
@@ -269,7 +275,7 @@ class ZoneController extends Controller
     {
         $partnerId = $this->getPartnerId();
         
-        $zone = DeliveryZone::where('partner_id', $partnerId)->findOrFail($id);
+        $zone = DeliveryZone::where('partner_user_id', $partnerId)->findOrFail($id);
         
         // Check if zone has shipments
         $shipmentCount = \App\Models\DomesticShipment::where('origin_zone_id', $id)

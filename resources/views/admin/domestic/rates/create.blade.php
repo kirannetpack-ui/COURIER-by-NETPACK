@@ -55,6 +55,8 @@
                         <p id="currency-help" class="mt-1 text-xs text-gray-500">Use a three-letter ISO currency code, for example NPR.</p>
                     </div>
 
+                    <div><label class="block text-sm font-medium mb-1">Rate Type *</label><select name="rate_type" required class="w-full border rounded-lg px-3 py-2"><option value="pickup" @selected(old('rate_type')==='pickup')>Pickup</option><option value="logistics" @selected(old('rate_type')==='logistics')>Inter-Zone Logistics</option><option value="delivery" @selected(old('rate_type')==='delivery')>Last-Mile Delivery</option><option value="door_to_door" @selected(old('rate_type','door_to_door')==='door_to_door')>Complete Door-to-Door</option></select></div>
+
                     <div>
                         <label class="block text-sm font-medium mb-1">Origin Zone *</label>
                         <select name="origin_zone_id" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
@@ -126,6 +128,13 @@
                         <input type="number" name="additional_charge" step="0.01" value="{{ old('additional_charge', 0) }}" 
                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
+
+                    @foreach(['pickup_charge'=>'Pickup Charge','origin_handling_charge'=>'Origin Handling','destination_handling_charge'=>'Destination Handling','remote_area_surcharge'=>'Remote Area Surcharge','cod_charge'=>'COD Handling'] as $field=>$label)
+                    <div><label class="block text-sm font-medium mb-1">{{ $label }} (Rs.)</label><input type="number" min="0" step="0.01" name="{{ $field }}" value="{{ old($field, 0) }}" class="w-full border rounded-lg px-3 py-2"></div>
+                    @endforeach
+
+                    <div><label class="block text-sm font-medium mb-1">Admin Margin Type</label><select name="admin_margin_type" class="w-full border rounded-lg px-3 py-2"><option value="percentage">Percentage</option><option value="fixed" @selected(old('admin_margin_type')==='fixed')>Fixed NPR</option></select></div>
+                    <div><label class="block text-sm font-medium mb-1">Admin Margin Value</label><input type="number" min="0" step="0.01" name="admin_margin_value" value="{{ old('admin_margin_value', 10) }}" class="w-full border rounded-lg px-3 py-2"></div>
 
                     <div>
                         <label class="block text-sm font-medium mb-1">Estimated Hours</label>

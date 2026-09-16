@@ -35,7 +35,7 @@ class DeliveryZoneController extends Controller
         $validator = Validator::make($request->all(), [
             'partner_id' => 'required|exists:users,id',
             'zone_name' => 'required|string|max:255',
-            'zone_type' => 'required|in:urban,semi_urban,rural,hilly,himalayan',
+            'zone_type' => 'required|in:partner,urban,semi_urban,rural,hilly,himalayan',
             'districts' => 'nullable|array',
             'municipalities' => 'nullable|array',
             'wards' => 'nullable|array',
@@ -54,7 +54,8 @@ class DeliveryZoneController extends Controller
         } while (DeliveryZone::where('zone_code', $zoneCode)->exists());
 
         DeliveryZone::create([
-            'partner_id' => $request->partner_id,
+            'partner_user_id' => $request->partner_id,
+            'partner_id' => null,
             'admin_id' => $request->user()->id,
             'zone_name' => $request->zone_name,
             'zone_code' => $zoneCode,
@@ -65,6 +66,8 @@ class DeliveryZoneController extends Controller
             'postal_codes' => $request->postal_codes ?? [],
             'description' => $request->description,
             'is_active' => true,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
 
         return redirect()->route('admin.domestic.zones')
@@ -87,7 +90,7 @@ class DeliveryZoneController extends Controller
         $validator = Validator::make($request->all(), [
             'partner_id' => 'required|exists:users,id',
             'zone_name' => 'required|string|max:255',
-            'zone_type' => 'required|in:urban,semi_urban,rural,hilly,himalayan',
+            'zone_type' => 'required|in:partner,urban,semi_urban,rural,hilly,himalayan',
             'districts' => 'nullable|array',
             'municipalities' => 'nullable|array',
             'wards' => 'nullable|array',
@@ -103,7 +106,7 @@ class DeliveryZoneController extends Controller
         }
 
         $zone->update([
-            'partner_id' => $request->partner_id,
+            'partner_user_id' => $request->partner_id,
             'zone_name' => $request->zone_name,
             'zone_type' => $request->zone_type,
             'districts' => $request->districts ?? [],
@@ -125,5 +128,32 @@ class DeliveryZoneController extends Controller
 
         return redirect()->route('admin.domestic.zones')
             ->with('success', 'Delivery zone deleted successfully!');
+    }
+
+    public function approve(Request $request, DeliveryZone $zone)
+    {
+        $zone->update([
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'rejection_reason' => null,
+            'is_active' => true,
+            'admin_id' => $request->user()->id,
+        ]);
+
+        return back()->with('success', 'Partner territory approved and activated.');
+    }
+
+    public function reject(Request $request, DeliveryZone $zone)
+    {
+        $data = $request->validate(['rejection_reason' => 'required|string|min:5|max:1000']);
+        $zone->update([
+            'approval_status' => 'rejected',
+            'approved_at' => now(),
+            'rejection_reason' => $data['rejection_reason'],
+            'is_active' => false,
+            'admin_id' => $request->user()->id,
+        ]);
+
+        return back()->with('success', 'Partner territory rejected and kept unavailable.');
     }
 }
