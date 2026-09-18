@@ -54,12 +54,26 @@
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Districts</label>
-                        <input type="text" name="districts" value="{{ old('districts', is_array($zone->districts) ? implode(', ', $zone->districts) : $zone->districts) }}" 
-                               placeholder="e.g., Kathmandu, Lalitpur, Bhaktapur" 
-                               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                        <p class="text-xs text-gray-500 mt-1">Comma separated list of districts</p>
+                    <div class="md:col-span-2">
+                        @php
+                            $selectedDistricts = is_array($zone->districts) ? $zone->districts : (is_string($zone->districts) ? explode(',', $zone->districts) : []);
+                            $selectedDistricts = array_values(array_filter(array_map('trim', $selectedDistricts)));
+                            $detectedProvince = null;
+                            if (!empty($selectedDistricts)) {
+                                $detectedProvince = \App\Services\NepalGeographicalService::getProvinceForDistrict($selectedDistricts[0]);
+                            }
+                        @endphp
+                        <x-nepal-territory-picker 
+                            :isMultiple="true"
+                            provinceName="province"
+                            districtName="districts[]"
+                            :selectedProvince="old('province', $detectedProvince)"
+                            :selectedDistrict="old('districts', $selectedDistricts)"
+                            provinceLabel="Operating Province / Sector"
+                            districtLabel="Districts Under Province"
+                            helperText="Choose a province to display strictly its affiliated districts. Checkboxes allow selecting multiple coverage districts with type-to-search."
+                            :required="false"
+                        />
                     </div>
 
                     <div>

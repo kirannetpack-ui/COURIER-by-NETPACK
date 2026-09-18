@@ -139,7 +139,17 @@
 
                     <!-- Address -->
                     <div class="md:col-span-2">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">Address Information</h3>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">Territory & Address Information</h3>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <x-nepal-territory-picker 
+                            provinceName="province" 
+                            districtName="district" 
+                            provinceLabel="Operating Province / Sector" 
+                            districtLabel="Operating District" 
+                            idPrefix="admin_create_geo" 
+                            helperText="Assigns the operating territory across Nepal's 7 Provinces and 77 Districts." />
                     </div>
                     
                     <div class="md:col-span-2">

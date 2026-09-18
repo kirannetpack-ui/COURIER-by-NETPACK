@@ -13,6 +13,7 @@ class LogisticsService extends Model
     protected $table = 'logistics_services';
 
     protected $fillable = [
+        'partner_id',
         'code',
         'name',
         'category',
@@ -27,6 +28,7 @@ class LogisticsService extends Model
     ];
 
     protected $casts = [
+        'partner_id' => 'integer',
         'transit_time_hours' => 'float',
         'transit_time_days' => 'float',
         'reminder_intervals' => 'array',
@@ -36,12 +38,33 @@ class LogisticsService extends Model
         'sort_order' => 'integer',
     ];
 
+    public function partner()
+    {
+        return $this->belongsTo(User::class, 'partner_id');
+    }
+
     /**
      * Scope for active services.
      */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope for global/standard services (not partner-customized).
+     */
+    public function scopeStandard($query)
+    {
+        return $query->whereNull('partner_id');
+    }
+
+    /**
+     * Scope for partner specific services.
+     */
+    public function scopeForPartner($query, $partnerId)
+    {
+        return $query->where('partner_id', $partnerId);
     }
 
     /**

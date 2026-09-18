@@ -85,12 +85,18 @@ class DashboardController extends Controller
      */
     public function toggleStatus()
     {
+        /** @var User $rider */
         $rider = Auth::user();
         $rider->is_online = !$rider->is_online;
         $rider->is_available = $rider->is_online;
         $rider->save();
 
+        $profile = $rider->ensureRiderProfile();
         $status = $rider->is_online ? 'online' : 'offline';
+        $profile->update([
+            'availability_status' => $status,
+        ]);
+
         return redirect()->route('rider.dashboard')
             ->with('success', "You are now {$status}");
     }

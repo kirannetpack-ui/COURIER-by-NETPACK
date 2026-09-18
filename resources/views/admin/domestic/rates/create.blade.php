@@ -43,7 +43,7 @@
                             <option value="">Select Service</option>
                             @foreach($serviceTypes as $type => $data)
                                 <option value="{{ $type }}" {{ old('service_type') == $type ? 'selected' : '' }}>
-                                    {{ $data['icon'] }} {{ $data['name'] }} - {{ $data['time'] }}
+                                    {{ $data['icon'] }} {{ $data['name'] }} - {{ $data['time'] }} {{ !empty($data['is_custom']) ? '(Partner Custom)' : '' }}
                                 </option>
                             @endforeach
                         </select>

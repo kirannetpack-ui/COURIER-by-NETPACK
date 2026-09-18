@@ -44,103 +44,230 @@ class ZoneController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         
-        return view('partner.zones.index', compact('zones', 'partner'));
+        $provincesWithCapitals = \App\Services\NepalGeographicalService::getProvincesWithDistrictsAndCapitals();
+        $allDistrictsWithCapitals = \App\Services\NepalGeographicalService::getAllDistrictsWithCapitals();
+        $operatingProvinces = $partner->getOperatingProvinces();
+        $operatingDistricts = $partner->getOperatingDistricts();
+        
+        return view('partner.zones.index', compact(
+            'zones', 
+            'partner', 
+            'provincesWithCapitals', 
+            'allDistrictsWithCapitals',
+            'operatingProvinces',
+            'operatingDistricts'
+        ));
     }
 
     /**
      * Show form to create a new zone
      */
     public function create()
-{
-    $partner = $this->getPartner();
-    
-    // Check if partner has a district set
-    if (!$partner->district) {
-        return redirect()->route('partner.zones.index')
-            ->with('error', 'Please contact admin to set your operating district first.');
+    {
+        $partner = $this->getPartner();
+        
+        $services = [
+            'flash' => $partner->flash_active ?? false,
+            'same_day' => $partner->same_day_active ?? false,
+            'standard' => $partner->standard_active ?? true,
+            'himalayan' => $partner->himalayan_active ?? false,
+        ];
+        
+        $provincesWithDistricts = \App\Services\NepalGeographicalService::getProvinces();
+        $allDistricts = \App\Services\NepalGeographicalService::getAllDistricts();
+        
+        return view('partner.zones.create', compact('services', 'partner', 'provincesWithDistricts', 'allDistricts'));
     }
-    
-    $services = [
-        'flash' => $partner->flash_active ?? false,
-        'same_day' => $partner->same_day_active ?? false,
-        'standard' => $partner->standard_active ?? true,
-        'himalayan' => $partner->himalayan_active ?? false,
-    ];
-    
-    return view('partner.zones.create', compact('services', 'partner'));
-}
-
 
     /**
      * Store a new partner zone
      */
     public function store(Request $request)
-{
-    $partnerId = $this->getPartnerId();
-    $partner = $this->getPartner();
+    {
+        $partnerId = $this->getPartnerId();
+        $partner = $this->getPartner();
 
-    // Partner can only create zones in their district
-    if (!$partner->district) {
+        $request->validate([
+            'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,NULL,id,partner_id,' . $partnerId,
+            'district' => 'nullable|string',
+            'province' => 'nullable|string',
+            'districts' => 'nullable|array',
+            'municipalities' => 'nullable|string',
+            'wards' => 'nullable|string',
+            'description' => 'nullable|string',
+            'flash_base_rate' => 'nullable|numeric|min:0',
+            'flash_per_kg_rate' => 'nullable|numeric|min:0',
+            'flash_estimated_hours' => 'nullable|integer|min:0',
+            'same_day_base_rate' => 'nullable|numeric|min:0',
+            'same_day_per_kg_rate' => 'nullable|numeric|min:0',
+            'same_day_estimated_hours' => 'nullable|integer|min:0',
+            'standard_base_rate' => 'nullable|numeric|min:0',
+            'standard_per_kg_rate' => 'nullable|numeric|min:0',
+            'standard_estimated_hours' => 'nullable|integer|min:0',
+            'himalayan_base_rate' => 'nullable|numeric|min:0',
+            'himalayan_per_kg_rate' => 'nullable|numeric|min:0',
+            'himalayan_estimated_hours' => 'nullable|integer|min:0',
+        ]);
+
+        // Resolve district and province
+        $district = $request->district ?: ($request->districts[0] ?? $partner->district);
+        $province = $request->province ?: ($partner->province ?? \App\Services\NepalGeographicalService::getProvinceForDistrict($district));
+
+        if (empty($district)) {
+            return redirect()->back()
+                ->withErrors(['district' => 'Please select an operating district for this zone.'])
+                ->withInput();
+        }
+
+        // Auto-assign to partner profile if not yet configured
+        if (empty($partner->district) || empty($partner->province)) {
+            $partner->district = $district;
+            if ($province) {
+                $partner->province = $province;
+            }
+            $partner->save();
+
+            \App\Models\DomesticPartner::where('id', $partner->id)->update(array_filter([
+                'district' => $district,
+                'province' => $province,
+            ]));
+        }
+
+        $zoneCode = strtoupper(substr($request->zone_name, 0, 3)) . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $districtsList = !empty($request->districts) ? (array)$request->districts : [$district];
+
+        // Partner's zone uses their district
+        $zone = DeliveryZone::create([
+            'partner_id' => $partnerId,
+            'zone_name' => $request->zone_name,
+            'zone_code' => $zoneCode,
+            'zone_type' => 'partner', // Fixed type for partner zones
+            'districts' => $districtsList,
+            'municipalities' => $request->municipalities ? explode(',', $request->municipalities) : [],
+            'wards' => $request->wards ? explode(',', $request->wards) : [],
+            'description' => $request->description,
+            'is_active' => true,
+            'approval_status' => 'pending',
+            'flash_base_rate' => $request->flash_base_rate ?? 0,
+            'flash_per_kg_rate' => $request->flash_per_kg_rate ?? 0,
+            'flash_estimated_hours' => $request->flash_estimated_hours ?? null,
+            'same_day_base_rate' => $request->same_day_base_rate ?? 0,
+            'same_day_per_kg_rate' => $request->same_day_per_kg_rate ?? 0,
+            'same_day_estimated_hours' => $request->same_day_estimated_hours ?? null,
+            'standard_base_rate' => $request->standard_base_rate ?? 0,
+            'standard_per_kg_rate' => $request->standard_per_kg_rate ?? 0,
+            'standard_estimated_hours' => $request->standard_estimated_hours ?? null,
+            'himalayan_base_rate' => $request->himalayan_base_rate ?? 0,
+            'himalayan_per_kg_rate' => $request->himalayan_per_kg_rate ?? 0,
+            'himalayan_estimated_hours' => $request->himalayan_estimated_hours ?? null,
+        ]);
+
+        // Notify admins about new zone
+        $this->notifyAdminAboutNewZone($zone);
+        if (class_exists(DomesticOperationsNotificationService::class) && class_exists(DomesticZoneSubmittedNotification::class)) {
+            try {
+                app(DomesticOperationsNotificationService::class)->notify(new DomesticZoneSubmittedNotification($zone->load('partner'), 'created'));
+            } catch (\Throwable $e) {}
+        }
+
         return redirect()->route('partner.zones.index')
-            ->with('error', 'Please contact admin to set your operating district first.');
+            ->with('success', 'Zone created successfully! Admin has been notified for approval.');
     }
 
-    $request->validate([
-        'zone_name' => 'required|string|max:255|unique:delivery_zones,zone_name,NULL,id,partner_user_id,' . $partnerId,
-        'municipalities' => 'nullable|string',
-        'wards' => 'nullable|string',
-        'description' => 'nullable|string',
-        'flash_base_rate' => 'nullable|numeric|min:0',
-        'flash_per_kg_rate' => 'nullable|numeric|min:0',
-        'flash_estimated_hours' => 'nullable|integer|min:0',
-        'same_day_base_rate' => 'nullable|numeric|min:0',
-        'same_day_per_kg_rate' => 'nullable|numeric|min:0',
-        'same_day_estimated_hours' => 'nullable|integer|min:0',
-        'standard_base_rate' => 'nullable|numeric|min:0',
-        'standard_per_kg_rate' => 'nullable|numeric|min:0',
-        'standard_estimated_hours' => 'nullable|integer|min:0',
-        'himalayan_base_rate' => 'nullable|numeric|min:0',
-        'himalayan_per_kg_rate' => 'nullable|numeric|min:0',
-        'himalayan_estimated_hours' => 'nullable|integer|min:0',
-    ]);
+    /**
+     * Set operating territory (multi-province and multi-district) for partner.
+     */
+    public function setOperatingDistrict(Request $request)
+    {
+        $partner = $this->getPartner();
 
-    $zoneCode = strtoupper(substr($request->zone_name, 0, 3)) . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $request->validate([
+            'provinces' => 'nullable|array',
+            'districts' => 'nullable|array',
+            'province' => 'nullable|string',
+            'district' => 'nullable|string',
+        ]);
 
-    // Partner's zone uses their district
-    $zone = DeliveryZone::create([
-        'partner_user_id' => $partnerId,
-        'partner_id' => null,
-        'province' => $partner->province,
-        'district' => $partner->district,
-        'zone_name' => $request->zone_name,
-        'zone_code' => $zoneCode,
-        'zone_type' => 'partner', // Fixed type for partner zones
-        'districts' => [$partner->district], // Only partner's district
-        'municipalities' => $request->municipalities ? explode(',', $request->municipalities) : [],
-        'wards' => $request->wards ? explode(',', $request->wards) : [],
-        'description' => $request->description,
-        'is_active' => false,
-        'approval_status' => 'pending',
-        'flash_base_rate' => $request->flash_base_rate ?? 0,
-        'flash_per_kg_rate' => $request->flash_per_kg_rate ?? 0,
-        'flash_estimated_hours' => $request->flash_estimated_hours ?? null,
-        'same_day_base_rate' => $request->same_day_base_rate ?? 0,
-        'same_day_per_kg_rate' => $request->same_day_per_kg_rate ?? 0,
-        'same_day_estimated_hours' => $request->same_day_estimated_hours ?? null,
-        'standard_base_rate' => $request->standard_base_rate ?? 0,
-        'standard_per_kg_rate' => $request->standard_per_kg_rate ?? 0,
-        'standard_estimated_hours' => $request->standard_estimated_hours ?? null,
-        'himalayan_base_rate' => $request->himalayan_base_rate ?? 0,
-        'himalayan_per_kg_rate' => $request->himalayan_per_kg_rate ?? 0,
-        'himalayan_estimated_hours' => $request->himalayan_estimated_hours ?? null,
-    ]);
+        $provinces = [];
+        if ($request->has('provinces') && is_array($request->provinces)) {
+            $provinces = array_values(array_filter($request->provinces));
+        } elseif ($request->filled('province')) {
+            $provinces = [trim($request->province)];
+        }
 
-    // Notify admins about new zone
-    app(DomesticOperationsNotificationService::class)->notify(new DomesticZoneSubmittedNotification($zone->load('partner'), 'created'));
+        $districts = [];
+        if ($request->has('districts') && is_array($request->districts)) {
+            $districts = array_values(array_filter($request->districts));
+        } elseif ($request->filled('district')) {
+            $districts = [trim($request->district)];
+        }
 
-    return redirect()->route('partner.zones.index')
-        ->with('success', 'Zone created successfully! Admin has been notified for approval.');
-}
+        // If no province was explicitly supplied but districts were provided, infer provinces from districts
+        if (empty($provinces) && !empty($districts)) {
+            foreach ($districts as $d) {
+                $p = \App\Services\NepalGeographicalService::getProvinceForDistrict($d);
+                if ($p && !in_array($p, $provinces)) {
+                    $provinces[] = $p;
+                }
+            }
+        }
+
+        if (empty($districts)) {
+            return redirect()->back()
+                ->withErrors(['districts' => 'Please select at least one operating district.'])
+                ->withInput();
+        }
+
+        $primaryDistrict = $districts[0] ?? null;
+        $primaryProvince = $provinces[0] ?? \App\Services\NepalGeographicalService::getProvinceForDistrict($primaryDistrict);
+
+        $partner->operating_provinces = $provinces;
+        $partner->operating_districts = $districts;
+        $partner->province = $primaryProvince;
+        $partner->district = $primaryDistrict;
+        $partner->save();
+
+        \App\Models\DomesticPartner::where('id', $partner->id)->update([
+            'operating_provinces' => $provinces,
+            'operating_districts' => $districts,
+            'province' => $primaryProvince,
+            'district' => $primaryDistrict,
+        ]);
+
+        // Auto-provision a designated Regional Depot for each operating district stationed in the district capital
+        if ($request->boolean('auto_create_depots', true)) {
+            foreach ($districts as $d) {
+                $capital = \App\Services\NepalGeographicalService::getDistrictCapital($d);
+                $depotName = "{$d} District Depot ({$capital})";
+                $zoneCode = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $d), 0, 3)) . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+
+                DeliveryZone::firstOrCreate(
+                    [
+                        'partner_id' => $partner->id,
+                        'zone_name' => $depotName,
+                    ],
+                    [
+                        'zone_code' => $zoneCode,
+                        'zone_type' => 'urban',
+                        'districts' => [$d],
+                        'municipalities' => ["{$capital} Municipality"],
+                        'wards' => ['All'],
+                        'description' => "Official district regional depot at {$capital}, {$d}",
+                        'is_active' => true,
+                        'approval_status' => 'approved',
+                        'standard_base_rate' => 100.00,
+                        'standard_per_kg_rate' => 25.00,
+                        'standard_estimated_hours' => 24,
+                    ]
+                );
+            }
+        }
+
+        $distCount = count($districts);
+        $provCount = count($provinces);
+        return redirect()->route('partner.zones.index')
+            ->with('success', "Operating coverage activated across {$distCount} district(s) in {$provCount} province(s) with district capital depots.");
+    }
 
     /**
      * Show zone details
@@ -511,24 +638,6 @@ class ZoneController extends Controller
      */
     private function getNepalDistricts()
     {
-        return [
-            'Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Lumbini',
-            'Chitwan', 'Butwal', 'Biratnagar', 'Birgunj', 'Dharan',
-            'Janakpur', 'Hetauda', 'Nepalgunj', 'Birendranagar', 'Tulsipur',
-            'Kapilvastu', 'Rupandehi', 'Nawalparasi', 'Parsa', 'Bara',
-            'Sarlahi', 'Dhanusha', 'Mahottari', 'Saptari', 'Siraha',
-            'Udayapur', 'Sunsari', 'Morang', 'Jhapa', 'Ilam',
-            'Panchthar', 'Taplejung', 'Sankhuwasabha', 'Tehrathum', 'Dhankuta',
-            'Bhojpur', 'Khotang', 'Solukhumbu', 'Okhaldhunga', 'Ramechhap',
-            'Dolakha', 'Sindhuli', 'Sindhupalchok', 'Rasuwa', 'Dhading',
-            'Nuwakot', 'Gorkha', 'Lamjung', 'Tanahun', 'Kaski',
-            'Parbat', 'Syangja', 'Palpa', 'Gulmi', 'Arghakhanchi',
-            'Rukum', 'Rolpa', 'Pyuthan', 'Dang', 'Banke',
-            'Bardiya', 'Doti', 'Achham', 'Bajhang', 'Bajura',
-            'Kanchanpur', 'Kailali', 'Dadeldhura', 'Baitadi', 'Darchula',
-            'Humla', 'Jumla', 'Kalikot', 'Mugu', 'Dolpa',
-            'Mustang', 'Manang', 'Myagdi', 'Baglung', 'Jajarkot',
-            'Salyan', 'Surkhet', 'Dailekh', 'Jajarkot'
-        ];
+        return \App\Services\NepalGeographicalService::getAllDistricts();
     }
 }

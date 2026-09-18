@@ -130,12 +130,19 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Service Type <span class="text-red-500">*</span></label>
-                                <select id="domestic_service_type" onchange="syncServiceType()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                    @forelse($domesticServices as $service)
-                                        <option value="{{ $service->code }}" @selected(old('service_type', 'standard') === $service->code)>{{ $service->name }} — {{ $service->transit_display }}</option>
-                                    @empty
-                                        <option value="flash">⚡ FLASH</option><option value="same_day">🕐 SAME DAY</option><option value="standard" selected>🚚 STANDARD</option><option value="himalayan">🏔️ HIMALAYAN</option>
-                                    @endforelse
+                                <select name="service_type" id="domestic_service_type" onchange="if(typeof syncServiceType === 'function') syncServiceType()" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    @if(isset($domesticServices) && count($domesticServices) > 0)
+                                        @foreach($domesticServices as $code => $svc)
+                                            <option value="{{ $code }}" {{ (old('service_type') ?? 'standard') === $code ? 'selected' : '' }}>
+                                                {{ $svc['icon'] ?? '📦' }} {{ $svc['name'] }} ({{ $svc['time'] ?? 'SLA' }}) {{ !empty($svc['is_custom']) ? '★' : '' }}
+                                            </option>
+                                        @endforeach
+                                    @else
+                                        <option value="flash">⚡ FLASH (1-2 Hours)</option>
+                                        <option value="same_day">🕐 SAME DAY (4-6 Hours)</option>
+                                        <option value="standard" selected>🚚 STANDARD (1-2 Days)</option>
+                                        <option value="himalayan">🏔️ HIMALAYAN (2-4 Days)</option>
+                                    @endif
                                 </select>
                             </div>
                             <div>
@@ -301,10 +308,19 @@
                                                placeholder="Phone number">
                                     </div>
                                     <div class="md:col-span-2">
-                                        <label class="block text-sm font-medium mb-1">Delivery Address <span class="text-red-500">*</span></label>
+                                        <x-nepal-territory-picker 
+                                            provinceName="delivery_province[]" 
+                                            districtName="delivery_district[]" 
+                                            provinceLabel="Destination Province / Sector" 
+                                            districtLabel="Destination District (Under Province)" 
+                                            idPrefix="shipment_deliv_0" 
+                                            helperText="Select the destination province to show its 77-district sub-list with instant search." />
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium mb-1">Street / Delivery Address <span class="text-red-500">*</span></label>
                                         <textarea name="delivery_address[]" rows="2" required 
                                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                                  placeholder="Full delivery address"></textarea>
+                                                  placeholder="Full delivery street address"></textarea>
                                     </div>
                                     <div class="md:col-span-2">
                                         <div id="delivery-map" class="map-container"></div>

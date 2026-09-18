@@ -152,23 +152,17 @@
                                 <input type="text" name="city" value="{{ old('city') }}" 
                                        class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">District</label>
-                                <input type="text" name="district" value="{{ old('district') }}" 
-                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Province</label>
-                                <select name="province" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                    <option value="">Select Province</option>
-                                    <option value="Province 1" {{ old('province') === 'Province 1' ? 'selected' : '' }}>Province 1</option>
-                                    <option value="Province 2" {{ old('province') === 'Province 2' ? 'selected' : '' }}>Province 2</option>
-                                    <option value="Bagmati" {{ old('province') === 'Bagmati' ? 'selected' : '' }}>Bagmati</option>
-                                    <option value="Gandaki" {{ old('province') === 'Gandaki' ? 'selected' : '' }}>Gandaki</option>
-                                    <option value="Lumbini" {{ old('province') === 'Lumbini' ? 'selected' : '' }}>Lumbini</option>
-                                    <option value="Karnali" {{ old('province') === 'Karnali' ? 'selected' : '' }}>Karnali</option>
-                                    <option value="Sudurpaschim" {{ old('province') === 'Sudurpaschim' ? 'selected' : '' }}>Sudurpaschim</option>
-                                </select>
+                            <div class="md:col-span-2">
+                                <x-nepal-territory-picker 
+                                    provinceName="province"
+                                    districtName="district"
+                                    :selectedProvince="old('province')"
+                                    :selectedDistrict="old('district')"
+                                    provinceLabel="Province / Sector"
+                                    districtLabel="District"
+                                    helperText="Select province to display strictly its affiliated 77 districts with quick search."
+                                    :required="false"
+                                />
                             </div>
                         </div>
 
@@ -247,8 +241,28 @@
                                 @enderror
                             </div>
                             <div>
+                                <label class="block text-sm font-medium mb-1">License Expiry Date</label>
+                                <input type="date" name="license_expiry_date" value="{{ old('license_expiry_date') }}"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium mb-1">Citizenship Number</label>
                                 <input type="text" name="citizenship_number" value="{{ old('citizenship_number') }}" placeholder="e.g. 27-01-78-12345"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Emergency Contact Phone & Name</label>
+                                <input type="text" name="emergency_contact" value="{{ old('emergency_contact') }}" placeholder="e.g. 98XXXXXXXX (Father/Spouse)"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Municipality / Rural Municipality</label>
+                                <input type="text" name="municipality" value="{{ old('municipality') }}" placeholder="e.g. Kathmandu Metropolitan City"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Ward Number</label>
+                                <input type="text" name="ward" value="{{ old('ward') }}" placeholder="e.g. 10"
                                        class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                             </div>
                         </div>

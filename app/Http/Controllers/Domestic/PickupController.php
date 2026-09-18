@@ -39,6 +39,7 @@ class PickupController extends Controller
             'delivery_ward_no' => 'required|string',
             'delivery_municipality' => 'required|string',
             'delivery_district' => 'required|string',
+            'delivery_province' => 'nullable|string',
             'service_tier' => 'required|in:flash,same_day,standard,himalayan',
         ]);
         

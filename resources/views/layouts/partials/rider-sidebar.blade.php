@@ -100,7 +100,14 @@
             <span>COD & Earnings</span>
         </a>
 
-        <!-- 5. Rider Settings & Vehicle -->
+        <!-- 5. Service Areas & Radius -->
+        <a href="{{ route('rider.service-areas.index') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('rider.service-areas*') ? 'bg-amber-600 text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i class="fas fa-map-location-dot w-4 text-center text-teal-400"></i>
+            <span>Service Areas</span>
+        </a>
+
+        <!-- 6. Rider Settings & Vehicle -->
         <a href="{{ route('rider.settings') }}" 
            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition {{ request()->routeIs('rider.settings*') ? 'bg-amber-600/30 text-amber-200 border border-amber-500/30 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
             <i class="fas fa-gear w-4 text-center text-slate-400"></i>

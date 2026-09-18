@@ -54,12 +54,16 @@
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Districts</label>
-                        <input type="text" name="districts" value="{{ old('districts') }}" 
-                               placeholder="e.g., Kathmandu, Lalitpur, Bhaktapur" 
-                               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                        <p class="text-xs text-gray-500 mt-1">Comma separated list of districts</p>
+                    <div class="md:col-span-2">
+                        <x-nepal-territory-picker 
+                            :isMultiple="true"
+                            provinceName="province"
+                            districtName="districts[]"
+                            provinceLabel="Operating Province / Sector"
+                            districtLabel="Districts Under Province"
+                            helperText="Choose a province to display strictly its affiliated districts. Checkboxes allow selecting multiple coverage districts with type-to-search."
+                            :required="false"
+                        />
                     </div>
 
                     <div>

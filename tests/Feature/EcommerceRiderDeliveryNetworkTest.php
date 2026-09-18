@@ -351,4 +351,199 @@ class EcommerceRiderDeliveryNetworkTest extends TestCase
         $this->assertEquals(3, $assignments[2]->sequence);
         $this->assertEquals(8500.00, (float) $assignments[2]->cod_amount);
     }
+
+    public function test_rider_can_manage_service_areas_and_operating_radius(): void
+    {
+        $riderUser = User::factory()->create(['role' => 'rider', 'user_type' => 'rider']);
+        $profile = $riderUser->ensureRiderProfile();
+
+        // 1. Rider accesses service areas view
+        $viewResponse = $this->actingAs($riderUser)->get(route('rider.service-areas.index'));
+        $viewResponse->assertStatus(200);
+        $viewResponse->assertSee('Operating Service Areas');
+
+        // 2. Rider adds service area for Lalitpur - Jawalakhel
+        $addResponse = $this->actingAs($riderUser)->post(route('rider.service-areas.store'), [
+            'province' => 'Bagmati',
+            'district' => 'Lalitpur',
+            'municipality' => 'Lalitpur Metropolitan City',
+            'ward' => '4',
+            'area_name' => 'Jawalakhel',
+            'service_radius_km' => 12.0,
+        ]);
+
+        $addResponse->assertRedirect(route('rider.service-areas.index'));
+        $addResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('rider_service_areas', [
+            'rider_profile_id' => $profile->id,
+            'district' => 'Lalitpur',
+            'area_name' => 'Jawalakhel',
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_dispatcher_can_direct_assign_qualified_rider_to_shipment(): void
+    {
+        $admin = User::factory()->create(['role' => 'domestic_admin', 'user_type' => 'domestic_admin']);
+        $seller = User::factory()->create(['role' => 'seller', 'user_type' => 'seller']);
+
+        $riderUser = User::factory()->create(['role' => 'rider', 'user_type' => 'rider', 'name' => 'Suman Direct Rider']);
+        $profile = RiderProfile::create([
+            'user_id' => $riderUser->id,
+            'full_name' => 'Suman Direct Rider',
+            'vehicle_type' => 'motorcycle',
+            'verification_status' => 'verified',
+            'cod_limit' => 20000,
+            'current_outstanding_cod' => 0,
+        ]);
+
+        // Seller books delivery
+        $this->actingAs($seller)->post(route('seller.ecommerce.direct.store'), [
+            'delivery_name' => 'Kiran Thapa',
+            'delivery_phone' => '9841999999',
+            'delivery_address' => 'Balaju, Kathmandu',
+            'distance_km' => 6.0,
+            'parcel_weight' => 2.0,
+            'cod_amount' => 4500,
+            'vehicle_type' => 'motorcycle',
+        ]);
+
+        $assignment = ShipmentAssignment::latest()->first();
+        $this->assertNotNull($assignment);
+
+        // Dispatcher assigns rider directly (Method A)
+        $assignResponse = $this->actingAs($admin)->post(route('domestic.ecommerce.riders.assign'), [
+            'assignment_id' => $assignment->id,
+            'rider_profile_id' => $profile->id,
+        ]);
+
+        $assignResponse->assertRedirect();
+        $assignResponse->assertSessionHas('success');
+
+        $assignment->refresh();
+        $this->assertEquals($profile->id, $assignment->rider_profile_id);
+        $this->assertStringContainsString('Directly Assigned', $assignment->current_custody);
+    }
+
+    public function test_master_awb_universal_tracking_renders_milestones_and_masks_customer_phone(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller', 'user_type' => 'seller', 'business_name' => 'Alpha Goods']);
+
+        // Seller books delivery
+        $this->actingAs($seller)->post(route('seller.ecommerce.direct.store'), [
+            'delivery_name' => 'Sarita Sharma',
+            'delivery_phone' => '9841234567',
+            'delivery_address' => 'Baluwatar, Kathmandu',
+            'distance_km' => 3.5,
+            'parcel_weight' => 1.2,
+            'cod_amount' => 1800,
+            'vehicle_type' => 'motorcycle',
+        ]);
+
+        $assignment = ShipmentAssignment::latest()->first();
+        $this->assertNotNull($assignment);
+
+        // Customer tracks by Master AWB
+        $trackResponse = $this->get(route('tracking.show', $assignment->master_awb));
+        $trackResponse->assertStatus(200);
+        $trackResponse->assertSee($assignment->master_awb);
+        $trackResponse->assertSee('984****567'); // Masked customer phone
+        $trackResponse->assertDontSee('9841234567'); // Exact phone hidden
+        $trackResponse->assertSee('Master Consignment Progression');
+    }
+
+    public function test_delivery_failure_generates_automatic_rto_return_assignment(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller', 'user_type' => 'seller', 'business_name' => 'Nepal Shop']);
+        $riderUser = User::factory()->create(['role' => 'rider', 'user_type' => 'rider']);
+        $profile = RiderProfile::create([
+            'user_id' => $riderUser->id,
+            'full_name' => 'Hari Rider',
+            'vehicle_type' => 'motorcycle',
+            'verification_status' => 'verified',
+            'cod_limit' => 10000,
+        ]);
+
+        $this->actingAs($seller)->post(route('seller.ecommerce.direct.store'), [
+            'delivery_name' => 'Pradeep Karki',
+            'delivery_phone' => '9801239999',
+            'delivery_address' => 'Kapan, Kathmandu',
+            'distance_km' => 7.0,
+            'parcel_weight' => 1.5,
+            'cod_amount' => 2000,
+        ]);
+
+        $assignment = ShipmentAssignment::latest()->first();
+        $this->actingAs($riderUser)->post(route('rider.delivery.accept', $assignment->id));
+
+        // Rider reports failed delivery (Customer refused)
+        $failResponse = $this->actingAs($riderUser)->post(route('rider.delivery.fail', $assignment->id), [
+            'failure_reason' => 'customer_refused',
+            'failure_notes' => 'Customer refused parcel at doorstep',
+        ]);
+
+        $failResponse->assertRedirect(route('rider.delivery.my'));
+
+        $assignment->refresh();
+        $this->assertEquals('failed', $assignment->status);
+
+        // Automatic RTO Return assignment generated
+        $rtoAssignment = ShipmentAssignment::where('master_awb', $assignment->master_awb . '-RTO')->first();
+        $this->assertNotNull($rtoAssignment);
+        $this->assertEquals('return_rto', $rtoAssignment->assignment_type);
+        $this->assertEquals(60.00, (float) $rtoAssignment->provider_fee);
+    }
+
+    public function test_seller_can_rate_rider_and_recalculate_trust_score(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller', 'user_type' => 'seller']);
+        $riderUser = User::factory()->create(['role' => 'rider', 'user_type' => 'rider']);
+        $profile = RiderProfile::create([
+            'user_id' => $riderUser->id,
+            'full_name' => 'Ramesh Top Rider',
+            'vehicle_type' => 'motorcycle',
+            'verification_status' => 'verified',
+            'cod_limit' => 10000,
+            'total_completed_deliveries' => 50,
+        ]);
+
+        $this->actingAs($seller)->post(route('seller.ecommerce.direct.store'), [
+            'delivery_name' => 'Manoj Shrestha',
+            'delivery_phone' => '9800000000',
+            'delivery_address' => 'Patan, Lalitpur',
+            'distance_km' => 4.0,
+            'parcel_weight' => 1.0,
+            'cod_amount' => 0,
+        ]);
+
+        $assignment = ShipmentAssignment::latest()->first();
+        $this->actingAs($riderUser)->post(route('rider.delivery.accept', $assignment->id));
+        $this->actingAs($riderUser)->post(route('rider.delivery.verify-pickup', $assignment->id), ['pickup_otp' => $assignment->pickup_otp]);
+        $this->actingAs($riderUser)->post(route('rider.delivery.complete', $assignment->id), ['delivery_otp' => $assignment->delivery_otp]);
+
+        // Seller rates rider 5 stars
+        $rateResponse = $this->actingAs($seller)->post(route('seller.ecommerce.rate', $assignment->id), [
+            'overall_rating' => 5,
+            'professionalism' => 5,
+            'timeliness' => 5,
+            'parcel_handling' => 5,
+            'communication' => 5,
+            'feedback' => 'Exceptional and punctual service!',
+        ]);
+
+        $rateResponse->assertRedirect();
+        $rateResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('rider_ratings', [
+            'rider_profile_id' => $profile->id,
+            'assignment_id' => $assignment->id,
+            'overall_rating' => 5,
+        ]);
+
+        $profile->refresh();
+        $this->assertEquals(5.00, (float) $profile->rating);
+        $this->assertGreaterThanOrEqual(85, $profile->trust_score);
+        $this->assertEquals('trusted', $profile->badge_status);
+    }
 }

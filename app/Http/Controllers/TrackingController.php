@@ -7,6 +7,7 @@ use App\Models\DomesticShipment;
 use App\Models\Order;
 use App\Models\MAWB;
 use App\Models\PickupRequest;
+use App\Models\ShipmentAssignment;
 use App\Models\TrackingLocation;
 use App\Services\ShipmentScanService;
 use App\Services\AutomatedTrackingService;
@@ -113,6 +114,19 @@ class TrackingController extends Controller
                     }
                 }
                 return view('domestic.pickup.show', ['pickupRequest' => $pickup]);
+            }
+
+            // 6. Direct Rider & Multi-Leg Hybrid Consignments (Master AWB)
+            $assignments = ShipmentAssignment::where('master_awb', $trackingNumberUpper)
+                ->orWhereRaw("REPLACE(REPLACE(master_awb, '-', ''), ' ', '') = ?", [$cleanNumber])
+                ->orderBy('sequence')
+                ->with(['riderProfile', 'partner'])
+                ->get();
+
+            if ($assignments->isNotEmpty()) {
+                $primaryAssignment = $assignments->first();
+                $currentLeg = $assignments->firstWhere('status', '!=', 'completed') ?? $assignments->last();
+                return view('tracking.master_awb', compact('assignments', 'primaryAssignment', 'currentLeg', 'trackingNumberUpper'));
             }
 
             // Not found

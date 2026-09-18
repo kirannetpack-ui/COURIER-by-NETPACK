@@ -176,26 +176,34 @@ class DomesticRate extends Model
 
     public function getServiceNameAttribute()
     {
-        return self::SERVICE_NAMES[$this->service_type] ?? ucfirst($this->service_type);
+        return $this->attributes['service_name'] 
+            ?? self::SERVICE_NAMES[$this->service_type] 
+            ?? ucwords(str_replace(['_', '-'], ' ', $this->service_type));
     }
 
     public function getServiceIconAttribute()
     {
-        return self::SERVICE_ICONS[$this->service_type] ?? '📦';
+        return self::SERVICE_ICONS[$this->service_type] ?? '🏷️';
     }
 
     public function getServiceDescriptionAttribute()
     {
-        return self::SERVICE_DESCRIPTIONS[$this->service_type] ?? '';
+        return self::SERVICE_DESCRIPTIONS[$this->service_type] ?? 'Custom specialized partner service';
     }
 
     public function getServiceColorAttribute()
     {
-        return self::SERVICE_COLORS[$this->service_type] ?? 'gray';
+        return self::SERVICE_COLORS[$this->service_type] ?? 'teal';
     }
 
     public function getServiceTimeAttribute()
     {
+        if (!empty($this->estimated_hours)) {
+            return $this->estimated_hours . ' hours';
+        }
+        if (!empty($this->estimated_days)) {
+            return $this->estimated_days . ' days';
+        }
         return self::SERVICE_TIME[$this->service_type] ?? 'Varies';
     }
 
@@ -207,46 +215,46 @@ class DomesticRate extends Model
             'standard' => 'blue',
             'himalayan' => 'purple',
         ];
-        $color = $colors[$this->service_type] ?? 'gray';
+        $color = $colors[$this->service_type] ?? 'teal';
         
         return "<span class='px-2 py-1 rounded-full text-xs font-medium bg-{$color}-100 text-{$color}-800'>{$this->service_icon} {$this->service_name}</span>";
     }
 
     public function calculateRate($weight, $distance = null)
     {
-        $baseRate = max($this->base_rate, $this->minimum_rate);
-        $weightCharge = $this->per_kg_rate * $weight;
-        $distanceCharge = $distance ? ($this->per_km_rate * $distance) : 0;
+        $baseRate = max((float)$this->base_rate, (float)$this->minimum_rate);
+        $weightCharge = (float)$this->per_kg_rate * (float)$weight;
+        $distanceCharge = $distance ? ((float)$this->per_km_rate * (float)$distance) : 0;
         
         $subtotal = $baseRate + $weightCharge + $distanceCharge;
         $total = $subtotal
-            + $this->logistical_charge
-            + $this->additional_charge
-            + $this->pickup_charge
-            + $this->origin_handling_charge
-            + $this->destination_handling_charge
-            + $this->remote_area_surcharge
-            + $this->cod_charge;
+            + (float)$this->logistical_charge
+            + (float)$this->additional_charge
+            + (float)$this->pickup_charge
+            + (float)$this->origin_handling_charge
+            + (float)$this->destination_handling_charge
+            + (float)$this->remote_area_surcharge
+            + (float)$this->cod_charge;
         
         return [
             'base_rate' => $baseRate,
-            'weight_charge' => $weightCharge,
-            'distance_charge' => $distanceCharge,
-            'logistical_charge' => $this->logistical_charge,
-            'additional_charge' => $this->additional_charge,
-            'pickup_charge' => $this->pickup_charge,
-            'origin_handling_charge' => $this->origin_handling_charge,
-            'destination_handling_charge' => $this->destination_handling_charge,
-            'remote_area_surcharge' => $this->remote_area_surcharge,
-            'cod_charge' => $this->cod_charge,
-            'subtotal' => $subtotal,
-            'total' => $total,
+            'weight_charge' => round($weightCharge, 2),
+            'distance_charge' => round($distanceCharge, 2),
+            'logistical_charge' => (float)$this->logistical_charge,
+            'additional_charge' => (float)$this->additional_charge,
+            'pickup_charge' => (float)$this->pickup_charge,
+            'origin_handling_charge' => (float)$this->origin_handling_charge,
+            'destination_handling_charge' => (float)$this->destination_handling_charge,
+            'remote_area_surcharge' => (float)$this->remote_area_surcharge,
+            'cod_charge' => (float)$this->cod_charge,
+            'subtotal' => round($subtotal, 2),
+            'total' => round($total, 2),
             'breakdown' => [
-                'weight' => $weight,
-                'distance' => $distance,
-                'per_kg_rate' => $this->per_kg_rate,
-                'per_km_rate' => $this->per_km_rate,
-                'minimum_rate' => $this->minimum_rate,
+                'weight' => (float)$weight,
+                'distance' => (float)$distance,
+                'per_kg_rate' => (float)$this->per_kg_rate,
+                'per_km_rate' => (float)$this->per_km_rate,
+                'minimum_rate' => (float)$this->minimum_rate,
             ],
         ];
     }
@@ -279,7 +287,7 @@ class DomesticRate extends Model
         ];
     }
 
-    public static function getServiceTypeOptions()
+    public static function getServiceTypeOptions(?int $partnerId = null)
     {
         $options = [];
         foreach (self::getServiceTypes() as $type) {
@@ -289,8 +297,39 @@ class DomesticRate extends Model
                 'description' => self::SERVICE_DESCRIPTIONS[$type],
                 'color' => self::SERVICE_COLORS[$type],
                 'time' => self::SERVICE_TIME[$type],
+                'is_custom' => false,
             ];
         }
+
+        try {
+            $customQuery = LogisticsService::query()
+                ->where('category', 'domestic')
+                ->where('is_active', true);
+
+            if ($partnerId) {
+                $customQuery->where(function ($q) use ($partnerId) {
+                    $q->whereNull('partner_id')->orWhere('partner_id', $partnerId);
+                });
+            }
+
+            $customServices = $customQuery->get();
+            foreach ($customServices as $custom) {
+                if (!isset($options[$custom->code])) {
+                    $options[$custom->code] = [
+                        'name' => $custom->name,
+                        'icon' => '✨',
+                        'description' => $custom->description ?? 'Custom specialized partner service',
+                        'color' => 'teal',
+                        'time' => $custom->transit_display,
+                        'is_custom' => true,
+                        'partner_id' => $custom->partner_id,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Graceful fallback to standard options
+        }
+
         return $options;
     }
 }

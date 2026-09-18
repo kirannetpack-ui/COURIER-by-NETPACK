@@ -103,6 +103,10 @@ class User extends Authenticatable
         'is_active',
         'created_by',
         'service_scope',
+        'permanent_address',
+        'temporary_address',
+        'operating_provinces',
+        'operating_districts',
     ];
 
     /**
@@ -121,6 +125,8 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
+        'operating_provinces' => 'array',
+        'operating_districts' => 'array',
         'email_verified_at' => 'datetime',
         'approved_at' => 'datetime',
         'last_login_at' => 'datetime',
@@ -480,34 +486,93 @@ class User extends Authenticatable
      */
     public function ensureRiderProfile(): RiderProfile
     {
-        if ($this->riderProfile) {
-            return $this->riderProfile;
+        $existing = $this->riderProfile()->first();
+        if ($existing) {
+            $this->setRelation('riderProfile', $existing);
+            return $existing;
         }
 
         $riderCode = 'RDR-' . date('Y') . '-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
-        return RiderProfile::create([
-            'user_id' => $this->id,
-            'rider_code' => $riderCode,
-            'full_name' => $this->name,
-            'mobile' => $this->phone ?? '9800000000',
-            'email' => $this->email,
-            'dob' => $this->dob,
-            'gender' => $this->gender ?? 'male',
-            'address' => $this->address ?? 'Kathmandu',
-            'province' => $this->province ?? 'Bagmati',
-            'district' => $this->district ?? 'Kathmandu',
-            'vehicle_type' => in_array($this->vehicle_type ?? '', ['motorcycle', 'scooter', 'bicycle', 'car', 'van']) ? $this->vehicle_type : 'motorcycle',
-            'vehicle_number' => $this->vehicle_registration_number ?? 'BA-99-PA-1234',
-            'driving_license_number' => $this->license_number ?? '01-06-00001234',
-            'verification_status' => $this->verification_status === 'approved' ? 'verified' : 'pending',
-            'cod_level' => 'level_1',
-            'cod_limit' => 5000.00,
-            'current_outstanding_cod' => 0.00,
-            'trust_score' => 100,
-            'badge_status' => $this->verification_status === 'approved' ? 'verified' : 'new',
-            'rating' => 5.00,
-            'agreement_accepted' => true,
-            'agreement_accepted_at' => now(),
-        ]);
+        $profile = RiderProfile::firstOrCreate(
+            ['user_id' => $this->id],
+            [
+                'rider_code' => $riderCode,
+                'full_name' => $this->name,
+                'mobile' => $this->phone ?? '9800000000',
+                'email' => $this->email,
+                'dob' => $this->dob,
+                'gender' => $this->gender ?? 'male',
+                'address' => $this->address ?? 'Kathmandu',
+                'province' => $this->province ?? 'Bagmati',
+                'district' => $this->district ?? 'Kathmandu',
+                'vehicle_type' => in_array($this->vehicle_type ?? '', ['motorcycle', 'scooter', 'bicycle', 'car', 'van']) ? $this->vehicle_type : 'motorcycle',
+                'vehicle_number' => $this->vehicle_registration_number ?? 'BA-99-PA-1234',
+                'driving_license_number' => $this->license_number ?? '01-06-00001234',
+                'verification_status' => $this->verification_status === 'approved' ? 'verified' : 'pending',
+                'cod_level' => 'level_1',
+                'cod_limit' => 5000.00,
+                'current_outstanding_cod' => 0.00,
+                'trust_score' => 100,
+                'badge_status' => $this->verification_status === 'approved' ? 'verified' : 'new',
+                'rating' => 5.00,
+                'agreement_accepted' => true,
+                'agreement_accepted_at' => now(),
+            ]
+        );
+
+        $this->setRelation('riderProfile', $profile);
+        return $profile;
+    }
+
+    /**
+     * Get list of partner/user operating provinces.
+     */
+    public function getOperatingProvinces(): array
+    {
+        if (is_array($this->operating_provinces) && !empty($this->operating_provinces)) {
+            return $this->operating_provinces;
+        }
+        return !empty($this->province) ? [$this->province] : [];
+    }
+
+    /**
+     * Get list of partner/user operating districts.
+     */
+    public function getOperatingDistricts(): array
+    {
+        if (is_array($this->operating_districts) && !empty($this->operating_districts)) {
+            return $this->operating_districts;
+        }
+        return !empty($this->district) ? [$this->district] : [];
+    }
+
+    /**
+     * Check if partner/user has established operating coverage.
+     */
+    public function hasOperatingTerritory(): bool
+    {
+        return !empty($this->getOperatingDistricts());
+    }
+
+    /**
+     * Accessor for company_name backed by metadata or business_name
+     */
+    public function getCompanyNameAttribute(): ?string
+    {
+        if (array_key_exists('company_name', $this->attributes) && !empty($this->attributes['company_name'])) {
+            return $this->attributes['company_name'];
+        }
+        return $this->metadata['company_name'] ?? $this->attributes['business_name'] ?? null;
+    }
+
+    /**
+     * Accessor for contact_person backed by metadata
+     */
+    public function getContactPersonAttribute(): ?string
+    {
+        if (array_key_exists('contact_person', $this->attributes) && !empty($this->attributes['contact_person'])) {
+            return $this->attributes['contact_person'];
+        }
+        return $this->metadata['contact_person'] ?? null;
     }
 }

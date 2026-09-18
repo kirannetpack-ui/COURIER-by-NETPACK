@@ -127,6 +127,13 @@ class RiderProfile extends Model
         $this->attributes['has_other_platform_affiliation'] = !in_array($value, ['none', null, '']);
     }
 
+    public function getPayoutMethodAttribute(): string
+    {
+        if (!empty($this->esewa_id)) return 'esewa';
+        if (!empty($this->khalti_id)) return 'khalti';
+        return 'bank';
+    }
+
     protected $casts = [
         'dob' => 'date',
         'license_expiry_date' => 'date',
@@ -290,5 +297,97 @@ class RiderProfile extends Model
     public function getTotalEarningsAttribute(): float
     {
         return (float) ($this->earningsLedgers()->where('status', 'approved')->sum('amount'));
+    }
+
+    /**
+     * Comprehensive capacity and qualification check
+     */
+    public function isAvailableForDelivery(float $weight = 1.0, float $cod = 0.0): bool
+    {
+        if (!$this->isVerified()) {
+            return false;
+        }
+
+        if ($this->availability_status !== 'online') {
+            return false;
+        }
+
+        if ($this->current_active_packages >= $this->max_active_packages) {
+            return false;
+        }
+
+        if ($weight > $this->max_carrying_weight) {
+            return false;
+        }
+
+        return $this->canAcceptCod($cod);
+    }
+
+    /**
+     * Check if a destination falls within the rider's service coverage
+     */
+    public function coversArea(?string $district = null, ?string $province = null, ?string $area = null): bool
+    {
+        $areas = $this->serviceAreas()->where('is_active', true)->get();
+
+        // If rider hasn't specified custom granular areas, fallback to primary operating district/province
+        if ($areas->isEmpty()) {
+            if ($district && $this->district && strcasecmp(trim($district), trim($this->district)) === 0) {
+                return true;
+            }
+            if ($province && $this->province && strcasecmp(trim($province), trim($this->province)) === 0) {
+                return true;
+            }
+            return true;
+        }
+
+        foreach ($areas as $serviceArea) {
+            if ($district && $serviceArea->district && strcasecmp(trim($district), trim($serviceArea->district)) === 0) {
+                return true;
+            }
+            if ($area && $serviceArea->area_name && stripos($area, $serviceArea->area_name) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Dynamically recalculate performance trust score and update badges
+     */
+    public function recalculateTrustScore(): void
+    {
+        $avgRating = (float) ($this->ratings()->avg('overall_rating') ?? 5.00);
+        $ratingsCount = $this->ratings()->count();
+
+        $completed = $this->total_completed_deliveries;
+        $failed = $this->total_failed_deliveries;
+        $totalJobs = $completed + $failed;
+
+        $completionRate = $totalJobs > 0 ? ($completed / $totalJobs) * 100 : 100;
+        $penaltiesCount = $this->earningsLedgers()->where('type', 'penalty')->count();
+
+        // Formula: 50% fulfillment rate + 50% customer rating - penalty deductions
+        $rawScore = ($completionRate * 0.5) + (($avgRating / 5.0) * 50) - ($penaltiesCount * 5);
+        $trustScore = (int) max(10, min(100, round($rawScore)));
+
+        $badge = $this->badge_status;
+        if ($this->verification_status === 'verified') {
+            if ($completed >= 200 && $avgRating >= 4.8 && $trustScore >= 95) {
+                $badge = 'preferred';
+            } elseif ($completed >= 50 && $avgRating >= 4.5 && $trustScore >= 85) {
+                $badge = 'trusted';
+            } else {
+                $badge = 'verified';
+            }
+        }
+
+        $this->update([
+            'rating' => $avgRating,
+            'total_ratings_count' => $ratingsCount,
+            'trust_score' => $trustScore,
+            'badge_status' => $badge,
+        ]);
     }
 }

@@ -88,5 +88,95 @@
             @endif
         </div>
     </div>
+
+    <!-- 3. Rating & Performance Review (When Completed) -->
+    @if($assignment->status === 'completed' && $assignment->riderProfile)
+        @php
+            $existingRating = \App\Models\RiderRating::where('assignment_id', $assignment->id)->where('rated_by_user_id', auth()->id())->first();
+        @endphp
+        <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800 border-b pb-2 flex items-center gap-2">
+                <i class="fas fa-star text-amber-500"></i> Rider Performance Rating
+            </h4>
+
+            @if($existingRating)
+                <div class="p-4 rounded-xl bg-amber-50/50 border border-amber-200 text-xs flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-amber-900">You rated this rider: {{ $existingRating->overall_rating }} / 5 Stars</p>
+                        @if($existingRating->feedback)
+                            <p class="text-slate-600 mt-1 italic">"{{ $existingRating->feedback }}"</p>
+                        @endif
+                    </div>
+                    <span class="text-amber-500 text-lg font-black font-mono">
+                        {{ str_repeat('★', $existingRating->overall_rating) }}
+                    </span>
+                </div>
+            @else
+                <p class="text-xs text-slate-500">
+                    How was your experience with Rider <strong>{{ $assignment->riderProfile->full_name }}</strong>? Your feedback directly updates their platform Trust Score.
+                </p>
+
+                <form method="POST" action="{{ route('seller.ecommerce.rate', $assignment->id) }}" class="space-y-4">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Overall Rating *</label>
+                            <select name="overall_rating" required class="w-full border border-slate-200 rounded-xl p-2 bg-white font-bold text-amber-700">
+                                <option value="5">5 ★★★★★ (Exceptional)</option>
+                                <option value="4">4 ★★★★☆ (Good)</option>
+                                <option value="3">3 ★★★☆☆ (Average)</option>
+                                <option value="2">2 ★★☆☆☆ (Poor)</option>
+                                <option value="1">1 ★☆☆☆☆ (Terrible)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Professionalism</label>
+                            <select name="professionalism" class="w-full border border-slate-200 rounded-xl p-2 bg-white">
+                                <option value="5">5 - Excellent</option>
+                                <option value="4">4 - Good</option>
+                                <option value="3">3 - Fair</option>
+                                <option value="2">2 - Poor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Timeliness</label>
+                            <select name="timeliness" class="w-full border border-slate-200 rounded-xl p-2 bg-white">
+                                <option value="5">5 - On Time</option>
+                                <option value="4">4 - Minor Delay</option>
+                                <option value="3">3 - Delayed</option>
+                                <option value="2">2 - Very Late</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Parcel Handling</label>
+                            <select name="parcel_handling" class="w-full border border-slate-200 rounded-xl p-2 bg-white">
+                                <option value="5">5 - Perfect Care</option>
+                                <option value="4">4 - Handled Well</option>
+                                <option value="2">2 - Rough Handling</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Communication</label>
+                            <select name="communication" class="w-full border border-slate-200 rounded-xl p-2 bg-white">
+                                <option value="5">5 - Polite & Clear</option>
+                                <option value="4">4 - Good</option>
+                                <option value="2">2 - Poor Communication</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Remarks / Feedback (Optional)</label>
+                        <textarea name="feedback" rows="2" placeholder="Share specific details about this delivery..."
+                                  class="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:border-teal-500"></textarea>
+                    </div>
+
+                    <button type="submit" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow-sm">
+                        Submit Rider Rating
+                    </button>
+                </form>
+            @endif
+        </div>
+    @endif
 </div>
 @endsection

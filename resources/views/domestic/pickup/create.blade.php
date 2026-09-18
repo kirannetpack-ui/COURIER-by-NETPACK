@@ -58,20 +58,18 @@
                             <i class="fas fa-location-dot mr-1"></i> Use My Location
                         </button>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <input type="text" name="pickup_ward_no" placeholder="Ward No" class="px-3 py-2 border rounded-xl text-sm">
-                        <input type="text" name="pickup_municipality" placeholder="Municipality" class="px-3 py-2 border rounded-xl text-sm">
-                        <input type="text" name="pickup_district" placeholder="District" class="px-3 py-2 border rounded-xl text-sm">
-                        <select name="pickup_province" class="px-3 py-2 border rounded-xl text-sm bg-white">
-                            <option value="">Province</option>
-                            <option>Province No. 1</option>
-                            <option>Madhesh Province</option>
-                            <option>Bagmati Province</option>
-                            <option>Gandaki Province</option>
-                            <option>Lumbini Province</option>
-                            <option>Karnali Province</option>
-                            <option>Sudurpashchim Province</option>
-                        </select>
+                    <div class="mt-3">
+                        <x-nepal-territory-picker 
+                            provinceName="pickup_province" 
+                            districtName="pickup_district" 
+                            provinceLabel="Pickup Province / Sector" 
+                            districtLabel="Pickup District (Under Province)" 
+                            idPrefix="pickup_geo" 
+                            :required="true" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <input type="text" name="pickup_municipality" placeholder="Municipality / Local Body" class="px-3 py-2 border rounded-xl text-sm" required>
+                        <input type="text" name="pickup_ward_no" placeholder="Ward No" class="px-3 py-2 border rounded-xl text-sm" required>
                     </div>
                 </div>
             </div>
@@ -91,20 +89,18 @@
                             <i class="fas fa-location-dot mr-1"></i> Use My Location
                         </button>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <input type="text" name="delivery_ward_no" placeholder="Ward No" class="px-3 py-2 border rounded-xl text-sm">
-                        <input type="text" name="delivery_municipality" placeholder="Municipality" class="px-3 py-2 border rounded-xl text-sm">
-                        <input type="text" name="delivery_district" placeholder="District" class="px-3 py-2 border rounded-xl text-sm">
-                        <select name="delivery_province" class="px-3 py-2 border rounded-xl text-sm bg-white">
-                            <option value="">Province</option>
-                            <option>Province No. 1</option>
-                            <option>Madhesh Province</option>
-                            <option>Bagmati Province</option>
-                            <option>Gandaki Province</option>
-                            <option>Lumbini Province</option>
-                            <option>Karnali Province</option>
-                            <option>Sudurpashchim Province</option>
-                        </select>
+                    <div class="mt-3">
+                        <x-nepal-territory-picker 
+                            provinceName="delivery_province" 
+                            districtName="delivery_district" 
+                            provinceLabel="Delivery Province / Sector" 
+                            districtLabel="Delivery District (Under Province)" 
+                            idPrefix="delivery_geo" 
+                            :required="true" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <input type="text" name="delivery_municipality" placeholder="Municipality / Local Body" class="px-3 py-2 border rounded-xl text-sm" required>
+                        <input type="text" name="delivery_ward_no" placeholder="Ward No" class="px-3 py-2 border rounded-xl text-sm" required>
                     </div>
                 </div>
             </div>

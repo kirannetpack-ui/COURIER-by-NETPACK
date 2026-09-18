@@ -55,15 +55,17 @@
                         <input type="text" name="city" value="{{ old('city') }}" 
                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">District</label>
-                        <input type="text" name="district" value="{{ old('district') }}" 
-                               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Province</label>
-                        <input type="text" name="province" value="{{ old('province') }}" 
-                               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <div class="md:col-span-2">
+                        <x-nepal-territory-picker 
+                            provinceName="province"
+                            districtName="district"
+                            :selectedProvince="old('province')"
+                            :selectedDistrict="old('district')"
+                            provinceLabel="Operating Province / Sector"
+                            districtLabel="Operating District"
+                            helperText="Select province to display strictly its affiliated 77 districts with quick search."
+                            :required="false"
+                        />
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Password *</label>

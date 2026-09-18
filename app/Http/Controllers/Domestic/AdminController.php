@@ -432,14 +432,31 @@ public function storePartner(Request $request)
         'phone' => $request->phone,
         'password' => Hash::make($request->password),
         'user_type' => 'partner',
+        'role' => 'partner',
         'verification_status' => $request->verification_status ?? 'pending',
-        'company_name' => $request->company_name,
-        'contact_person' => $request->contact_person,
+        'business_name' => $request->company_name ?? $request->business_name ?? $request->name,
         'city' => $request->city,
         'district' => $request->district,
         'province' => $request->province,
         'registration_completed' => true,
     ]);
+
+    \App\Models\DomesticPartner::updateOrCreate(
+        ['email' => $request->email],
+        [
+            'id' => $partner->id,
+            'name' => $request->name,
+            'code' => 'PTN-' . strtoupper(substr($request->district ?? 'DOM', 0, 3)) . '-' . rand(100, 999),
+            'company_name' => $request->company_name ?? $request->business_name ?? $request->name,
+            'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'address' => $request->city ?? ($request->district ?? 'Nepal'),
+            'city' => $request->city ?? ($request->district ?? 'Nepal'),
+            'district' => $request->district ?? 'Kathmandu',
+            'province' => $request->province ?? 'Bagmati Province',
+            'is_active' => true,
+        ]
+    );
 
     return redirect()->route('domestic.partners')
         ->with('success', 'Partner created successfully!');
@@ -528,7 +545,7 @@ public function storeZone(Request $request)
         'partner_id' => 'required|exists:users,id',
         'zone_name' => 'required|string|max:255',
         'zone_type' => 'required|in:urban,semi_urban,rural,hilly,himalayan',
-        'districts' => 'nullable|string',
+        'districts' => 'nullable',
         'municipalities' => 'nullable|string',
         'wards' => 'nullable|string',
         'description' => 'nullable|string',
@@ -540,12 +557,45 @@ public function storeZone(Request $request)
             ->withInput();
     }
 
+    $districts = [];
+    if (is_array($request->districts)) {
+        $districts = array_values(array_filter($request->districts));
+    } elseif (is_string($request->districts) && trim($request->districts) !== '') {
+        $districts = array_values(array_filter(array_map('trim', explode(',', $request->districts))));
+    }
+
+    $partnerId = $request->partner_id;
+    $partnerUser = User::find($partnerId);
+    if ($partnerUser) {
+        $domPartner = \App\Models\DomesticPartner::where('id', $partnerId)
+            ->orWhere('email', $partnerUser->email)
+            ->first();
+        if ($domPartner) {
+            $partnerId = $domPartner->id;
+        } else {
+            $domPartner = \App\Models\DomesticPartner::create([
+                'name' => $partnerUser->name,
+                'code' => 'PTN-' . strtoupper(substr($partnerUser->district ?? 'DOM', 0, 3)) . '-' . rand(100, 999),
+                'company_name' => $partnerUser->business_name ?? $partnerUser->name,
+                'email' => $partnerUser->email,
+                'password' => $partnerUser->password ?? bcrypt('secret123'),
+                'phone' => $partnerUser->phone ?? '9800000000',
+                'district' => $partnerUser->district ?? 'Kathmandu',
+                'province' => $partnerUser->province ?? 'Bagmati Province',
+                'address' => $partnerUser->address ?? 'Nepal',
+                'city' => $partnerUser->city ?? 'Kathmandu',
+                'is_active' => true,
+            ]);
+            $partnerId = $domPartner->id;
+        }
+    }
+
     DeliveryZone::create([
-        'partner_id' => $request->partner_id,
+        'partner_id' => $partnerId,
         'zone_name' => $request->zone_name,
         'zone_code' => strtoupper(substr($request->zone_name, 0, 3)) . '-' . rand(100, 999),
         'zone_type' => $request->zone_type,
-        'districts' => $request->districts ? explode(',', $request->districts) : [],
+        'districts' => $districts,
         'municipalities' => $request->municipalities ? explode(',', $request->municipalities) : [],
         'wards' => $request->wards ? explode(',', $request->wards) : [],
         'description' => $request->description,
@@ -595,8 +645,7 @@ public function updatePartner(Request $request, $id)
         'name' => $request->name,
         'email' => $request->email,
         'phone' => $request->phone,
-        'company_name' => $request->company_name,
-        'contact_person' => $request->contact_person,
+        'business_name' => $request->company_name ?? $request->business_name ?? $partner->business_name,
         'city' => $request->city,
         'district' => $request->district,
         'province' => $request->province,
@@ -608,6 +657,15 @@ public function updatePartner(Request $request, $id)
     }
 
     $partner->update($data);
+
+    \App\Models\DomesticPartner::where('id', $partner->id)->orWhere('email', $partner->email)->update(array_filter([
+        'name' => $request->name,
+        'company_name' => $request->company_name ?? $request->business_name,
+        'phone' => $request->phone,
+        'city' => $request->city,
+        'district' => $request->district,
+        'province' => $request->province,
+    ]));
 
     return redirect()->route('domestic.partners')
         ->with('success', 'Partner updated successfully!');
@@ -735,7 +793,7 @@ public function updateZone(Request $request, $id)
         'partner_id' => 'required|exists:users,id',
         'zone_name' => 'required|string|max:255',
         'zone_type' => 'required|in:urban,semi_urban,rural,hilly,himalayan',
-        'districts' => 'nullable|string',
+        'districts' => 'nullable',
         'municipalities' => 'nullable|string',
         'wards' => 'nullable|string',
         'description' => 'nullable|string',
@@ -748,11 +806,29 @@ public function updateZone(Request $request, $id)
             ->withInput();
     }
 
+    $districts = [];
+    if (is_array($request->districts)) {
+        $districts = array_values(array_filter($request->districts));
+    } elseif (is_string($request->districts) && trim($request->districts) !== '') {
+        $districts = array_values(array_filter(array_map('trim', explode(',', $request->districts))));
+    }
+
+    $partnerId = $request->partner_id;
+    $partnerUser = User::find($partnerId);
+    if ($partnerUser) {
+        $domPartner = \App\Models\DomesticPartner::where('id', $partnerId)
+            ->orWhere('email', $partnerUser->email)
+            ->first();
+        if ($domPartner) {
+            $partnerId = $domPartner->id;
+        }
+    }
+
     $zone->update([
-        'partner_id' => $request->partner_id,
+        'partner_id' => $partnerId,
         'zone_name' => $request->zone_name,
         'zone_type' => $request->zone_type,
-        'districts' => $request->districts ? explode(',', $request->districts) : [],
+        'districts' => $districts,
         'municipalities' => $request->municipalities ? explode(',', $request->municipalities) : [],
         'wards' => $request->wards ? explode(',', $request->wards) : [],
         'description' => $request->description,

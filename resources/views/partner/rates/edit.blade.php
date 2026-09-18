@@ -1,38 +1,43 @@
 @extends('layouts.partner')
 
-@section('title', 'Edit Rates')
-@section('page-title', 'Edit Service Rates')
+@section('title', 'Edit Rates - ' . $zone->zone_name)
+@section('page-title', 'Configure Zone Rate Card')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
-    <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-6 py-4 border-b flex justify-between items-center">
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-xl font-semibold text-gray-800">Edit Rates</h1>
+                <div class="flex items-center gap-2">
+                    <span class="p-2 bg-teal-50 text-teal-600 rounded-lg">
+                        <i class="fas fa-sliders-h"></i>
+                    </span>
+                    <h1 class="text-xl font-bold text-gray-800">Zone Rate Matrix: {{ $zone->zone_name }}</h1>
+                </div>
                 <p class="text-sm text-gray-500 mt-1">
-                    Zone: <span class="font-semibold text-teal-600">{{ $zone->zone_name }}</span>
-                    <span class="text-xs text-gray-400 ml-2">({{ $zone->zone_code }})</span>
+                    Zone Code: <span class="font-mono font-bold text-teal-700">{{ $zone->zone_code }}</span> | 
+                    Type: <span class="font-medium text-gray-700">{{ ucfirst($zone->zone_type ?? 'urban') }}</span> | 
+                    Districts: {{ !empty($zone->districts) ? implode(', ', $zone->districts) : 'All primary wards' }}
                 </p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('partner.rates.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
-                    <i class="fas fa-arrow-left mr-2"></i> Back to Rates
-                </a>
-                <a href="{{ route('partner.zones.edit', $zone->id) }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                    <i class="fas fa-edit mr-2"></i> Edit Zone
+                <a href="{{ route('partner.rates.index', ['zone' => $zone->id]) }}" 
+                   class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> Back to Platform
                 </a>
             </div>
         </div>
 
         <div class="p-6">
             @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4">
-                    {{ session('success') }}
+                <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg mb-4 text-sm flex items-center gap-2">
+                    <i class="fas fa-check-circle text-emerald-600"></i>
+                    <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             @if($errors->any())
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-lg mb-4 text-sm">
                     <ul class="list-disc list-inside">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -41,112 +46,131 @@
                 </div>
             @endif
 
-            <!-- Info Alert -->
-            <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4 flex items-start gap-3">
-                <i class="fas fa-info-circle mt-1"></i>
-                <div>
-                    <p class="font-medium">Rate Changes will be Notified to Admins</p>
-                    <p class="text-sm">Any changes you make to rates will be automatically notified to the administrators for review.</p>
-                </div>
-            </div>
-
-            <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p class="text-sm text-gray-600">
-                    <i class="fas fa-map-marker-alt text-teal-600 mr-2"></i>
-                    <strong>Districts Covered:</strong> 
-                    {{ implode(', ', $zone->districts ?? []) }}
-                </p>
-            </div>
-
-            <form method="POST" action="{{ route('partner.rates.update', $zone->id) }}">
+            <form method="POST" action="{{ route('partner.rates.update', $zone->id) }}" class="space-y-6">
                 @csrf
                 @method('PUT')
 
-                @foreach($services as $serviceKey => $service)
-                    @if($service['active'])
-                        <div class="bg-{{ $service['color'] }}-50 rounded-lg p-4 mb-4 border border-{{ $service['color'] }}-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="font-semibold text-{{ $service['color'] }}-800">
-                                    <i class="fas {{ $service['icon'] }} mr-2"></i>
-                                    {{ $service['label'] }} Service
-                                    <span class="text-xs text-gray-500 font-normal">(Active)</span>
-                                </h4>
-                                <span class="text-xs bg-{{ $service['color'] }}-200 text-{{ $service['color'] }}-700 px-2 py-1 rounded-full">
-                                    Active
-                                </span>
+                <div class="space-y-4">
+                    @foreach($services as $serviceKey => $service)
+                        @php
+                            $rates = $service['rates'] ?? ['base_rate' => 0, 'per_kg_rate' => 0, 'estimated_hours' => $service['default_hours'] ?? 24, 'is_active' => true];
+                            $color = $service['color'] ?? 'teal';
+                        @endphp
+                        <div class="bg-white rounded-xl border border-gray-200 p-5 hover:border-teal-300 transition shadow-xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-lg bg-{{ $color }}-50 text-{{ $color }}-600">
+                                        <i class="fas {{ $service['icon'] ?? 'fa-cube' }}"></i>
+                                    </span>
+                                    <div>
+                                        <h4 class="font-bold text-gray-900 text-base">{{ $service['label'] }}</h4>
+                                        <p class="text-xs text-gray-500">{{ $service['description'] ?? '' }}</p>
+                                    </div>
+                                </div>
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <span class="text-xs font-medium text-gray-600">Active on Corridor</span>
+                                    <input type="checkbox" name="rates[{{ $serviceKey }}][is_active]" value="1" 
+                                           {{ !empty($rates['is_active']) ? 'checked' : '' }}
+                                           class="rounded border-gray-300 text-teal-600 focus:ring-teal-500 h-4 w-4">
+                                </label>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Base Rate (NPR)</label>
-                                    <input type="number" name="{{ $serviceKey }}_base_rate" step="0.01" 
-                                           value="{{ old($serviceKey . '_base_rate', $service['rates']['base_rate'] ?? 0) }}" 
-                                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-{{ $service['color'] }}-500">
-                                    <p class="text-xs text-gray-500 mt-1">Fixed charge per delivery</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Per KG Rate (NPR)</label>
-                                    <input type="number" name="{{ $serviceKey }}_per_kg_rate" step="0.01" 
-                                           value="{{ old($serviceKey . '_per_kg_rate', $service['rates']['per_kg_rate'] ?? 0) }}" 
-                                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-{{ $service['color'] }}-500">
-                                    <p class="text-xs text-gray-500 mt-1">Additional charge per KG</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Estimated Time</label>
-                                    <input type="number" name="{{ $serviceKey }}_estimated_hours" 
-                                           value="{{ old($serviceKey . '_estimated_hours', $service['rates']['estimated_hours'] ?? '') }}" 
-                                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-{{ $service['color'] }}-500"
-                                           placeholder="{{ $service['label'] === 'STANDARD' || $service['label'] === 'HIMALAYAN' ? 'Hours' : 'Hours' }}">
-                                    <p class="text-xs text-gray-500 mt-1">Estimated delivery time in hours</p>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200 opacity-60">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="font-semibold text-gray-500">
-                                    <i class="fas {{ $service['icon'] }} mr-2"></i>
-                                    {{ $service['label'] }} Service
-                                    <span class="text-xs text-gray-400 font-normal">(Not Active)</span>
-                                </h4>
-                                <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                                    Inactive
-                                </span>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1 text-gray-500">Base Rate (NPR)</label>
-                                    <input type="number" name="{{ $serviceKey }}_base_rate" step="0.01" 
-                                           value="0" disabled
-                                           class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500">
-                                    <p class="text-xs text-gray-400 mt-1">Contact admin to activate this service</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1 text-gray-500">Per KG Rate (NPR)</label>
-                                    <input type="number" name="{{ $serviceKey }}_per_kg_rate" step="0.01" 
-                                           value="0" disabled
-                                           class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1 text-gray-500">Estimated Time</label>
-                                    <input type="number" name="{{ $serviceKey }}_estimated_hours" 
-                                           value="" disabled
-                                           class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500">
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                @endforeach
 
-                <div class="flex gap-3 pt-4 border-t mt-6">
-                    <button type="submit" class="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition">
-                        <i class="fas fa-save mr-2"></i> Update Rates
-                    </button>
-                    <a href="{{ route('partner.rates.index') }}" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition">
-                        Cancel
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                        Base Price (NPR) *
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-2.5 text-xs font-semibold text-gray-400">Rs.</span>
+                                        <input type="number" name="rates[{{ $serviceKey }}][base_rate]" step="0.5" min="0"
+                                               id="base_{{ $serviceKey }}"
+                                               oninput="recalcEditRow('{{ $serviceKey }}')"
+                                               value="{{ old("rates.$serviceKey.base_rate", $rates['base_rate'] ?? 0) }}" 
+                                               class="w-full pl-9 pr-3 py-2 border rounded-lg text-sm font-semibold focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-1">Covers first 1.0 kg</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                        Weight-wise Rate (+NPR/kg) *
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-2.5 text-xs font-semibold text-gray-400">+Rs.</span>
+                                        <input type="number" name="rates[{{ $serviceKey }}][per_kg_rate]" step="0.5" min="0"
+                                               id="per_kg_{{ $serviceKey }}"
+                                               oninput="recalcEditRow('{{ $serviceKey }}')"
+                                               value="{{ old("rates.$serviceKey.per_kg_rate", $rates['per_kg_rate'] ?? 0) }}" 
+                                               class="w-full pl-11 pr-3 py-2 border rounded-lg text-sm font-semibold focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-1">Charge per additional kg</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                        Transit SLA (Hours)
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" name="rates[{{ $serviceKey }}][estimated_hours]" step="1" min="1" max="720"
+                                               value="{{ old("rates.$serviceKey.estimated_hours", $rates['estimated_hours'] ?? 24) }}" 
+                                               class="w-full pr-10 pl-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                        <span class="absolute right-3 top-2.5 text-xs font-bold text-gray-400">HRS</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-1">Delivery commitment</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                                        Quote Preview (2.5 kg)
+                                    </label>
+                                    <div class="bg-gray-50 border border-gray-100 rounded-lg p-2.5 text-xs">
+                                        <div class="flex justify-between items-center text-gray-600 font-mono">
+                                            <span>Total:</span>
+                                            <span class="font-bold text-teal-700 text-sm" id="preview_{{ $serviceKey }}">
+                                                Rs. {{ number_format(($rates['base_rate'] ?? 0) + (1.5 * ($rates['per_kg_rate'] ?? 0)), 2) }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] text-gray-400 block mt-0.5" id="formula_{{ $serviceKey }}">
+                                            Rs. {{ $rates['base_rate'] ?? 0 }} + 1.5kg extra
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <a href="{{ route('partner.rates.index', ['zone' => $zone->id]) }}" 
+                       class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Cancel & Return
                     </a>
+                    <button type="submit" 
+                            class="bg-teal-600 text-white px-6 py-2.5 rounded-lg hover:bg-teal-700 transition font-bold text-sm flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-save"></i> Save Rate Changes
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+function recalcEditRow(key) {
+    const baseInput = document.getElementById('base_' + key);
+    const perKgInput = document.getElementById('per_kg_' + key);
+    const previewEl = document.getElementById('preview_' + key);
+    const formulaEl = document.getElementById('formula_' + key);
+
+    if (!baseInput || !perKgInput || !previewEl || !formulaEl) return;
+
+    const base = parseFloat(baseInput.value) || 0;
+    const perKg = parseFloat(perKgInput.value) || 0;
+    const extraWeight = 1.5;
+    const total = base + (extraWeight * perKg);
+
+    previewEl.textContent = 'Rs. ' + total.toFixed(2);
+    formulaEl.textContent = `Rs. ${base} + (${extraWeight}kg × Rs. ${perKg})`;
+}
+</script>
 @endsection

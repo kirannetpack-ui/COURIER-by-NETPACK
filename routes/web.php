@@ -116,7 +116,9 @@ use App\Http\Controllers\Seller\WalletController as SellerWalletController;
 use App\Http\Controllers\Seller\WithdrawController as SellerWithdrawController;
 use App\Http\Controllers\Domestic\EcommerceRiderController;
 use App\Http\Controllers\Rider\RiderDeliveryDeskController;
+use App\Http\Controllers\Rider\ServiceAreaController as RiderServiceAreaController;
 use App\Http\Controllers\Seller\EcommerceBookingController;
+use App\Http\Controllers\Seller\RiderRatingController as SellerRiderRatingController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\DomesticQuoteController;
 use App\Http\Controllers\TrackingController;
@@ -575,6 +577,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
     Route::get('/ecommerce/multileg', [EcommerceBookingController::class, 'createMultiLeg'])->name('ecommerce.multileg');
     Route::post('/ecommerce/multileg', [EcommerceBookingController::class, 'storeMultiLeg'])->name('ecommerce.multileg.store');
     Route::get('/ecommerce/{id}', [EcommerceBookingController::class, 'show'])->name('ecommerce.show');
+    Route::post('/ecommerce/{id}/rate', [SellerRiderRatingController::class, 'store'])->name('ecommerce.rate');
 });
 
 // =============================================
@@ -678,6 +681,12 @@ Route::prefix('rider')->name('rider.')->middleware(['auth', 'role:rider'])->grou
     Route::post('/delivery/{id}/fail', [RiderDeliveryDeskController::class, 'failDelivery'])->name('delivery.fail');
     Route::get('/cod/desk', [RiderDeliveryDeskController::class, 'codLedger'])->name('delivery.cod');
     Route::post('/cod/deposit', [RiderDeliveryDeskController::class, 'depositCod'])->name('delivery.deposit');
+
+    // Service Areas & Territorial Coverage
+    Route::get('/service-areas', [RiderServiceAreaController::class, 'index'])->name('service-areas.index');
+    Route::post('/service-areas', [RiderServiceAreaController::class, 'store'])->name('service-areas.store');
+    Route::delete('/service-areas/{id}', [RiderServiceAreaController::class, 'destroy'])->name('service-areas.destroy');
+    Route::post('/service-areas/{id}/toggle', [RiderServiceAreaController::class, 'toggle'])->name('service-areas.toggle');
 });
 
 // =============================================
@@ -706,6 +715,7 @@ Route::prefix('domestic/ecommerce')->name('domestic.ecommerce.')->middleware(['a
     Route::post('/riders/{id}/verify', [EcommerceRiderController::class, 'verify'])->name('riders.verify');
     Route::post('/riders/{id}/reject', [EcommerceRiderController::class, 'reject'])->name('riders.reject');
     Route::post('/riders/{id}/suspend', [EcommerceRiderController::class, 'suspend'])->name('riders.suspend');
+    Route::post('/riders/direct-assign', [EcommerceRiderController::class, 'directAssign'])->name('riders.assign');
 });
 
 // =============================================
@@ -787,14 +797,16 @@ Route::prefix('partner')->name('partner.')->middleware(['auth', 'role:partner'])
     Route::post('/deliveries/{id}/report-delay', [PartnerDeliveryController::class, 'reportDelay'])->name('deliveries.store-delay');
 
     // Zones
+    Route::post('/zones/set-operating-district', [PartnerZoneController::class, 'setOperatingDistrict'])->name('zones.set-operating-district');
     Route::resource('/zones', PartnerZoneController::class);
 
     // Rates
-    Route::get('/rates', [DomesticRateSubmissionController::class, 'index'])->name('rates.index');
+    Route::get('/rates', [PartnerRateController::class, 'index'])->name('rates.index');
     Route::get('/rates/create', [DomesticRateSubmissionController::class, 'create'])->name('rates.create');
     Route::post('/rates', [DomesticRateSubmissionController::class, 'store'])->name('rates.store');
-    Route::get('/rates/{id}/edit', [DomesticRateSubmissionController::class, 'edit'])->name('rates.edit');
-    Route::put('/rates/{id}', [DomesticRateSubmissionController::class, 'update'])->name('rates.update');
+    Route::get('/rates/{id}/edit', [PartnerRateController::class, 'edit'])->name('rates.edit');
+    Route::put('/rates/{id}', [PartnerRateController::class, 'update'])->name('rates.update');
+    Route::post('/rates/custom-service', [PartnerRateController::class, 'storeCustomService'])->name('rates.custom-service');
 
     Route::get('/shipment-legs', [ShipmentLegController::class, 'index'])->name('shipment-legs.index');
     Route::patch('/shipment-legs/{leg}/status', [ShipmentLegController::class, 'updateStatus'])->name('shipment-legs.status');

@@ -1,121 +1,156 @@
 @extends('layouts.app')
 
-@section('title', 'Earnings')
-@section('page-title', 'My Earnings')
+@section('title', 'Rider Earnings & Remittance Ledger')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
-            <p class="text-sm text-gray-500">Total Earnings</p>
-            <p class="text-2xl font-bold text-green-600">Rs. {{ number_format($stats['total_earnings'] ?? 0, 2) }}</p>
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header Hero Card -->
+    <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white border border-teal-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                <i class="fas fa-wallet text-teal-400"></i> Segregated Earnings Wallet
+            </span>
+            <h1 class="text-xl md:text-2xl font-black mt-1">Earnings & Remittance Ledger</h1>
+            <p class="text-xs text-slate-300 mt-0.5">
+                Delivery payout fees, bonuses, and withdrawals strictly separated from Cash-On-Delivery accounting.
+            </p>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-            <p class="text-sm text-gray-500">Today's Earnings</p>
-            <p class="text-2xl font-bold text-blue-600">Rs. {{ number_format($stats['today_earnings'] ?? 0, 2) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
-            <p class="text-sm text-gray-500">This Week</p>
-            <p class="text-2xl font-bold text-purple-600">Rs. {{ number_format($stats['week_earnings'] ?? 0, 2) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
-            <p class="text-sm text-gray-500">This Month</p>
-            <p class="text-2xl font-bold text-orange-600">Rs. {{ number_format($stats['month_earnings'] ?? 0, 2) }}</p>
-        </div>
-    </div>
 
-    <!-- Delivery Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Total Deliveries</p>
-            <p class="text-2xl font-bold text-gray-800">{{ number_format($stats['total_deliveries'] ?? 0) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Pending Deliveries</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ number_format($stats['pending_deliveries'] ?? 0) }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Rating</p>
-            <p class="text-2xl font-bold text-teal-600">{{ number_format($rider->rating ?? 0, 1) }} ★</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4">
-            <p class="text-sm text-gray-500">Wallet Balance</p>
-            <p class="text-2xl font-bold text-purple-600">Rs. {{ number_format($walletBalance ?? 0, 2) }}</p>
-        </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-800">Recent Transactions</h3>
-            <a href="{{ route('rider.wallet') }}" class="text-sm text-teal-600 hover:underline">
-                <i class="fas fa-wallet mr-1"></i> View Wallet
+        <div class="flex items-center gap-3">
+            <div class="text-right bg-slate-950/60 p-3.5 rounded-xl border border-teal-700/60">
+                <p class="text-[10px] uppercase font-bold text-slate-400">Available Payout Balance</p>
+                <p class="text-2xl font-black text-emerald-400 font-mono">Rs. {{ number_format($walletBalance, 2) }}</p>
+                <p class="text-[10px] text-teal-300 mt-0.5">Ready for bank transfer</p>
+            </div>
+            <a href="{{ route('rider.delivery.cod') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fas fa-hand-holding-dollar"></i> View COD Ledger
             </a>
         </div>
-        <div class="p-4">
-            @if(isset($transactions) && $transactions->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="border-b">
-                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Date</th>
-                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Description</th>
-                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Amount</th>
-                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Type</th>
-                                <th class="text-left py-2 px-3 text-sm font-medium text-gray-600">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($transactions as $transaction)
-                                <tr class="border-b hover:bg-gray-50">
-                                    <td class="py-2 px-3 text-sm">{{ $transaction->created_at->format('M d, Y H:i') }}</td>
-                                    <td class="py-2 px-3">{{ $transaction->description }}</td>
-                                    <td class="py-2 px-3 font-medium {{ $transaction->type === 'credit' ? 'text-green-600' : 'text-red-600' }}">
-                                        {{ $transaction->type === 'credit' ? '+' : '-' }} Rs. {{ number_format($transaction->amount, 2) }}
-                                    </td>
-                                    <td class="py-2 px-3">
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium 
-                                            {{ $transaction->type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                            {{ ucfirst($transaction->type) }}
-                                        </span>
-                                    </td>
-                                    <td class="py-2 px-3">
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium 
-                                            {{ $transaction->status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                               ($transaction->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                               'bg-red-100 text-red-800') }}">
-                                            {{ ucfirst($transaction->status) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="text-center py-8 text-gray-500">
-                    <i class="fas fa-history text-4xl block mb-2 text-gray-300"></i>
-                    <p>No transactions yet</p>
-                </div>
-            @endif
+    </div>
+
+    <!-- Earnings Overview Metric Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Delivery Fees</p>
+            <p class="text-xl font-black text-slate-900 font-mono mt-1">Rs. {{ number_format($totalDeliveryEarnings, 2) }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">{{ number_format($stats['total_deliveries']) }} Completed Deliveries</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Performance Bonuses</p>
+            <p class="text-xl font-black text-emerald-600 font-mono mt-1">+Rs. {{ number_format($totalBonus, 2) }}</p>
+            <p class="text-[10px] text-emerald-600 mt-0.5">SLA & volume incentives</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penalties Deducted</p>
+            <p class="text-xl font-black text-rose-600 font-mono mt-1">-Rs. {{ number_format($totalPenalties, 2) }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Disputes or cancellations</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Withdrawn</p>
+            <p class="text-xl font-black text-slate-700 font-mono mt-1">Rs. {{ number_format($totalWithdrawn, 2) }}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Transferred to bank/wallet</p>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
-        <a href="{{ route('rider.wallet') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-wallet text-2xl text-teal-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">View Wallet</span>
-        </a>
-        <a href="{{ route('rider.orders.available') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-search text-2xl text-blue-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">Find Orders</span>
-        </a>
-        <a href="{{ route('rider.orders.my') }}" class="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-4 text-center border border-gray-200 transition">
-            <i class="fas fa-tasks text-2xl text-purple-600 block mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">My Deliveries</span>
-        </a>
+    <!-- Segregated Earnings Ledger Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-slate-900 text-sm">Rider Earnings Ledger Transactions</h3>
+                <p class="text-xs text-slate-500">Immutable credit/debit record for deliveries fulfilled by you</p>
+            </div>
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                Verified Ledger
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Timestamp</th>
+                        <th class="px-4 py-3">Type</th>
+                        <th class="px-4 py-3">Master AWB / Reference</th>
+                        <th class="px-4 py-3">Notes</th>
+                        <th class="px-4 py-3">Amount</th>
+                        <th class="px-4 py-3">Balance After</th>
+                        <th class="px-4 py-3 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($earningsLedgers as $item)
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-500">
+                            {{ $item->created_at->format('M d, Y H:i') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            @if($item->type === 'delivery_fee')
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                                    Delivery Fee
+                                </span>
+                            @elseif($item->type === 'bonus')
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                    Bonus
+                                </span>
+                            @elseif($item->type === 'penalty')
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                                    Penalty
+                                </span>
+                            @elseif($item->type === 'withdrawal')
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    Withdrawal
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                    {{ ucfirst($item->type) }}
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-800">
+                            @if($item->assignment)
+                                <a href="{{ route('rider.delivery.show', $item->assignment_id) }}" class="text-teal-700 hover:underline">
+                                    {{ $item->assignment->master_awb }}
+                                </a>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 max-w-xs truncate">
+                            {{ $item->notes ?? 'Delivery payout credit' }}
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold {{ $item->amount >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">
+                            {{ $item->amount >= 0 ? '+' : '' }}Rs. {{ number_format($item->amount, 2) }}
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-900">
+                            Rs. {{ number_format($item->balance_after, 2) }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold {{ $item->status === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                {{ ucfirst($item->status) }}
+                            </span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-400 text-xs">
+                            <i class="fas fa-coins text-3xl text-slate-300 mb-2"></i>
+                            <p class="font-bold text-slate-600">No earnings recorded yet</p>
+                            <p class="text-[11px] mt-0.5 text-slate-400">Complete delivery jobs to accumulate payout fees and bonuses.</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($earningsLedgers->hasPages())
+        <div class="p-4 border-t border-slate-100">
+            {{ $earningsLedgers->links() }}
+        </div>
+        @endif
     </div>
 </div>
 @endsection

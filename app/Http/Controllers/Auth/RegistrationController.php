@@ -107,6 +107,10 @@ class RegistrationController extends Controller
                 $rules['license_number'] = ['required', 'string', 'max:50'];
                 $rules['vehicle_type'] = ['required', 'string', 'max:50'];
                 $rules['vehicle_registration_number'] = ['required', 'string', 'max:50'];
+                $rules['license_expiry_date'] = ['nullable', 'date'];
+                $rules['emergency_contact'] = ['nullable', 'string', 'max:50'];
+                $rules['municipality'] = ['nullable', 'string', 'max:100'];
+                $rules['ward'] = ['nullable', 'string', 'max:10'];
             }
         }
 
@@ -201,9 +205,12 @@ class RegistrationController extends Controller
                 'email' => $user->email,
                 'dob' => $user->dob,
                 'gender' => $user->gender,
+                'emergency_contact' => $data['emergency_contact'] ?? null,
                 'address' => $user->address,
                 'province' => $user->province,
                 'district' => $user->district,
+                'municipality' => $data['municipality'] ?? null,
+                'ward' => $data['ward'] ?? null,
                 'citizenship_number' => $data['citizenship_number'] ?? null,
                 'citizenship_front_path' => $data['citizenship_front_path'] ?? null,
                 'citizenship_back_path' => $data['citizenship_back_path'] ?? null,
@@ -215,6 +222,7 @@ class RegistrationController extends Controller
                 'vehicle_registration_doc_path' => $data['vehicle_registration_doc_path'] ?? null,
                 'driving_license_number' => $data['license_number'] ?? null,
                 'driving_license_doc_path' => $data['driving_license_doc_path'] ?? null,
+                'license_expiry_date' => $data['license_expiry_date'] ?? null,
                 'has_other_platform_affiliation' => !empty($data['affiliation']) && $data['affiliation'] !== 'none',
                 'affiliation' => $data['affiliation'] ?? 'none',
                 'affiliation_reference_id' => $data['affiliation_reference_id'] ?? null,

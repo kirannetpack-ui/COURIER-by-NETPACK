@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\DomesticRate;
 use App\Models\DomesticRateEvent;
 use App\Models\DeliveryZone;
-use App\Models\User;
 use App\Models\LogisticsService;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -16,17 +16,21 @@ class DomesticRateController extends Controller
 {
     public function index(Request $request)
     {
-        $rates = DomesticRate::with(['partner', 'originZone', 'destinationZone'])
-            ->when($request->filled('approval_status'), fn ($query) => $query->where('approval_status', $request->approval_status))
-            ->when($request->filled('partner_id'), fn ($query) => $query->where('partner_id', $request->partner_id))
-            ->when($request->filled('service_type'), fn ($query) => $query->where('service_type', $request->service_type))
-            ->orderBy('created_at', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+        $query = DomesticRate::with(['partner', 'originZone', 'destinationZone'])
+            ->when($request->filled('approval_status'), fn ($q) => $q->where('approval_status', $request->approval_status))
+            ->when($request->filled('partner_id'), fn ($q) => $q->where('partner_id', $request->partner_id))
+            ->when($request->filled('service_type'), fn ($q) => $q->where('service_type', $request->service_type))
+            ->when($request->filled('zone_id'), fn ($q) => $q->where(function ($sub) use ($request) {
+                $sub->where('origin_zone_id', $request->zone_id)
+                    ->orWhere('destination_zone_id', $request->zone_id);
+            }))
+            ->orderBy('created_at', 'desc');
+
+        $rates = $query->paginate(20)->withQueryString();
 
         $partners = User::where('user_type', 'partner')->where('verification_status', 'approved')->get();
         $zones = DeliveryZone::where('is_active', true)->get();
-        $serviceTypes = $this->serviceTypes();
+        $serviceTypes = DomesticRate::getServiceTypeOptions();
 
         return view('admin.domestic.rates.index', compact('rates', 'partners', 'zones', 'serviceTypes'));
     }
@@ -35,7 +39,7 @@ class DomesticRateController extends Controller
     {
         $partners = User::where('user_type', 'partner')->get();
         $zones = DeliveryZone::where('is_active', true)->get();
-        $serviceTypes = $this->serviceTypes();
+        $serviceTypes = DomesticRate::getServiceTypeOptions();
         
         return view('admin.domestic.rates.create', compact('partners', 'zones', 'serviceTypes'));
     }
@@ -52,7 +56,9 @@ class DomesticRateController extends Controller
 
         $this->ensureNoOverlappingRate($request);
 
-        $serviceNames = collect($this->serviceTypes())->mapWithKeys(fn ($item, $code) => [$code => $item['name']])->all();
+        $serviceName = DomesticRate::SERVICE_NAMES[$request->service_type]
+            ?? LogisticsService::where('code', $request->service_type)->value('name')
+            ?? ucwords(str_replace(['_', '-'], ' ', $request->service_type));
 
         $originZone = DeliveryZone::findOrFail($request->origin_zone_id);
         $destinationZone = DeliveryZone::findOrFail($request->destination_zone_id);
@@ -69,7 +75,7 @@ class DomesticRateController extends Controller
             'destination_zone' => $destinationZone->zone_code,
             'service_type' => $request->service_type,
             'rate_type' => $request->input('rate_type', 'door_to_door'),
-            'service_name' => $serviceNames[$request->service_type] ?? strtoupper(str_replace('_', ' ', $request->service_type)),
+            'service_name' => $serviceName,
             'base_rate' => $request->base_rate,
             'per_kg_rate' => $request->per_kg_rate,
             'rate_per_kg' => $request->per_kg_rate,
@@ -112,7 +118,7 @@ class DomesticRateController extends Controller
         $rate = DomesticRate::findOrFail($id);
         $partners = User::where('user_type', 'partner')->get();
         $zones = DeliveryZone::where('is_active', true)->get();
-        $serviceTypes = $this->serviceTypes();
+        $serviceTypes = DomesticRate::getServiceTypeOptions($rate->partner_id);
         
         return view('admin.domestic.rates.edit', compact('rate', 'partners', 'zones', 'serviceTypes'));
     }
@@ -131,7 +137,9 @@ class DomesticRateController extends Controller
 
         $this->ensureNoOverlappingRate($request, $rate->id);
 
-        $serviceNames = collect($this->serviceTypes())->mapWithKeys(fn ($item, $code) => [$code => $item['name']])->all();
+        $serviceName = DomesticRate::SERVICE_NAMES[$request->service_type]
+            ?? LogisticsService::where('code', $request->service_type)->value('name')
+            ?? ucwords(str_replace(['_', '-'], ' ', $request->service_type));
 
         $originZone = DeliveryZone::findOrFail($request->origin_zone_id);
         $destinationZone = DeliveryZone::findOrFail($request->destination_zone_id);
@@ -147,7 +155,7 @@ class DomesticRateController extends Controller
             'destination_zone' => $destinationZone->zone_code,
             'service_type' => $request->service_type,
             'rate_type' => $request->input('rate_type', $rate->rate_type ?: 'door_to_door'),
-            'service_name' => $serviceNames[$request->service_type] ?? strtoupper(str_replace('_', ' ', $request->service_type)),
+            'service_name' => $serviceName,
             'base_rate' => $request->base_rate,
             'per_kg_rate' => $request->per_kg_rate,
             'rate_per_kg' => $request->per_kg_rate,
@@ -177,6 +185,7 @@ class DomesticRateController extends Controller
             'effective_from' => $request->effective_from,
             'effective_to' => $request->effective_to,
         ]);
+
 
         $this->recordEvent($rate, 'updated_and_approved', $request->user()->id, 'Rate updated by an administrator.', $before);
 

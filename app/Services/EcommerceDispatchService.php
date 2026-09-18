@@ -138,7 +138,7 @@ class EcommerceDispatchService
             'provider_fee' => 150.00, // Partner linehaul contract rate
             'cod_amount' => 0.00,
             'status' => 'assigned',
-            'current_custody' => 'Origin Hub Sortation',
+            'current_custody' => 'Awaiting First-Mile Arrival at Origin Hub',
             'pickup_otp' => ShipmentAssignment::generateOtp(),
             'delivery_otp' => ShipmentAssignment::generateOtp(),
             'assigned_at' => now(),
@@ -162,7 +162,7 @@ class EcommerceDispatchService
             'provider_fee' => $leg3Fee,
             'cod_amount' => $codAmount,
             'status' => 'assigned',
-            'current_custody' => 'Awaiting Linehaul Arrival',
+            'current_custody' => 'Awaiting Linehaul Arrival at Regional Hub',
             'pickup_otp' => ShipmentAssignment::generateOtp(),
             'delivery_otp' => ShipmentAssignment::generateOtp(),
             'assigned_at' => now(),
@@ -177,15 +177,24 @@ class EcommerceDispatchService
     }
 
     /**
-     * Broadcast job offers to eligible verified riders
+     * Broadcast job offers to eligible verified riders with smart capacity & service-area checks
      */
     public function broadcastOffers(ShipmentAssignment $assignment): int
     {
-        // Find verified riders who can accept the COD amount
+        $parcelWeight = (float) $assignment->parcel_weight;
+        $codAmount = (float) $assignment->cod_amount;
+
+        // Find verified riders who can accept COD and carry parcel weight
         $riders = RiderProfile::where('verification_status', 'verified')
             ->get()
-            ->filter(function (RiderProfile $rider) use ($assignment) {
-                return $rider->canAcceptCod($assignment->cod_amount);
+            ->filter(function (RiderProfile $rider) use ($parcelWeight, $codAmount, $assignment) {
+                // Check general capacity and COD headroom
+                if (!$rider->isAvailableForDelivery($parcelWeight, $codAmount)) {
+                    return false;
+                }
+
+                // Check service area if defined
+                return $rider->coversArea(null, null, $assignment->pickup_address);
             });
 
         $count = 0;
@@ -205,7 +214,44 @@ class EcommerceDispatchService
     }
 
     /**
-     * Accept a job offer by a rider
+     * Method A: Dispatcher / Admin direct assignment of a specific qualified rider
+     */
+    public function directAssignRider(ShipmentAssignment $assignment, RiderProfile $rider): array
+    {
+        if ($assignment->rider_profile_id && $assignment->rider_profile_id !== $rider->id) {
+            return ['success' => false, 'message' => 'This delivery job has already been claimed by another rider.'];
+        }
+
+        if (!$rider->canAcceptCod($assignment->cod_amount)) {
+            return ['success' => false, 'message' => "Rider has insufficient COD limit (Rs. {$rider->cod_limit}) for this shipment."];
+        }
+
+        $assignment->update([
+            'rider_profile_id' => $rider->id,
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'current_custody' => "Directly Assigned: {$rider->full_name} ({$rider->rider_code})",
+        ]);
+
+        $rider->increment('current_active_packages');
+        if ($rider->current_active_packages >= $rider->max_active_packages) {
+            $rider->update(['availability_status' => 'busy']);
+        }
+
+        // Mark any pending job offers for other riders as expired
+        RiderJobOffer::where('assignment_id', $assignment->id)
+            ->where('rider_profile_id', '!=', $rider->id)
+            ->update(['response' => 'expired']);
+
+        return [
+            'success' => true,
+            'message' => "Rider {$rider->full_name} directly assigned to job {$assignment->master_awb}.",
+            'assignment' => $assignment->fresh(),
+        ];
+    }
+
+    /**
+     * Accept a job offer by a rider (Method B: Marketplace)
      */
     public function acceptJob(RiderProfile $rider, int $assignmentId): array
     {
@@ -225,6 +271,12 @@ class EcommerceDispatchService
             'accepted_at' => now(),
             'current_custody' => "Rider Assigned: {$rider->full_name} ({$rider->rider_code})",
         ]);
+
+        // Capacity tracking
+        $rider->increment('current_active_packages');
+        if ($rider->current_active_packages >= $rider->max_active_packages) {
+            $rider->update(['availability_status' => 'busy']);
+        }
 
         // Update the accepted offer and mark others expired
         RiderJobOffer::where('assignment_id', $assignmentId)
@@ -273,7 +325,7 @@ class EcommerceDispatchService
     }
 
     /**
-     * Complete delivery with Customer OTP & COD collection
+     * Complete delivery with Customer OTP & COD collection + Sequence Progression
      */
     public function completeDelivery(
         ShipmentAssignment $assignment,
@@ -282,10 +334,25 @@ class EcommerceDispatchService
         ?string $podPhoto = null
     ): array {
         if ($assignment->completeDelivery($otp, $recipientName, $podPhoto)) {
+            $freshAssignment = $assignment->fresh();
+            $rider = $freshAssignment->riderProfile;
+
+            if ($rider) {
+                // Capacity decrement & availability restoration
+                $rider->decrement('current_active_packages');
+                if ($rider->availability_status === 'busy' && $rider->current_active_packages < $rider->max_active_packages) {
+                    $rider->update(['availability_status' => 'online']);
+                }
+                $rider->recalculateTrustScore();
+            }
+
+            // Multi-Leg Sequence Progression
+            $this->advanceMultiLegProgression($freshAssignment);
+
             return [
                 'success' => true,
                 'message' => 'Delivery successfully verified and completed! Earnings credited.',
-                'assignment' => $assignment->fresh(),
+                'assignment' => $freshAssignment,
             ];
         }
 
@@ -296,17 +363,107 @@ class EcommerceDispatchService
     }
 
     /**
-     * Record delivery failure / exception
+     * Automatically advance subsequent legs in multi-leg hybrid delivery
+     */
+    protected function advanceMultiLegProgression(ShipmentAssignment $completedAssignment): void
+    {
+        $masterAwb = $completedAssignment->master_awb;
+
+        // If Leg 1 (first mile pickup) is completed, advance Leg 2 (line-haul)
+        if ($completedAssignment->assignment_type === 'pickup_first_mile') {
+            $leg2 = ShipmentAssignment::where('master_awb', $masterAwb)
+                ->where('sequence', 2)
+                ->first();
+
+            if ($leg2 && $leg2->status === 'assigned') {
+                $leg2->update([
+                    'current_custody' => 'NETPACK Origin Sorting Gateway (Handed over from First-Mile Rider)',
+                    'status' => 'arrived_pickup',
+                ]);
+            }
+        }
+
+        // If Leg 2 (line-haul) is completed, activate Leg 3 (last-mile) and broadcast to destination riders
+        if ($completedAssignment->assignment_type === 'line_haul') {
+            $leg3 = ShipmentAssignment::where('master_awb', $masterAwb)
+                ->where('sequence', 3)
+                ->first();
+
+            if ($leg3 && $leg3->status === 'assigned') {
+                $leg3->update([
+                    'current_custody' => 'NETPACK Destination Regional Gateway (Ready for Local Last-Mile Rider Dispatch)',
+                ]);
+                $this->broadcastOffers($leg3);
+            }
+        }
+    }
+
+    /**
+     * Record delivery failure / exception & create automatic RTO Return Assignment
      */
     public function recordFailure(ShipmentAssignment $assignment, string $reason, ?string $notes = null, ?string $photo = null): bool
     {
-        return $assignment->update([
+        $updated = $assignment->update([
             'status' => 'failed',
             'failure_reason' => $reason,
             'failure_notes' => $notes,
             'failure_photo_path' => $photo,
             'failed_at' => now(),
-            'current_custody' => "Delivery Failed: {$reason} - In Return Transit",
+            'current_custody' => "Delivery Failed: {$reason} - Scheduled for Return to Origin",
+        ]);
+
+        $rider = $assignment->riderProfile;
+        if ($rider) {
+            $rider->increment('total_failed_deliveries');
+            $rider->decrement('current_active_packages');
+            if ($rider->availability_status === 'busy' && $rider->current_active_packages < $rider->max_active_packages) {
+                $rider->update(['availability_status' => 'online']);
+            }
+            $rider->recalculateTrustScore();
+        }
+
+        // Section 58: Automatically create RTO Return Job
+        $this->createRtoAssignment($assignment, $reason, $notes);
+
+        return $updated;
+    }
+
+    /**
+     * Create dedicated RTO Return Assignment (Customer/Hub -> Seller)
+     */
+    public function createRtoAssignment(ShipmentAssignment $failedAssignment, string $reason, ?string $notes = null): ?ShipmentAssignment
+    {
+        $existingRto = ShipmentAssignment::where('master_awb', $failedAssignment->master_awb . '-RTO')->first();
+        if ($existingRto) {
+            return $existingRto;
+        }
+
+        $rateRule = $this->getActiveRateRule();
+        $returnFee = (float) ($rateRule->return_fee ?? 60.00);
+
+        return ShipmentAssignment::create([
+            'master_awb' => $failedAssignment->master_awb . '-RTO',
+            'assignment_type' => 'return_rto',
+            'provider_type' => 'rider',
+            'rider_profile_id' => $failedAssignment->rider_profile_id, // Assigned to same rider for return or broadcast
+            'sequence' => ($failedAssignment->sequence ?? 1) + 10,
+            'pickup_name' => $failedAssignment->delivery_name,
+            'pickup_phone' => $failedAssignment->delivery_phone,
+            'pickup_address' => $failedAssignment->delivery_address,
+            'delivery_name' => $failedAssignment->pickup_name,
+            'delivery_phone' => $failedAssignment->pickup_phone,
+            'delivery_address' => $failedAssignment->pickup_address,
+            'distance_km' => $failedAssignment->distance_km,
+            'parcel_weight' => $failedAssignment->parcel_weight,
+            'provider_fee' => $returnFee,
+            'cod_amount' => 0.00, // No COD on returns
+            'status' => 'assigned',
+            'current_custody' => "Return to Seller in Progress ({$reason})",
+            'pickup_otp' => ShipmentAssignment::generateOtp(),
+            'delivery_otp' => ShipmentAssignment::generateOtp(),
+            'failure_reason' => $reason,
+            'failure_notes' => $notes,
+            'assigned_at' => now(),
         ]);
     }
 }

@@ -39,22 +39,31 @@
             <form method="POST" action="{{ route('partner.zones.store') }}" id="zoneForm">
                 @csrf
 
-                <!-- Partner's District (Read-only) -->
-                <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                    <div class="flex items-center justify-between">
+                <!-- Partner's Operating Territory Selection -->
+                <div class="bg-slate-50 rounded-2xl p-5 mb-6 border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60">
                         <div>
-                            <p class="text-sm text-gray-500">Your Operating District</p>
-                            <p class="text-lg font-semibold text-teal-600">{{ $partner->district ?? 'Not Set' }}</p>
-                            <p class="text-xs text-gray-400">This is your registered service district</p>
+                            <h3 class="text-sm font-bold text-slate-900">Coverage Territory & District</h3>
+                            <p class="text-xs text-slate-500">Specify the province and district covered by this delivery zone.</p>
                         </div>
-                        <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm">
-                            <i class="fas fa-check-circle mr-1"></i> Verified
-                        </span>
+                        @if(!empty($partner->district))
+                            <span class="px-2.5 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-semibold">
+                                <i class="fas fa-check-circle mr-1 text-[10px]"></i> {{ $partner->district }}
+                            </span>
+                        @endif
                     </div>
+                    <x-nepal-territory-picker 
+                        :isMultiple="true"
+                        provinceName="province" 
+                        districtName="districts[]" 
+                        :selectedProvince="old('province', $partner->province ?? null)" 
+                        :selectedDistrict="old('districts', $partner->getOperatingDistricts())" 
+                        provinceLabel="Operating Province / Sector" 
+                        districtLabel="Districts Under Selected Province" 
+                        idPrefix="partner_zone_geo" 
+                        :required="true"
+                        helperText="Choose a province to display its districts. Select one, multiple, or all districts for this delivery zone." />
                 </div>
-
-                <!-- Hidden input for district -->
-                <input type="hidden" name="districts[]" value="{{ $partner->district ?? '' }}">
 
                 <!-- Zone Name -->
                 <div class="mb-4">
@@ -253,6 +262,12 @@
         if (!zoneName) {
             e.preventDefault();
             alert('Please enter a zone name.');
+            return false;
+        }
+        var checkedDistricts = document.querySelectorAll('input[name="districts[]"]:checked');
+        if (checkedDistricts.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one district under your chosen province.');
             return false;
         }
         return true;

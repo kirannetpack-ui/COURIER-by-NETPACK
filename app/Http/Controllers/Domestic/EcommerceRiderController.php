@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RiderCodLedger;
 use App\Models\RiderProfile;
 use App\Models\RiderRateRule;
+use App\Models\ShipmentAssignment;
 use App\Models\User;
 use App\Services\EcommerceDispatchService;
 use Illuminate\Http\Request;
@@ -233,5 +234,27 @@ class EcommerceRiderController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Deposit of Rs. " . number_format($depositAmount, 2) . " approved for Rider {$rider->full_name}. Outstanding COD updated.");
+    }
+
+    /**
+     * Dispatcher direct assign a rider to a shipment assignment (Method A)
+     */
+    public function directAssign(Request $request)
+    {
+        $request->validate([
+            'assignment_id' => 'required|exists:shipment_assignments,id',
+            'rider_profile_id' => 'required|exists:rider_profiles,id',
+        ]);
+
+        $assignment = ShipmentAssignment::findOrFail($request->assignment_id);
+        $rider = RiderProfile::findOrFail($request->rider_profile_id);
+
+        $result = $this->dispatchService->directAssignRider($assignment, $rider);
+
+        if ($result['success']) {
+            return redirect()->back()->with('success', $result['message']);
+        }
+
+        return redirect()->back()->with('error', $result['message']);
     }
 }

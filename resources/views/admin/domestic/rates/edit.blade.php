@@ -20,7 +20,21 @@
                 </div>
             @endif
             <div><label class="text-sm font-medium">Partner *</label><select name="partner_id" required class="mt-1 w-full rounded-lg border-gray-300"><option value="">Select partner</option>@foreach($partners as $partner)<option value="{{ $partner->id }}" @selected(old('partner_id', $rate->partner_id) == $partner->id)>{{ $partner->name }}</option>@endforeach</select></div>
-            <div><label class="text-sm font-medium">Service *</label><select name="service_type" required class="mt-1 w-full rounded-lg border-gray-300">@foreach($serviceTypes as $type => $service)<option value="{{ $type }}" @selected(old('service_type', $rate->service_type) === $type)>{{ $service['name'] }}</option>@endforeach</select></div>
+            <div>
+                <label class="text-sm font-medium text-gray-700">Service Tier *</label>
+                <select name="service_type" required class="mt-1 w-full rounded-lg border-gray-300 focus:border-teal-500 focus:ring-teal-500 text-sm">
+                    @foreach($serviceTypes as $type => $service)
+                        <option value="{{ $type }}" @selected(old('service_type', $rate->service_type) === $type)>
+                            {{ $service['icon'] ?? '📦' }} {{ $service['name'] }} - {{ $service['time'] ?? 'SLA' }} {{ !empty($service['is_custom']) ? '(Partner Custom)' : '' }}
+                        </option>
+                    @endforeach
+                    @if(!isset($serviceTypes[$rate->service_type]))
+                        <option value="{{ $rate->service_type }}" selected>
+                            ✨ {{ $rate->service_name }} (Custom Service)
+                        </option>
+                    @endif
+                </select>
+            </div>
             <div><label class="text-sm font-medium">Rate type *</label><select name="rate_type" required class="mt-1 w-full rounded-lg border-gray-300">@foreach(['pickup'=>'Pickup','logistics'=>'Inter-Zone Logistics','delivery'=>'Last-Mile Delivery','door_to_door'=>'Complete Door-to-Door'] as $type=>$label)<option value="{{ $type }}" @selected(old('rate_type',$rate->rate_type)===$type)>{{ $label }}</option>@endforeach</select></div>
             <div><label class="text-sm font-medium">Origin zone *</label><select name="origin_zone_id" required class="mt-1 w-full rounded-lg border-gray-300"><option value="">Select zone</option>@foreach($zones as $zone)<option value="{{ $zone->id }}" @selected(old('origin_zone_id', $rate->origin_zone_id) == $zone->id)>{{ $zone->zone_name }} ({{ $zone->zone_code }})</option>@endforeach</select></div>
             <div><label class="text-sm font-medium">Destination zone *</label><select name="destination_zone_id" required class="mt-1 w-full rounded-lg border-gray-300"><option value="">Select zone</option>@foreach($zones as $zone)<option value="{{ $zone->id }}" @selected(old('destination_zone_id', $rate->destination_zone_id) == $zone->id)>{{ $zone->zone_name }} ({{ $zone->zone_code }})</option>@endforeach</select></div>

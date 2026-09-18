@@ -25,6 +25,10 @@ class RegisterController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'phone' => 'nullable|string|max:20',
             'user_type' => 'nullable|in:customer,seller,rider',
+            'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'province' => 'nullable|string|max:100',
         ]);
         
         // Create user
@@ -33,6 +37,10 @@ class RegisterController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
+            'address' => $request->address,
+            'city' => $request->city,
+            'district' => $request->district,
+            'province' => $request->province,
             'user_type' => $request->user_type ?? 'customer',
             'verification_status' => 'approved',
         ]);

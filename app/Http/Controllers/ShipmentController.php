@@ -125,7 +125,7 @@ class ShipmentController extends Controller
             ->orderByRaw("CASE WHEN zone_name LIKE '%Kathmandu%' THEN 0 ELSE 1 END")
             ->orderBy('zone_name')
             ->get();
-        $domesticServices = LogisticsService::active()->category('domestic')->orderBy('sort_order')->get();
+        $domesticServices = \App\Models\DomesticRate::getServiceTypeOptions();
 
         return view('shipments.create', compact('hubs', 'agencies', 'carriers', 'domesticZones', 'domesticServices'));
     }
@@ -280,11 +280,14 @@ class ShipmentController extends Controller
             $firstDelivery = $request->delivery_name[0] ?? '';
             $firstDeliveryPhone = $request->delivery_phone[0] ?? '';
             $firstDeliveryAddress = $request->delivery_address[0] ?? '';
+            $firstDeliveryDistrict = is_array($request->delivery_district) ? ($request->delivery_district[0] ?? null) : $request->delivery_district;
+            $firstDeliveryProvince = is_array($request->delivery_province) ? ($request->delivery_province[0] ?? null) : $request->delivery_province;
 
             $shipment->receiver_name = $firstDelivery;
             $shipment->receiver_phone = $firstDeliveryPhone;
             $shipment->receiver_address = $firstDeliveryAddress;
-            $shipment->receiver_city = $request->receiver_city ?? 'Kathmandu';
+            $shipment->receiver_city = $firstDeliveryDistrict ?: ($request->receiver_city ?? 'Kathmandu');
+            $shipment->receiver_state = $firstDeliveryProvince ?: ($request->receiver_state ?? 'Bagmati');
             $shipment->receiver_country = $request->receiver_country ?? 'Nepal';
 
             // Multiple pickup points

@@ -96,22 +96,16 @@
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium mb-2">Select Districts <span class="text-red-500">*</span></label>
-                        <select name="districts[]" multiple id="districtSelect" class="w-full" required>
-                            @foreach($districts as $district)
-                                <option value="{{ $district }}" {{ in_array($district, old('districts', $zone->districts ?? [])) ? 'selected' : '' }}>
-                                    {{ $district }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i> 
-                            Type to search districts. Select your service area districts.
-                        </p>
-                        <div class="mt-2 text-sm text-gray-600">
-                            <span class="font-medium">Selected:</span> 
-                            <span id="selectedCount" class="text-teal-600 font-bold">0</span> districts
-                        </div>
+                        <x-nepal-territory-picker 
+                            :isMultiple="true" 
+                            provinceName="province" 
+                            districtName="districts[]" 
+                            :selectedDistrict="$zone->districts ?? []" 
+                            provinceLabel="Select Province / Sector" 
+                            districtLabel="Districts Under Selected Province" 
+                            idPrefix="partner_edit_geo" 
+                            helperText="Choose a province to display its districts. Checkboxes allow selecting multiple coverage districts with type-to-search."
+                            :required="true" />
                     </div>
 
                     <div>
@@ -288,41 +282,20 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(function() {
-        $('#districtSelect').select2({
-            placeholder: 'Type to search districts...',
-            allowClear: true,
-            closeOnSelect: false,
-            width: '100%',
-            language: {
-                searching: function() {
-                    return 'Searching...';
-                },
-                noResults: function() {
-                    return 'No districts found';
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('zoneForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const checked = form.querySelectorAll('input[name="districts[]"]:checked');
+                if (checked.length === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one district under your chosen province.');
+                    return false;
                 }
-            }
-        });
-
-        $('#districtSelect').on('change', function() {
-            var count = $(this).val() ? $(this).val().length : 0;
-            $('#selectedCount').text(count);
-        });
-
-        $('#districtSelect').trigger('change');
-
-        $('#zoneForm').on('submit', function(e) {
-            var selected = $('#districtSelect').val();
-            if (!selected || selected.length === 0) {
-                e.preventDefault();
-                alert('Please select at least one district for this zone.');
-                return false;
-            }
-            return true;
-        });
+                return true;
+            });
+        }
     });
 </script>
 @endpush

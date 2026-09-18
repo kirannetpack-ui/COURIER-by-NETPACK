@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Rider;
 
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
-use App\Models\Wallet;
+use App\Models\RiderEarningsLedger;
+use App\Models\RiderProfile;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,44 +21,42 @@ class EarningsController extends Controller
 
     public function index()
     {
+        /** @var User $rider */
         $rider = Auth::user();
-        $riderId = $rider->id;
+        $profile = $rider->ensureRiderProfile();
 
-        // Get earnings stats
+        // Segregated Earnings from RiderEarningsLedger
+        $earningsLedgers = $profile->earningsLedgers()->with('assignment')->latest()->paginate(15);
+        $totalDeliveryEarnings = (float) $profile->earningsLedgers()->where('type', 'delivery_fee')->sum('amount');
+        $totalBonus = (float) $profile->earningsLedgers()->where('type', 'bonus')->sum('amount');
+        $totalPenalties = (float) $profile->earningsLedgers()->where('type', 'penalty')->sum('amount');
+        $totalWithdrawn = (float) $profile->earningsLedgers()->where('type', 'withdrawal')->sum('amount');
+        $availableBalance = (float) $profile->earnings_balance;
+
+        // Legacy / aggregated stats
         $stats = [
-            'total_earnings' => Delivery::where('rider_id', $riderId)
-                ->where('status', 'delivered')
-                ->sum('delivery_fee'),
-            'today_earnings' => Delivery::where('rider_id', $riderId)
-                ->where('status', 'delivered')
-                ->whereDate('delivered_at', today())
-                ->sum('delivery_fee'),
-            'week_earnings' => Delivery::where('rider_id', $riderId)
-                ->where('status', 'delivered')
-                ->whereBetween('delivered_at', [now()->startOfWeek(), now()->endOfWeek()])
-                ->sum('delivery_fee'),
-            'month_earnings' => Delivery::where('rider_id', $riderId)
-                ->where('status', 'delivered')
-                ->whereMonth('delivered_at', now()->month)
-                ->sum('delivery_fee'),
-            'total_deliveries' => Delivery::where('rider_id', $riderId)
-                ->where('status', 'delivered')
-                ->count(),
-            'pending_deliveries' => Delivery::where('rider_id', $riderId)
-                ->whereIn('status', ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'])
-                ->count(),
+            'total_earnings' => max($totalDeliveryEarnings + $totalBonus, (float) Delivery::where('rider_id', $rider->id)->where('status', 'delivered')->sum('delivery_fee')),
+            'today_earnings' => (float) $profile->earningsLedgers()->whereDate('created_at', today())->whereIn('type', ['delivery_fee', 'bonus'])->sum('amount'),
+            'week_earnings' => (float) $profile->earningsLedgers()->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('amount'),
+            'month_earnings' => (float) $profile->earningsLedgers()->whereMonth('created_at', now()->month)->sum('amount'),
+            'total_deliveries' => max($profile->total_completed_deliveries, Delivery::where('rider_id', $rider->id)->where('status', 'delivered')->count()),
+            'pending_deliveries' => $profile->assignments()->whereIn('status', ['accepted', 'arrived_pickup', 'picked_up', 'in_transit'])->count(),
         ];
 
-        // Get wallet balance
-        $wallet = Wallet::where('user_id', $riderId)->first();
-        $walletBalance = $wallet ? $wallet->balance : 0;
+        // Wallet balance
+        $wallet = Wallet::where('user_id', $rider->id)->first();
+        $walletBalance = $availableBalance ?: ($wallet ? (float) $wallet->balance : 0);
 
-        // Get recent transactions
-        $transactions = Transaction::where('wallet_id', $wallet->id ?? 0)
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-
-        return view('rider.earnings', compact('rider', 'stats', 'walletBalance', 'transactions'));
+        return view('rider.earnings', compact(
+            'rider',
+            'profile',
+            'stats',
+            'walletBalance',
+            'earningsLedgers',
+            'totalDeliveryEarnings',
+            'totalBonus',
+            'totalPenalties',
+            'totalWithdrawn'
+        ));
     }
 }
